@@ -1,0 +1,25 @@
+package message;
+
+option optimize_for = LITE_RUNTIME;
+
+
+/////////////////协议范围 50 ~~~~100
+
+//查找节点请求
+message FindNodeReq{
+	optional int32    MsgType         = 1[default = 1];      //消息是一对,1表示请求，2表示返回
+	optional int32    Timeout         = 2;                   //超时时间，单位秒
+	optional string   NodeId          = 3;                   //节点id
+}
+//查找节点返回
+message FindNodeRsp{
+	optional int32    MsgType         = 1[default = 2];      //消息是一对,1表示请求，2表示返回
+	optional int32    Timeout         = 2;                   //超时时间，单位秒
+	optional string   NodeId          = 3;                   //节点id
+	optional string   tcpAddrPort            = 4;
+	optional string   udpAddrPort            = 4;
+	optional string   Addr            = 4;
+	optional string   Addr            = 4;
+	optional string   Addr            = 4;
+
+}
