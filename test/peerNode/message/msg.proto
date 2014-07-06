@@ -1,0 +1,26 @@
+package message;
+
+option optimize_for = LITE_RUNTIME;
+
+
+/////////////////协议范围 50 ~~~~100
+
+//请求进入游戏 
+message CG_Game_Start_CG
+{
+	optional int32    validateNum     = 1;      //验证码
+	optional uint64   AccID           = 2;
+}
+
+
+//请求进入游戏 返回
+message CG_Game_Start_GC
+{
+	enum GameStartType
+	{
+		eGS_Success = 0;
+		eGS_Failure = 1;
+	}
+
+	optional GameStartType    GS_Type = 2[default = eGS_Success];
+}
