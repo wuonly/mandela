@@ -12,6 +12,147 @@ import (
 	"time"
 )
 
+type NodeManager struct {
+	root           *Node            //
+	isNew          bool             //是否是新节点
+	nodes          map[string]*Node //十进制字符串为键
+	consistentHash *ConsistentHash  //一致性hash表
+	InNodes        chan *Node       //需要更新的节点
+	OutFindNode    chan *Node       //需要查询是否在线的节点
+	Groups         *NodeGroup       //组
+	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
+	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
+}
+
+//定期检查所有节点状态
+func (this *NodeManager) Run() {
+	go this.recv()
+	//向网络中查找自己，通知相关节点自己上线了
+	this.OutFindNode <- this.root
+	count := 0
+	for {
+		if count == 0 {
+			idsInt := this.getNodeNetworkNum()
+			for _, idOne := range idsInt {
+				this.OutFindNode <- &Node{NodeIdShould: idOne}
+			}
+		}
+		//清理离线的节点
+		temp := this.nodes
+		for _, nodeOne := range temp {
+			if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
+				this.delNode(nodeOne)
+			}
+		}
+		if count == 13 {
+			count = 0
+		}
+		time.Sleep(time.Minute * 5)
+		count += 1
+	}
+}
+
+//需要更新的节点
+func (this *NodeManager) recv() {
+	for node := range this.InNodes {
+		this.AddNode(node)
+	}
+}
+
+//定期检查所有节点状态
+// func (this *NodeStore) checkSelf() {
+
+// }
+
+//添加一个节点
+func (this *NodeManager) AddNode(node *Node) {
+	//添加本节点
+	if node.NodeId.Cmp(this.root.NodeId) == 0 {
+		this.nodes[this.root.NodeId.String()] = this.root
+		return
+	}
+	node.LastContactTimestamp = time.Now()
+	this.nodes[node.NodeId.String()] = node
+	this.consistentHash.Add(node.NodeId)
+}
+
+//删除一个节点
+func (this *NodeManager) delNode(node *Node) {
+	this.consistentHash.Del(node.NodeId)
+	delete(this.nodes, node.NodeId.String())
+}
+
+//根据节点id得到一个节点的信息，id为十进制字符串
+func (this *NodeManager) Get(nodeId string) *Node {
+	nodeIdInt, b := new(big.Int).SetString(nodeId, 10)
+	if !b {
+		fmt.Println("节点id格式不正确，应该为十进制字符串")
+	}
+	targetNodeId := this.consistentHash.Get(nodeIdInt)
+	if targetNodeId != nil {
+		return this.nodes[targetNodeId.String()]
+	}
+	return this.root
+}
+
+//得到所有的节点
+func (this *NodeManager) GetAllNodes() map[string]*Node {
+	return this.nodes
+}
+
+//得到本节点id
+func (this *NodeManager) GetRootId() string {
+	return this.root.NodeId.String()
+}
+
+//得到每个节点网络的网络号，不包括本节点
+func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
+	// rootInt, _ := new(big.Int).SetString(, 10)
+	networkNums := make(map[string]*big.Int, 3000)
+	for i := 0; i < NodeIdLevel; i++ {
+		//---------------------------------
+		//将后面的i位置零
+		//---------------------------------
+		startInt := new(big.Int).Lsh(new(big.Int).Rsh(this.root.NodeId, uint(i)), uint(i))
+		//---------------------------------
+		//最后一位取反
+		//---------------------------------
+		networkNum := new(big.Int).Xor(startInt, new(big.Int).Lsh(big.NewInt(1), uint(i)))
+		// fmt.Println("haha", i)
+		// Print(networkNum)
+		// networkNums = append(networkNums, networkNum)
+		networkNums[networkNum.String()] = networkNum
+	}
+	return networkNums
+}
+
+func NewNodeManager(node *Node) *NodeManager {
+	// node := Node{
+	// 	NodeId:  nodeId,
+	// 	IsSuper: IsSuper,
+	// 	Addr:    Addr,
+	// 	TcpPort: TcpPort,
+	// 	UdpPort: UdpPort,
+	// 	// Key:     privateKey,
+	// }
+
+	// fmt.Println("本次创建的nodeid为：", node.NodeId, "私钥：", node.Key)
+	//节点长度为512,深度为513
+	nodeManager := &NodeManager{
+		root:           node,
+		consistentHash: new(ConsistentHash),
+		nodes:          make(map[string]*Node, 1000),
+		OutFindNode:    make(chan *Node, 1000),
+		InNodes:        make(chan *Node, 1000),
+		Groups:         NewNodeGroup(),
+	}
+
+	go nodeManager.Run()
+	return nodeManager
+}
+
+//=====================================================
+
 var (
 	NodeIdLevel       = 256         //节点id二进制长度
 	IsSuper           = false       //是否是超级节点，并且提供代理功能
@@ -89,7 +230,7 @@ func (this *NodeStore) AddNode(node *Node) {
 	node.LastContactTimestamp = time.Now()
 	node.OverTime = 1 * 60 * 60
 	node.SelectTime = 5 * 60
-	go node.timeOut()
+	go node.ticker()
 	this.nodes[node.NodeId.String()] = node
 	this.consistentHash.Add(node.NodeId)
 }

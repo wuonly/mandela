@@ -1,6 +1,6 @@
 package message
 
 const (
-	FindNodeReqNum = iota + 10
+	FindNodeReqNum = iota + 101
 	FindNodeRspNum
 )

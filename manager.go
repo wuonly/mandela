@@ -29,7 +29,7 @@ import (
 type Manager struct {
 	IsRoot           bool
 	nodeStoreManager *NodeStoreManager
-	nodeStore        *nodeStore.NodeStore
+	nodeManager      *nodeStore.NodeManager
 	superNodeIp      string
 	superNodePort    int
 	hostIp           string
@@ -141,9 +141,10 @@ func (this *Manager) initMsgEngine(name string) {
 
 	fmt.Println("本机服务地址：", this.hostIp, ":", this.HostPort)
 	this.serverManager = msgE.NewEngine(name)
+	//注册所有的消息
+	this.registerMsg()
 	this.serverManager.SetAuth(new(Auth))
 	this.serverManager.Listen(this.hostIp, this.HostPort)
-
 }
 
 // // //连接服务器，获得超级节点的ip地址
@@ -178,12 +179,20 @@ func (this *Manager) initMsgEngine(name string) {
 
 //启动分布式哈希表
 func (this *Manager) initPeerNode() {
-	nodeStore.IsSuper = true //是超级节点
-	nodeStore.Addr = this.hostIp
-	nodeStore.TcpPort = this.HostPort
+	// nodeStore.IsSuper = true //是超级节点
+	// nodeStore.Addr = this.hostIp
+	// nodeStore.TcpPort = this.HostPort
 
-	this.nodeStore = nodeStore.NewNodeStore(this.rootId)
-	this.serverManager.GetController().SetAttribute("peerNode", this.nodeStore)
+	node := &nodeStore.Node{
+		NodeId:  this.rootId,
+		IsSuper: true, //是超级节点
+		Addr:    this.hostIp,
+		TcpPort: this.HostPort,
+		UdpPort: 0,
+	}
+
+	this.nodeManager = nodeStore.NewNodeManager(node)
+	this.serverManager.GetController().SetAttribute("nodeStore", this.nodeManager)
 	// this.serverManager.GetController().SetAttribute("nodeInQueue", this.nodeStore.InNodes)
 	// msgE.Name = this.nodeStore.GetRootId()
 }
@@ -200,10 +209,10 @@ func (this *Manager) initPeerNode() {
 func (this *Manager) read() {
 	clientConn, _ := this.serverManager.GetController().GetSession(this.rootId.String())
 	for {
-		node := <-this.nodeStore.OutFindNode
+		node := <-this.nodeManager.OutFindNode
 		if node.NodeId != nil {
 			findNodeOne := &msg.FindNodeReq{
-				NodeId: proto.String(this.nodeStore.GetRootId()),
+				NodeId: proto.String(this.nodeManager.GetRootId()),
 				FindId: proto.String(node.NodeId.String()),
 			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
@@ -213,7 +222,7 @@ func (this *Manager) read() {
 		}
 		if node.NodeIdShould != nil {
 			findNodeOne := &msg.FindNodeReq{
-				NodeId: proto.String(this.nodeStore.GetRootId()),
+				NodeId: proto.String(this.nodeManager.GetRootId()),
 				FindId: proto.String(node.NodeIdShould.String()),
 			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)

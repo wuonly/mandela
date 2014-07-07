@@ -37,7 +37,7 @@ name：连接名称
 */
 
 //发送
-func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (err error) {
+func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (string, error) {
 
 	lenght := int32(len(name))
 	buf := bytes.NewBuffer([]byte{})
@@ -46,7 +46,7 @@ func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (e
 	buf.Write([]byte(name))
 	conn.Write(buf.Bytes())
 
-	return
+	return name, nil
 }
 
 //接收

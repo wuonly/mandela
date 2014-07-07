@@ -2,6 +2,7 @@ package nodeStore
 
 import (
 	// "crypto/rsa"
+	"fmt"
 	"math/big"
 	"time"
 )
@@ -16,7 +17,7 @@ type Node struct {
 	Addr                 string        //外网ip地址
 	TcpPort              int32         //TCP端口
 	UdpPort              int32         //UDP端口
-	LastContactTimestamp time.Time     //最后联系的时间戳
+	LastContactTimestamp time.Time     //最后检查的时间戳
 	Status               int           //节点状态，1：在线，2：正在查询中，3：下线
 	Out                  chan *Node    //需要查询是否在线的节点
 	OverTime             time.Duration `1 * 60 * 60` //超时时间，单位为秒
@@ -37,6 +38,7 @@ func (this *Node) ticker() {
 
 //节点发送查询请求5分钟没有回应的，标记为节点下线
 func (this *Node) timeOut() {
+	fmt.Println("timeout")
 	time.Sleep(time.Second * this.SelectTime)
 	switch this.Status {
 	case 2:
