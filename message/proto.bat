@@ -13,5 +13,6 @@ protoc --go_out=. common.proto
 protoc --go_out=. msg.proto
 protoc --go_out=. node.proto
 ::protoc --python_out=. msg.proto
+protoc --go_out=. store.proto
 
 pause

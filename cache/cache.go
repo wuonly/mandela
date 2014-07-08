@@ -1,4 +1,4 @@
-package nodeStore
+package cache
 
 import (
 	"container/list"

@@ -37,7 +37,7 @@ type Manager struct {
 	rootId           *big.Int
 	privateKey       *rsa.PrivateKey
 	upnp             *upnp.Upnp
-	serverManager    *msgE.Engine
+	engine           *msgE.Engine
 }
 
 func (this *Manager) Run() error {
@@ -55,7 +55,7 @@ func (this *Manager) Run() error {
 		}
 		this.initPeerNode()
 		//自己连接自己
-		this.serverManager.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort)
+		this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort)
 	} else {
 		//加载本地超级节点列表，
 		// this.nodeStore = NewNodeStoreManager()
@@ -80,7 +80,7 @@ func (this *Manager) Run() error {
 		if err != nil {
 			return err
 		}
-		this.serverManager.AddClientConn(this.rootId.String(), hotsAndPost[0], int32(port))
+		this.engine.AddClientConn(this.rootId.String(), hotsAndPost[0], int32(port))
 	}
 	go this.read()
 	return nil
@@ -140,11 +140,11 @@ func (this *Manager) initMsgEngine(name string) {
 	this.HostPort = int32(hostPort)
 
 	fmt.Println("本机服务地址：", this.hostIp, ":", this.HostPort)
-	this.serverManager = msgE.NewEngine(name)
+	this.engine = msgE.NewEngine(name)
 	//注册所有的消息
 	this.registerMsg()
-	this.serverManager.SetAuth(new(Auth))
-	this.serverManager.Listen(this.hostIp, this.HostPort)
+	this.engine.SetAuth(new(Auth))
+	this.engine.Listen(this.hostIp, this.HostPort)
 }
 
 // // //连接服务器，获得超级节点的ip地址
@@ -192,22 +192,22 @@ func (this *Manager) initPeerNode() {
 	}
 
 	this.nodeManager = nodeStore.NewNodeManager(node)
-	this.serverManager.GetController().SetAttribute("nodeStore", this.nodeManager)
-	// this.serverManager.GetController().SetAttribute("nodeInQueue", this.nodeStore.InNodes)
+	this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
+	// this.engine.GetController().SetAttribute("nodeInQueue", this.nodeStore.InNodes)
 	// msgE.Name = this.nodeStore.GetRootId()
 }
 
 // //连接超级节点
 // func (this *Manager) connSuperPeer() {
-// 	this.serverManager.AddClientConn("firstConnPeer", this.superNodeIp, int32(this.superNodePort))
-// 	clientConn := this.serverManager.GetController().GetClientByName("firstConnPeer")
+// 	this.engine.AddClientConn("firstConnPeer", this.superNodeIp, int32(this.superNodePort))
+// 	clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
 // 	fmt.Println("++", clientConn)
 // }
 
 //处理查找节点的请求
 //本节点定期查询已知节点是否在线，更新节点信息
 func (this *Manager) read() {
-	clientConn, _ := this.serverManager.GetController().GetSession(this.rootId.String())
+	clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
 	for {
 		node := <-this.nodeManager.OutFindNode
 		if node.NodeId != nil {
@@ -216,7 +216,7 @@ func (this *Manager) read() {
 				FindId: proto.String(node.NodeId.String()),
 			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
-			// clientConn := this.serverManager.GetController().GetClientByName("firstConnPeer")
+			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
 			// fmt.Println(clientConn)
 			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
 		}
@@ -226,8 +226,13 @@ func (this *Manager) read() {
 				FindId: proto.String(node.NodeIdShould.String()),
 			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
-			// clientConn := this.serverManager.GetController().GetClientByName("firstConnPeer")
+			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
 			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
 		}
 	}
+}
+
+//保存一个键值对
+func (this *Manager) SaveData(key, value string) {
+	// this.engine.
 }
