@@ -7,6 +7,8 @@ import (
 
 func (this *Manager) registerMsg() {
 	nodeManager := new(service.NodeManager)
-	this.serverManager.RegisterMsg(message.FindNodeReqNum, nodeManager.FindNodeReq)
-	this.serverManager.RegisterMsg(message.FindNodeRspNum, nodeManager.FindNodeRsp)
+	this.engine.RegisterMsg(message.FindNodeReqNum, nodeManager.FindNodeReq)
+	this.engine.RegisterMsg(message.FindNodeRspNum, nodeManager.FindNodeRsp)
+	dataStore := new(service.DataStore)
+	this.engine.RegisterMsg(message.SaveKeyValueReqNum, dataStore.SaveDataReq)
 }

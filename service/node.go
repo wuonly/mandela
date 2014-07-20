@@ -17,6 +17,7 @@ import (
 type NodeManager struct {
 }
 
+//
 //处理查找节点请求
 func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) {
 	findNode := new(message.FindNodeReq)

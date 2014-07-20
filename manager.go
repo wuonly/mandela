@@ -2,20 +2,16 @@ package mandela
 
 import (
 	"code.google.com/p/goprotobuf/proto"
-	"fmt"
-	// "github.com/astaxie/beego"
+	"crypto/rand"
 	"crypto/rsa"
+	"fmt"
+	"github.com/prestonTao/mandela/cache"
 	msg "github.com/prestonTao/mandela/message"
-	msgE "github.com/prestonTao/messageEngine"
-	// _ "mandela/peerNode/msgServer"
-	// "encoding/json"
-	// "io/ioutil"
 	"github.com/prestonTao/mandela/nodeStore"
+	msgE "github.com/prestonTao/messageEngine"
 	"github.com/prestonTao/upnp"
 	"math/big"
 	"net"
-	// "os"
-	"crypto/rand"
 	"strconv"
 	"strings"
 )
@@ -38,6 +34,7 @@ type Manager struct {
 	privateKey       *rsa.PrivateKey
 	upnp             *upnp.Upnp
 	engine           *msgE.Engine
+	cache            *cache.Memcache
 }
 
 func (this *Manager) Run() error {
@@ -82,6 +79,8 @@ func (this *Manager) Run() error {
 		}
 		this.engine.AddClientConn(this.rootId.String(), hotsAndPost[0], int32(port))
 	}
+	this.cache = cache.NewMencache()
+	this.engine.GetController().SetAttribute("cache", this.cache)
 	go this.read()
 	return nil
 }
@@ -234,5 +233,7 @@ func (this *Manager) read() {
 
 //保存一个键值对
 func (this *Manager) SaveData(key, value string) {
-	// this.engine.
+	clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
+	data := []byte(key + "!" + value)
+	clientConn.Send(msg.SaveKeyValueReqNum, &data)
 }

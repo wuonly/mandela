@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/prestonTao/mandela"
 	"os"
+	// "time"
 )
 
 func main() {
@@ -21,6 +22,9 @@ func StartUP() {
 	m.Run()
 	running := true
 	reader := bufio.NewReader(os.Stdin)
+
+	// time.Sleep(time.S)
+	m.SaveData("tao", "hongfei")
 
 	for running {
 		data, _, _ := reader.ReadLine()
