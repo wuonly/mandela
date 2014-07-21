@@ -68,8 +68,8 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 	_, ok := c.GetSession(*recvNode.NodeId)
 
 	if !ok {
-		fmt.Println(*recvNode.NodeId, "    ", ok)
-		c.GetNet().AddClientConn(*recvNode.NodeId, *recvNode.Addr, store.GetRootId(), *recvNode.TcpPort, false, nil)
+		fmt.Println(*recvNode.NodeId)
+		c.GetNet().AddClientConn(*recvNode.NodeId, *recvNode.Addr, store.GetRootId(), *recvNode.TcpPort, false)
 	}
 
 	// newNode

@@ -3,8 +3,11 @@ package mandela
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"github.com/prestonTao/mandela/nodeStore"
 	engine "github.com/prestonTao/messageEngine"
 	"io"
+	"math/big"
 	"net"
 )
 
@@ -13,6 +16,7 @@ const (
 )
 
 type Auth struct {
+	nodeManager *nodeStore.NodeManager
 }
 
 /*
@@ -62,5 +66,18 @@ func (this *Auth) RecvKey(conn net.Conn) (name string, err error) {
 		return
 	}
 	name = string(nameByte[:n])
+
+	node := new(nodeStore.Node)
+	nodeIdInt, b := new(big.Int).SetString(name, 10)
+	if !b {
+		// fmt.Println("节点id格式不正确，应该为十进制字符串")
+		err = errors.New("节点id格式不正确，应该为十进制字符串")
+		return
+	}
+	node.NodeId = nodeIdInt
+	node.Addr = conn.RemoteAddr().String()
+	// node.TcpPort = conn.RemoteAddr()
+
+	this.nodeManager.AddNode(node)
 	return
 }
