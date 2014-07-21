@@ -37,6 +37,16 @@ type Manager struct {
 	cache            *cache.Memcache
 }
 
+//-------------------------------------------------------
+// 1.加载本地超级节点列表，
+//   启动消息服务器，
+//   连接超级节点发布服务器，得到超级节点的ip地址及端口
+//   加载本地密钥和节点id，或随机生成节点id
+// 3.连接超级节点
+//   使用upnp添加一个端口映射
+// 4.注册节点id
+//   处理查找节点的请求
+//-------------------------------------------------------
 func (this *Manager) Run() error {
 	if this.IsRoot {
 		//随机产生一个nodeid
@@ -52,7 +62,7 @@ func (this *Manager) Run() error {
 		}
 		this.initPeerNode()
 		//自己连接自己
-		this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort)
+		this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false, nil)
 	} else {
 		//加载本地超级节点列表，
 		// this.nodeStore = NewNodeStoreManager()
@@ -77,55 +87,13 @@ func (this *Manager) Run() error {
 		if err != nil {
 			return err
 		}
-		this.engine.AddClientConn(this.rootId.String(), hotsAndPost[0], int32(port))
+		this.engine.AddClientConn("superNode", hotsAndPost[0], int32(port), false, nil)
 	}
 	this.cache = cache.NewMencache()
 	this.engine.GetController().SetAttribute("cache", this.cache)
 	go this.read()
 	return nil
 }
-
-//-------------------------------------------------------
-// 1.加载本地超级节点列表，
-//   启动消息服务器，
-//   连接超级节点发布服务器，得到超级节点的ip地址及端口
-//   加载本地密钥和节点id，或随机生成节点id
-// 3.连接超级节点
-//   使用upnp添加一个端口映射
-// 4.注册节点id
-//   处理查找节点的请求
-//-------------------------------------------------------
-
-// func (this *Manager) loadPrivateKey() {
-// 	filePath := "conf/private.key"
-
-// 	//先加载本地的私钥
-// 	fileBytes, err := ioutil.ReadFile(filePath)
-// 	if err != nil {
-// 		//本地没有私钥，创建一个
-// 		//随机产生一个nodeid
-// 		this.rootId = RandNodeId(NodeIdLevel)
-// 		//生成密钥
-// 		this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-// 		if err != nil {
-// 			fmt.Println("生成密钥错误", err.Error())
-// 			return nil
-// 		}
-// 	} else {
-// 		var keyBytes bytes.Buffer
-// 		keyBytes.Write(fileBytes)
-// 		dec := gob.NewDecoder(&keyBytes)
-// 		key := &PrivateKey{}
-// 		err := dec.Decode(key)
-// 		if err != nil {
-// 			fmt.Println("密钥文件损坏")
-// 			return nil
-// 		}
-// 		this.rootId, _ = new(big.Int).SetString(key.NodeId, 10)
-// 		this.privateKey = &key.PrivateKey
-// 	}
-
-// }
 
 //启动消息服务器
 func (this *Manager) initMsgEngine(name string) {
@@ -138,7 +106,6 @@ func (this *Manager) initMsgEngine(name string) {
 	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
 	this.HostPort = int32(hostPort)
 
-	fmt.Println("本机服务地址：", this.hostIp, ":", this.HostPort)
 	this.engine = msgE.NewEngine(name)
 	//注册所有的消息
 	this.registerMsg()
@@ -206,10 +173,20 @@ func (this *Manager) initPeerNode() {
 //处理查找节点的请求
 //本节点定期查询已知节点是否在线，更新节点信息
 func (this *Manager) read() {
-	clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
+	// clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
 	for {
 		node := <-this.nodeManager.OutFindNode
 		if node.NodeId != nil {
+			remote := this.nodeManager.Get(node.NodeId.String())
+			var clientConn msgE.Session
+			if remote == nil {
+				clientConn, _ = this.engine.GetController().GetSession("superNode")
+				if clientConn == nil {
+					continue
+				}
+			} else {
+				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+			}
 			findNodeOne := &msg.FindNodeReq{
 				NodeId: proto.String(this.nodeManager.GetRootId()),
 				FindId: proto.String(node.NodeId.String()),
@@ -220,12 +197,26 @@ func (this *Manager) read() {
 			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
 		}
 		if node.NodeIdShould != nil {
+			remote := this.nodeManager.Get(node.NodeIdShould.String())
+			var clientConn msgE.Session
+			if remote == nil {
+				clientConn, _ = this.engine.GetController().GetSession("superNode")
+				if clientConn == nil {
+					continue
+				}
+			} else {
+				// fmt.Println(remote.NodeId.String())
+				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+			}
+			// fmt.Println(remote.NodeId.String())
+			// clientConn, _ := this.engine.GetController().GetSession(remote.NodeId.String())
 			findNodeOne := &msg.FindNodeReq{
 				NodeId: proto.String(this.nodeManager.GetRootId()),
 				FindId: proto.String(node.NodeIdShould.String()),
 			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
 			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
+			// fmt.Println(clientConn, "-0-\n")
 			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
 		}
 	}
@@ -233,7 +224,7 @@ func (this *Manager) read() {
 
 //保存一个键值对
 func (this *Manager) SaveData(key, value string) {
-	clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
+	clientConn, _ := this.engine.GetController().GetSession("superNode")
 	data := []byte(key + "!" + value)
 	clientConn.Send(msg.SaveKeyValueReqNum, &data)
 }

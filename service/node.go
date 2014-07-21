@@ -2,6 +2,7 @@ package service
 
 import (
 	"code.google.com/p/goprotobuf/proto"
+	"fmt"
 	"github.com/prestonTao/mandela/message"
 	"github.com/prestonTao/mandela/nodeStore"
 	engine "github.com/prestonTao/messageEngine"
@@ -25,6 +26,11 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 	nodeStore := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
 	targetNode := nodeStore.Get(findNode.GetFindId())
+
+	if targetNode == nil {
+		targetNode = nodeStore.Root
+	}
+
 	// fmt.Println("查找到：", targetNode.NodeId.String())
 	rspMsg := message.FindNodeRsp{
 		NodeId:  proto.String(targetNode.NodeId.String()),
@@ -57,6 +63,13 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 		IsSuper:      !*recvNode.IsProxy,
 		TcpPort:      int32(*recvNode.TcpPort),
 		UdpPort:      int32(*recvNode.UdpPort),
+	}
+	// fmt.Println(*recvNode.NodeId)
+	_, ok := c.GetSession(*recvNode.NodeId)
+
+	if !ok {
+		fmt.Println(*recvNode.NodeId, "    ", ok)
+		c.GetNet().AddClientConn(*recvNode.NodeId, *recvNode.Addr, store.GetRootId(), *recvNode.TcpPort, false, nil)
 	}
 
 	// newNode

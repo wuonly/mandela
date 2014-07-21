@@ -13,7 +13,7 @@ import (
 )
 
 type NodeManager struct {
-	root           *Node            //
+	Root           *Node            //
 	isNew          bool             //是否是新节点
 	nodes          map[string]*Node //十进制字符串为键
 	consistentHash *ConsistentHash  //一致性hash表
@@ -25,10 +25,12 @@ type NodeManager struct {
 }
 
 //定期检查所有节点状态
+//一个小时查询所有应该有的节点
+//5分钟清理一次已经不在线的节点
 func (this *NodeManager) Run() {
 	go this.recv()
 	//向网络中查找自己，通知相关节点自己上线了
-	this.OutFindNode <- this.root
+	this.OutFindNode <- this.Root
 	count := 0
 	for {
 		if count == 0 {
@@ -65,10 +67,11 @@ func (this *NodeManager) recv() {
 // }
 
 //添加一个节点
+//不保存本节点
 func (this *NodeManager) AddNode(node *Node) {
-	//添加本节点
-	if node.NodeId.Cmp(this.root.NodeId) == 0 {
-		this.nodes[this.root.NodeId.String()] = this.root
+	//是本身节点不添加
+	if node.NodeId.Cmp(this.Root.NodeId) == 0 {
+		// this.nodes[this.root.NodeId.String()] = this.root
 		return
 	}
 	node.LastContactTimestamp = time.Now()
@@ -83,26 +86,29 @@ func (this *NodeManager) delNode(node *Node) {
 }
 
 //根据节点id得到一个节点的信息，id为十进制字符串
+//不包括本节点
+//返回可能为空
 func (this *NodeManager) Get(nodeId string) *Node {
 	nodeIdInt, b := new(big.Int).SetString(nodeId, 10)
 	if !b {
 		fmt.Println("节点id格式不正确，应该为十进制字符串")
 	}
 	targetNodeId := this.consistentHash.Get(nodeIdInt)
+
 	if targetNodeId != nil {
 		return this.nodes[targetNodeId.String()]
 	}
-	return this.root
+	return nil
 }
 
-//得到所有的节点
+//得到所有的节点，不包括本节点
 func (this *NodeManager) GetAllNodes() map[string]*Node {
 	return this.nodes
 }
 
-//得到本节点id
+//得到本节点id十进制字符串
 func (this *NodeManager) GetRootId() string {
-	return this.root.NodeId.String()
+	return this.Root.NodeId.String()
 }
 
 //得到每个节点网络的网络号，不包括本节点
@@ -113,7 +119,7 @@ func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
 		//---------------------------------
 		//将后面的i位置零
 		//---------------------------------
-		startInt := new(big.Int).Lsh(new(big.Int).Rsh(this.root.NodeId, uint(i)), uint(i))
+		startInt := new(big.Int).Lsh(new(big.Int).Rsh(this.Root.NodeId, uint(i)), uint(i))
 		//---------------------------------
 		//最后一位取反
 		//---------------------------------
@@ -139,7 +145,7 @@ func NewNodeManager(node *Node) *NodeManager {
 	// fmt.Println("本次创建的nodeid为：", node.NodeId, "私钥：", node.Key)
 	//节点长度为512,深度为513
 	nodeManager := &NodeManager{
-		root:           node,
+		Root:           node,
 		consistentHash: new(ConsistentHash),
 		nodes:          make(map[string]*Node, 1000),
 		OutFindNode:    make(chan *Node, 1000),
