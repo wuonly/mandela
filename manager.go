@@ -91,7 +91,7 @@ func (this *Manager) Run() error {
 			TcpPort: this.HostPort,
 			UdpPort: 0,
 		}
-		this.nodeManager = nodeStore.NewNodeManager(node)
+		this.nodeManager = nodeStore.NewNodeManager(node, 256)
 		//---------------------------------------------------------------
 		//  end
 		//---------------------------------------------------------------
@@ -155,7 +155,7 @@ func (this *Manager) Run() error {
 			TcpPort: this.HostPort,
 			UdpPort: 0,
 		}
-		this.nodeManager = nodeStore.NewNodeManager(node)
+		this.nodeManager = nodeStore.NewNodeManager(node, 256)
 		//---------------------------------------------------------------
 		//  end
 		//---------------------------------------------------------------
@@ -177,6 +177,8 @@ func (this *Manager) Run() error {
 			return err
 		}
 		this.engine.AddClientConn("superNode", hotsAndPost[0], int32(port), false)
+		//给目标机器发送自己的名片
+
 	}
 	this.cache = cache.NewMencache()
 	this.engine.GetController().SetAttribute("cache", this.cache)
@@ -248,7 +250,7 @@ func (this *Manager) initPeerNode() {
 		UdpPort: 0,
 	}
 
-	this.nodeManager = nodeStore.NewNodeManager(node)
+	this.nodeManager = nodeStore.NewNodeManager(node, 256)
 	this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
 	// this.engine.GetController().SetAttribute("nodeInQueue", this.nodeStore.InNodes)
 	// msgE.Name = this.nodeStore.GetRootId()
@@ -268,7 +270,7 @@ func (this *Manager) read() {
 	for {
 		node := <-this.nodeManager.OutFindNode
 		if node.NodeId != nil {
-			remote := this.nodeManager.Get(node.NodeId.String())
+			remote := this.nodeManager.Get(node.NodeId.String(), false, "")
 			var clientConn msgE.Session
 			if remote == nil {
 				clientConn, _ = this.engine.GetController().GetSession("superNode")
@@ -288,7 +290,7 @@ func (this *Manager) read() {
 			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
 		}
 		if node.NodeIdShould != nil {
-			remote := this.nodeManager.Get(node.NodeIdShould.String())
+			remote := this.nodeManager.Get(node.NodeIdShould.String(), false, "")
 			var clientConn msgE.Session
 			if remote == nil {
 				clientConn, _ = this.engine.GetController().GetSession("superNode")

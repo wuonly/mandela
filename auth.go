@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/prestonTao/mandela/nodeStore"
 	engine "github.com/prestonTao/messageEngine"
 	"io"
@@ -67,17 +68,18 @@ func (this *Auth) RecvKey(conn net.Conn) (name string, err error) {
 	}
 	name = string(nameByte[:n])
 
-	node := new(nodeStore.Node)
-	nodeIdInt, b := new(big.Int).SetString(name, 10)
-	if !b {
-		// fmt.Println("节点id格式不正确，应该为十进制字符串")
-		err = errors.New("节点id格式不正确，应该为十进制字符串")
-		return
-	}
-	node.NodeId = nodeIdInt
-	node.Addr = conn.RemoteAddr().String()
-	// node.TcpPort = conn.RemoteAddr()
+	// node := new(nodeStore.Node)
+	// nodeIdInt, b := new(big.Int).SetString(name, 10)
+	// if !b {
+	// 	// fmt.Println("节点id格式不正确，应该为十进制字符串")
+	// 	err = errors.New("节点id格式不正确，应该为十进制字符串")
+	// 	return
+	// }
+	// node.NodeId = nodeIdInt
+	// node.Addr = conn.RemoteAddr().String()
+	// // node.TcpPort = conn.RemoteAddr()
+	// fmt.Println("huhuihuihui", conn.RemoteAddr().String())
 
-	this.nodeManager.AddNode(node)
+	// this.nodeManager.AddNode(node)
 	return
 }

@@ -18,6 +18,16 @@ import (
 type NodeManager struct {
 }
 
+//连接到服务器后发送自己的名片
+func (this *NodeManager) IntroduceSelfReq() {
+
+}
+
+//连接到本机后，目标机器会给自己发送它的名片
+func (this *NodeManager) IntroduceSelfRsp() {
+
+}
+
 //
 //处理查找节点请求
 func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) {
@@ -25,7 +35,7 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 	proto.Unmarshal(msg.Date, findNode)
 	nodeStore := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
-	targetNode := nodeStore.Get(findNode.GetFindId())
+	targetNode := nodeStore.Get(findNode.GetFindId(), true, msg.Name)
 
 	if targetNode == nil {
 		targetNode = nodeStore.Root
