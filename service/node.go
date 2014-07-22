@@ -2,7 +2,7 @@ package service
 
 import (
 	"code.google.com/p/goprotobuf/proto"
-	"fmt"
+	// "fmt"
 	"github.com/prestonTao/mandela/message"
 	"github.com/prestonTao/mandela/nodeStore"
 	engine "github.com/prestonTao/messageEngine"
@@ -18,14 +18,34 @@ import (
 type NodeManager struct {
 }
 
-//连接到服务器后发送自己的名片
-func (this *NodeManager) IntroduceSelfReq() {
-
-}
-
 //连接到本机后，目标机器会给自己发送它的名片
-func (this *NodeManager) IntroduceSelfRsp() {
+func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPacket) {
+	recvNode := new(message.FindNodeRsp)
+	proto.Unmarshal(msg.Date, recvNode)
+	// fmt.Println("接收到：", *recvNode.NodeId)
+	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
+	nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
+	newNode := &nodeStore.Node{
+		NodeId:  nodeIdInt,
+		Addr:    *recvNode.Addr,
+		IsSuper: !*recvNode.IsProxy,
+		TcpPort: int32(*recvNode.TcpPort),
+		UdpPort: int32(*recvNode.UdpPort),
+	}
+
+	isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
+	// fmt.Println("这个节点是否需要：", isNeed)
+	if isNeed {
+		store.AddNode(newNode)
+		c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
+		if replace != "" {
+			//删除原来的连接
+			if session, ok := c.GetSession(replace); ok {
+				session.Close()
+			}
+		}
+	}
 }
 
 //
@@ -75,15 +95,28 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 		UdpPort:      int32(*recvNode.UdpPort),
 	}
 	// fmt.Println(*recvNode.NodeId)
-	_, ok := c.GetSession(*recvNode.NodeId)
+	// _, ok := c.GetSession(*recvNode.NodeId)
 
-	if !ok {
-		fmt.Println(*recvNode.NodeId)
-		c.GetNet().AddClientConn(*recvNode.NodeId, *recvNode.Addr, store.GetRootId(), *recvNode.TcpPort, false)
+	// if !ok {
+	// 	fmt.Println(*recvNode.NodeId)
+	// 	c.GetNet().AddClientConn(*recvNode.NodeId, *recvNode.Addr, store.GetRootId(), *recvNode.TcpPort, false)
+	// }
+
+	// // newNode
+	// store.AddNode(newNode)
+
+	isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
+	// fmt.Println("这个节点是否需要：", isNeed)
+	if isNeed {
+		store.AddNode(newNode)
+		c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
+		if replace != "" {
+			//删除原来的连接
+			if session, ok := c.GetSession(replace); ok {
+				session.Close()
+			}
+		}
 	}
-
-	// newNode
-	store.AddNode(newNode)
 }
 
 //注册节点请求

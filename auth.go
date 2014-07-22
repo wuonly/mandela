@@ -3,12 +3,12 @@ package mandela
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
-	"fmt"
+	// "errors"
+	// "fmt"
 	"github.com/prestonTao/mandela/nodeStore"
 	engine "github.com/prestonTao/messageEngine"
 	"io"
-	"math/big"
+	// "math/big"
 	"net"
 )
 

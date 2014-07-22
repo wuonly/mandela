@@ -178,12 +178,27 @@ func (this *Manager) Run() error {
 		}
 		this.engine.AddClientConn("superNode", hotsAndPost[0], int32(port), false)
 		//给目标机器发送自己的名片
-
+		this.introduceSelf()
 	}
 	this.cache = cache.NewMencache()
 	this.engine.GetController().SetAttribute("cache", this.cache)
 	go this.read()
 	return nil
+}
+
+//连接超级节点后，向超级节点介绍自己
+func (this *Manager) introduceSelf() {
+	nodeMsg := msg.FindNodeRsp{
+		NodeId:  proto.String(this.nodeManager.GetRootId()),
+		Addr:    proto.String(this.hostIp),
+		IsProxy: proto.Bool(this.nodeManager.Root.IsSuper),
+		TcpPort: proto.Int32(this.HostPort),
+		UdpPort: proto.Int32(this.HostPort),
+	}
+	resultBytes, _ := proto.Marshal(&nodeMsg)
+	session, _ := this.engine.GetController().GetSession("superNode")
+	session.Send(msg.IntroduceSelf, &resultBytes)
+	fmt.Println("发送名片完成")
 }
 
 //启动消息服务器

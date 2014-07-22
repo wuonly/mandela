@@ -44,7 +44,7 @@ func (this *NodeManager) Run() {
 		temp := this.nodes
 		for _, nodeOne := range temp {
 			if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
-				this.delNode(nodeOne)
+				this.DelNode(nodeOne)
 			}
 		}
 		if count == 13 {
@@ -82,7 +82,7 @@ func (this *NodeManager) AddNode(node *Node) {
 }
 
 //删除一个节点
-func (this *NodeManager) delNode(node *Node) {
+func (this *NodeManager) DelNode(node *Node) {
 	this.consistentHash.Del(node.NodeId)
 	delete(this.nodes, node.NodeId.String())
 }
