@@ -107,7 +107,7 @@ func (this *Manager) Run() error {
 		//  end
 		//---------------------------------------------------------------
 		//自己连接自己
-		this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false)
+		// this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false)
 	} else {
 		//加载本地超级节点列表，
 		// this.nodeStore = NewNodeStoreManager()
@@ -165,6 +165,7 @@ func (this *Manager) Run() error {
 		auth := new(Auth)
 		auth.nodeManager = this.nodeManager
 		this.engine.SetAuth(auth)
+		this.engine.SetCloseCallback(this.closeConnCallback)
 		this.engine.Listen(this.hostIp, this.HostPort)
 		this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
 		//---------------------------------------------------------------
@@ -198,7 +199,18 @@ func (this *Manager) introduceSelf() {
 	resultBytes, _ := proto.Marshal(&nodeMsg)
 	session, _ := this.engine.GetController().GetSession("superNode")
 	session.Send(msg.IntroduceSelf, &resultBytes)
-	fmt.Println("发送名片完成")
+	// fmt.Println("发送名片完成")
+}
+
+//一个连接断开后的回调方法
+func (this *Manager) closeConnCallback(name string) {
+	fmt.Println("客户端离线：", name)
+	if name == "superNode" {
+		return
+	}
+	delNode := new(nodeStore.Node)
+	delNode.NodeId, _ = new(big.Int).SetString(name, 10)
+	this.nodeManager.DelNode(delNode)
 }
 
 //启动消息服务器
@@ -302,7 +314,10 @@ func (this *Manager) read() {
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
 			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
 			// fmt.Println(clientConn)
-			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
+			err := clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
+			if err != nil {
+				fmt.Println("manager发送数据出错：", err.Error())
+			}
 		}
 		if node.NodeIdShould != nil {
 			remote := this.nodeManager.Get(node.NodeIdShould.String(), false, "")
@@ -313,8 +328,11 @@ func (this *Manager) read() {
 					continue
 				}
 			} else {
-				// fmt.Println(remote.NodeId.String())
 				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+				if clientConn == nil {
+					// fmt.Println(remote.NodeId.String())
+					continue
+				}
 			}
 			// fmt.Println(remote.NodeId.String())
 			// clientConn, _ := this.engine.GetController().GetSession(remote.NodeId.String())
@@ -325,7 +343,10 @@ func (this *Manager) read() {
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
 			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
 			// fmt.Println(clientConn, "-0-\n")
-			clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
+			err := clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
+			if err != nil {
+				fmt.Println("manager发送数据出错：", err.Error())
+			}
 		}
 	}
 }
@@ -335,4 +356,19 @@ func (this *Manager) SaveData(key, value string) {
 	clientConn, _ := this.engine.GetController().GetSession("superNode")
 	data := []byte(key + "!" + value)
 	clientConn.Send(msg.SaveKeyValueReqNum, &data)
+}
+
+//给所有客户端发送消息
+func (this *Manager) SendMsgForAll(message string) {
+	for idOne, _ := range this.nodeManager.GetAllNodes() {
+		clientConn, _ := this.engine.GetController().GetSession(idOne)
+		if clientConn == nil {
+			continue
+		}
+		data := []byte(message)
+		err := clientConn.Send(msg.SaveKeyValueReqNum, &data)
+		if err != nil {
+			continue
+		}
+	}
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func TestNodeManager(t *testing.T) {
-	// nodeManagerTest()
+	nodeManagerTest()
 }
 
 func nodeManagerTest() {
@@ -25,8 +25,18 @@ func nodeManagerTest() {
 	}
 
 	nodeManager := NewNodeManager(node, 4)
-	ok, _ := nodeManager.CheckNeedNode("9")
-	fmt.Println(ok)
+
+	idA, _ := new(big.Int).SetString("1", 10)
+	idB, _ := new(big.Int).SetString("4", 10)
+	idC, _ := new(big.Int).SetString("10", 10)
+	idD, _ := new(big.Int).SetString("13", 10)
+
+	nodeManager.AddNode(&Node{NodeId: idA})
+	nodeManager.AddNode(&Node{NodeId: idB})
+	nodeManager.AddNode(&Node{NodeId: idC})
+	nodeManager.AddNode(&Node{NodeId: idD})
+	ok, repl := nodeManager.CheckNeedNode("9")
+	fmt.Println(ok, repl)
 
 }
 

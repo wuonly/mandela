@@ -2,7 +2,7 @@ package service
 
 import (
 	"code.google.com/p/goprotobuf/proto"
-	// "fmt"
+	"fmt"
 	"github.com/prestonTao/mandela/message"
 	"github.com/prestonTao/mandela/nodeStore"
 	engine "github.com/prestonTao/messageEngine"
@@ -41,8 +41,14 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 		c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
 		if replace != "" {
 			//删除原来的连接
+			fmt.Println("替换原有的连接：", replace)
 			if session, ok := c.GetSession(replace); ok {
 				session.Close()
+
+				delNode := new(nodeStore.Node)
+				delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
+				store.DelNode(delNode)
+				fmt.Println("替换成功")
 			}
 		}
 	}
@@ -72,8 +78,15 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 	}
 
 	resultBytes, _ := proto.Marshal(&rspMsg)
-	session, _ := c.GetSession(msg.Name)
-	session.Send(message.FindNodeRspNum, &resultBytes)
+	session, ok := c.GetSession(msg.Name)
+	if !ok {
+		fmt.Println("这个session已经不存在了")
+		return
+	}
+	err := session.Send(message.FindNodeRspNum, &resultBytes)
+	if err != nil {
+		fmt.Println("node发送数据出错：", err.Error())
+	}
 	// c.GetNet().Send(msg., message.FindNodeRspNum, resultBytes)
 }
 
@@ -111,9 +124,14 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 		store.AddNode(newNode)
 		c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
 		if replace != "" {
+			fmt.Println("替换原有的连接：", replace)
 			//删除原来的连接
 			if session, ok := c.GetSession(replace); ok {
 				session.Close()
+				delNode := new(nodeStore.Node)
+				delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
+				store.DelNode(delNode)
+				fmt.Println("替换成功")
 			}
 		}
 	}

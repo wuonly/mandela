@@ -32,26 +32,18 @@ func (this *NodeManager) Run() {
 	go this.recv()
 	//向网络中查找自己，通知相关节点自己上线了
 	this.OutFindNode <- this.Root
-	count := 0
 	for {
-		if count == 0 {
-			idsInt := this.getNodeNetworkNum()
-			for _, idOne := range idsInt {
-				this.OutFindNode <- &Node{NodeIdShould: idOne}
-			}
+		idsInt := this.getNodeNetworkNum()
+		for _, idOne := range idsInt {
+			this.OutFindNode <- &Node{NodeIdShould: idOne}
 		}
 		//清理离线的节点
-		temp := this.nodes
-		for _, nodeOne := range temp {
+		for _, nodeOne := range this.nodes {
 			if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
 				this.DelNode(nodeOne)
 			}
 		}
-		if count == 13 {
-			count = 0
-		}
-		time.Sleep(time.Minute * 5)
-		count += 1
+		time.Sleep(time.Minute * 1)
 	}
 }
 

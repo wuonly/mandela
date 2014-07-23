@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/prestonTao/mandela"
 	"os"
+	"strconv"
 	// "time"
 )
 
@@ -18,6 +19,8 @@ func main() {
 // }
 
 func StartUP() {
+	count := 1
+
 	m := mandela.Manager{}
 	m.Run()
 	running := true
@@ -36,7 +39,9 @@ func StartUP() {
 			running = false
 		case "info":
 
-		case "oap":
+		case "send":
+			m.SendMsgForAll("hello " + strconv.Itoa(count))
+			count += 1
 		case "cap":
 		case "odp":
 		case "cdp":

@@ -39,7 +39,7 @@ func StartUP() {
 			running = false
 		case "info":
 
-		case "oap":
+		case "send":
 		case "cap":
 		case "odp":
 		case "cdp":
