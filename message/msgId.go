@@ -8,4 +8,6 @@ const (
 	SaveKeyValueRspNum
 
 	IntroduceSelf
+
+	SendMessage
 )

@@ -372,3 +372,32 @@ func (this *Manager) SendMsgForAll(message string) {
 		}
 	}
 }
+
+//给某个人发送消息
+func (this *Manager) SendMsgForOne(target, message string) {
+	if this.nodeManager.GetRootId() == target {
+		//发送给自己的
+		fmt.Println(message)
+		return
+	}
+	targetNode := this.nodeManager.Get(target, true, "")
+	if targetNode == nil {
+		fmt.Println("本节点未连入网络")
+		return
+	}
+	session, ok := this.engine.GetController().GetSession(targetNode.NodeId.String())
+	if !ok {
+		return
+	}
+
+	messageSend := msg.Message{
+		TargetId: proto.String(target),
+		Content:  []byte(message),
+	}
+	// proto.
+	sendBytes, _ := proto.Marshal(&messageSend)
+	err := session.Send(msg.SendMessage, &sendBytes)
+	if err != nil {
+		fmt.Println("message发送数据出错：", err.Error())
+	}
+}

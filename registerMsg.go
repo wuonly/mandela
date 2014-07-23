@@ -13,4 +13,7 @@ func (this *Manager) registerMsg() {
 	dataStore := new(service.DataStore)
 	this.engine.RegisterMsg(message.SaveKeyValueReqNum, dataStore.SaveDataReq)
 
+	messageService := new(service.Message)
+	this.engine.RegisterMsg(message.SendMessage, messageService.RecvMsg)
+
 }

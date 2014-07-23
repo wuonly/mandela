@@ -5,6 +5,7 @@ import (
 	"github.com/prestonTao/mandela"
 	"os"
 	"strconv"
+	"strings"
 	// "time"
 )
 
@@ -31,8 +32,8 @@ func StartUP() {
 
 	for running {
 		data, _, _ := reader.ReadLine()
-		command := string(data)
-		switch command {
+		commands := strings.Split(string(data), " ")
+		switch commands[0] {
 		case "help":
 
 		case "q":
@@ -40,8 +41,14 @@ func StartUP() {
 		case "info":
 
 		case "send":
-			m.SendMsgForAll("hello " + strconv.Itoa(count))
-			count += 1
+			if len(commands) == 1 {
+				m.SendMsgForAll("hello " + strconv.Itoa(count))
+				count += 1
+			}
+			if len(commands) == 3 {
+				m.SendMsgForOne(commands[1], commands[2])
+			}
+
 		case "cap":
 		case "odp":
 		case "cdp":
