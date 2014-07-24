@@ -61,7 +61,7 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 	proto.Unmarshal(msg.Date, findNode)
 	nodeStore := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
-	targetNode := nodeStore.Get(findNode.GetFindId(), true, msg.Name)
+	targetNode := nodeStore.Get(findNode.GetFindId(), true, "")
 
 	if targetNode.NodeId.String() == nodeStore.GetRootId() {
 		//找到了
@@ -92,11 +92,15 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 		// c.GetNet().Send(msg., message.FindNodeRspNum, resultBytes)
 		return
 	}
-	nodeForword := nodeStore.Get(findNode.GetFindId(), false, "")
-	if nodeForword == nil {
+	if targetNode.NodeId.String() == msg.Name {
 		return
 	}
-	session, ok := c.GetSession(nodeForword.NodeId.String())
+
+	// nodeForword := nodeStore.Get(findNode.GetFindId(), false, "")
+	// if nodeForword == nil {
+	// 	return
+	// }
+	session, ok := c.GetSession(targetNode.NodeId.String())
 	if !ok {
 		fmt.Println("这个session已经不存在了")
 		return
@@ -114,6 +118,7 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
 	if recvNode.GetNodeId() == store.GetRootId() {
+		fmt.Println("这是我接收到的查询节点请求")
 		//自己发出的查找请求
 		// nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
 		shouldNodeInt, _ := new(big.Int).SetString(*recvNode.FindId, 10)
