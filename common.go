@@ -2,7 +2,7 @@ package mandela
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
+	// "encoding/hex"
 	"fmt"
 	"log"
 	"math/big"
@@ -25,12 +25,13 @@ func RandNodeId(lenght int) *big.Int {
 
 //通过一个域名和用户名得到节点的id
 //@return 10进制字符串
-func GetHashKey(uri, account string) *big.Int {
+func GetHashKey(account string) *big.Int {
 	hash := sha256.New()
-	hash.Write([]byte(uri + account))
+	hash.Write([]byte(account))
 	md := hash.Sum(nil)
-	str16 := hex.EncodeToString(md)
-	resultInt, _ := new(big.Int).SetString(str16, 16)
+	// str16 := hex.EncodeToString(md)
+	// resultInt, _ := new(big.Int).SetString(str16, 16)
+	resultInt := new(big.Int).SetBytes(md)
 	return resultInt
 }
 

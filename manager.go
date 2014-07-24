@@ -296,57 +296,32 @@ func (this *Manager) read() {
 	// clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
 	for {
 		node := <-this.nodeManager.OutFindNode
-		if node.NodeId != nil {
-			remote := this.nodeManager.Get(node.NodeId.String(), false, "")
-			var clientConn msgE.Session
-			if remote == nil {
-				clientConn, _ = this.engine.GetController().GetSession("superNode")
-				if clientConn == nil {
-					continue
-				}
-			} else {
-				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
+		var clientConn msgE.Session
+		if remote == nil {
+			clientConn, _ = this.engine.GetController().GetSession("superNode")
+			if clientConn == nil {
+				continue
 			}
-			findNodeOne := &msg.FindNodeReq{
-				NodeId: proto.String(this.nodeManager.GetRootId()),
-				FindId: proto.String(node.NodeId.String()),
-			}
-			findNodeBytes, _ := proto.Marshal(findNodeOne)
-			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
-			// fmt.Println(clientConn)
-			err := clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
-			if err != nil {
-				fmt.Println("manager发送数据出错：", err.Error())
+		} else {
+			clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+			if clientConn == nil {
+				// fmt.Println(remote.NodeId.String())
+				continue
 			}
 		}
-		if node.NodeIdShould != nil {
-			remote := this.nodeManager.Get(node.NodeIdShould.String(), false, "")
-			var clientConn msgE.Session
-			if remote == nil {
-				clientConn, _ = this.engine.GetController().GetSession("superNode")
-				if clientConn == nil {
-					continue
-				}
-			} else {
-				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
-				if clientConn == nil {
-					// fmt.Println(remote.NodeId.String())
-					continue
-				}
-			}
-			// fmt.Println(remote.NodeId.String())
-			// clientConn, _ := this.engine.GetController().GetSession(remote.NodeId.String())
-			findNodeOne := &msg.FindNodeReq{
-				NodeId: proto.String(this.nodeManager.GetRootId()),
-				FindId: proto.String(node.NodeIdShould.String()),
-			}
-			findNodeBytes, _ := proto.Marshal(findNodeOne)
-			// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
-			// fmt.Println(clientConn, "-0-\n")
-			err := clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
-			if err != nil {
-				fmt.Println("manager发送数据出错：", err.Error())
-			}
+		// fmt.Println(remote.NodeId.String())
+		// clientConn, _ := this.engine.GetController().GetSession(remote.NodeId.String())
+		findNodeOne := &msg.FindNodeReq{
+			NodeId: proto.String(this.nodeManager.GetRootId()),
+			FindId: proto.String(node.NodeId.String()),
+		}
+		findNodeBytes, _ := proto.Marshal(findNodeOne)
+		// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
+		// fmt.Println(clientConn, "-0-\n")
+		err := clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
+		if err != nil {
+			fmt.Println("manager发送数据出错：", err.Error())
 		}
 	}
 }
@@ -399,5 +374,17 @@ func (this *Manager) SendMsgForOne(target, message string) {
 	err := session.Send(msg.SendMessage, &sendBytes)
 	if err != nil {
 		fmt.Println("message发送数据出错：", err.Error())
+	}
+}
+
+//注册一个域名帐号
+func (this *Manager) CreateAccount(account string) {
+	// id := GetHashKey(account)
+}
+
+func (this *Manager) See() {
+	allNodes := this.nodeManager.GetAllNodes()
+	for key, _ := range allNodes {
+		fmt.Println(key)
 	}
 }

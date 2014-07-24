@@ -31,18 +31,18 @@ type NodeManager struct {
 func (this *NodeManager) Run() {
 	go this.recv()
 	//向网络中查找自己，通知相关节点自己上线了
-	this.OutFindNode <- this.Root
+	// this.OutFindNode <- this.Root
 	for {
 		idsInt := this.getNodeNetworkNum()
 		for _, idOne := range idsInt {
-			this.OutFindNode <- &Node{NodeIdShould: idOne}
+			this.OutFindNode <- &Node{NodeId: idOne}
 		}
 		//清理离线的节点
-		for _, nodeOne := range this.nodes {
-			if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
-				this.DelNode(nodeOne)
-			}
-		}
+		// for _, nodeOne := range this.nodes {
+		// 	if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
+		// 		this.DelNode(nodeOne)
+		// 	}
+		// }
 		time.Sleep(time.Minute * 1)
 	}
 }
@@ -92,9 +92,10 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 	}
 
 	consistentHash := NewHash()
-	if includeSelf {
-		consistentHash.Add(this.Root.NodeId)
-	}
+	// if includeSelf {
+	// 	fmt.Println("添加根节点：", this.Root)
+	// 	consistentHash.Add(this.Root.NodeId)
+	// }
 	for key, value := range this.GetAllNodes() {
 		if outId != "" && key == outId {
 			continue
@@ -102,7 +103,11 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 		consistentHash.Add(value.NodeId)
 	}
 	targetId := consistentHash.Get(nodeIdInt)
+
 	if targetId == nil {
+		if includeSelf {
+			return this.Root
+		}
 		return nil
 	}
 	return this.nodes[targetId.String()]

@@ -49,7 +49,8 @@ func StartUP() {
 				m.SendMsgForOne(commands[1], commands[2])
 			}
 
-		case "cap":
+		case "see":
+			m.See()
 		case "odp":
 		case "cdp":
 		case "dump":
