@@ -17,10 +17,11 @@ type NodeManager struct {
 	isNew          bool             //是否是新节点
 	nodes          map[string]*Node //十进制字符串为键
 	consistentHash *ConsistentHash  //一致性hash表
-	InNodes        chan *Node       //需要更新的节点
-	OutFindNode    chan *Node       //需要查询是否在线的节点
-	Groups         *NodeGroup       //组
-	NodeIdLevel    int              //节点id长度
+	recentNode     *RecentNode
+	InNodes        chan *Node //需要更新的节点
+	OutFindNode    chan *Node //需要查询是否在线的节点
+	Groups         *NodeGroup //组
+	NodeIdLevel    int        //节点id长度
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
 }
@@ -92,10 +93,10 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 	}
 
 	consistentHash := NewHash()
-	// if includeSelf {
-	// 	fmt.Println("添加根节点：", this.Root)
-	// 	consistentHash.Add(this.Root.NodeId)
-	// }
+	if includeSelf {
+		// fmt.Println("添加根节点：", this.Root)
+		consistentHash.Add(this.Root.NodeId)
+	}
 	for key, value := range this.GetAllNodes() {
 		if outId != "" && key == outId {
 			continue
@@ -105,10 +106,10 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 	targetId := consistentHash.Get(nodeIdInt)
 
 	if targetId == nil {
-		if includeSelf {
-			return this.Root
-		}
 		return nil
+	}
+	if targetId.String() == this.GetRootId() {
+		return this.Root
 	}
 	return this.nodes[targetId.String()]
 }

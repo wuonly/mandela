@@ -9,7 +9,64 @@ import (
 )
 
 func TestNodeManager(t *testing.T) {
-	nodeManagerTest()
+	// nodeManagerTest()
+	// imitationSum()
+}
+
+func imitationSum2() {
+	findNodeRoot, _ := new(big.Int).SetString("67491569314988856926507052272791838610626096514906525411496620109834031904600", 10)
+	fmt.Println("本节点id为：", findNodeRoot.String())
+	findNode := NewNodeManager(&Node{NodeId: findNodeRoot}, 256)
+
+	rootId, _ := new(big.Int).SetString("59422813065590763321187925186011450884940934337897117431794152839561407098597", 10)
+	fmt.Println("本节点id为：", rootId.String())
+	nodeManager := NewNodeManager(&Node{NodeId: rootId}, 256)
+
+	// idA, _ := new(big.Int).SetString("38985264161753223911670476475859110596857691769085279908018319674400729625595", 10)
+	// nodeManager.AddNode(&Node{NodeId: idA})
+	// idB, _ := new(big.Int).SetString("59422813065590763321187925186011450884940934337897117431794152839561407098597", 10)
+	// nodeManager.AddNode(&Node{NodeId: idB})
+	idC, _ := new(big.Int).SetString("31622036050853307757176718873676335712993063093791913422933189278586653352673", 10)
+	nodeManager.AddNode(&Node{NodeId: idC})
+	// idD, _ := new(big.Int).SetString("38879061860890225964363770808076149471375052911854164467748691902681942298885", 10)
+	// nodeManager.AddNode(&Node{NodeId: idD})
+
+	for key, _ := range findNode.getNodeNetworkNum() {
+		targetNode := nodeManager.Get(key, true, findNodeRoot.String())
+		if targetNode.NodeId.String() == rootId.String() {
+			fmt.Println("包含这个节点")
+		}
+		fmt.Println(targetNode.NodeId.String())
+	}
+
+}
+
+func imitationSum() {
+	findNodeRoot, _ := new(big.Int).SetString("67491569314988856926507052272791838610626096514906525411496620109834031904600", 10)
+	fmt.Println("本节点id为：", findNodeRoot.String())
+	findNode := NewNodeManager(&Node{NodeId: findNodeRoot}, 256)
+
+	rootId, _ := new(big.Int).SetString("38879061860890225964363770808076149471375052911854164467748691902681942298885", 10)
+	fmt.Println("本节点id为：", rootId.String())
+	nodeManager := NewNodeManager(&Node{NodeId: rootId}, 256)
+
+	idA, _ := new(big.Int).SetString("38985264161753223911670476475859110596857691769085279908018319674400729625595", 10)
+	nodeManager.AddNode(&Node{NodeId: idA})
+	idB, _ := new(big.Int).SetString("59422813065590763321187925186011450884940934337897117431794152839561407098597", 10)
+	nodeManager.AddNode(&Node{NodeId: idB})
+	idC, _ := new(big.Int).SetString("31622036050853307757176718873676335712993063093791913422933189278586653352673", 10)
+	nodeManager.AddNode(&Node{NodeId: idC})
+	// idD, _ := new(big.Int).SetString("38879061860890225964363770808076149471375052911854164467748691902681942298885", 10)
+	// nodeManager.AddNode(&Node{NodeId: idD})
+
+	for key, _ := range findNode.getNodeNetworkNum() {
+		targetNode := nodeManager.Get(key, true, findNodeRoot.String())
+		if targetNode.NodeId.String() == rootId.String() {
+			fmt.Println("包含这个节点")
+		}
+		// fmt.Println(targetNode.NodeId.String())
+	}
+
 }
 
 func nodeManagerTest() {

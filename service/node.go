@@ -61,7 +61,7 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 	proto.Unmarshal(msg.Date, findNode)
 	nodeStore := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
-	targetNode := nodeStore.Get(findNode.GetFindId(), true, "")
+	targetNode := nodeStore.Get(findNode.GetFindId(), true, findNode.GetNodeId())
 
 	if targetNode.NodeId.String() == nodeStore.GetRootId() {
 		//找到了
@@ -93,6 +93,7 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 		return
 	}
 	if targetNode.NodeId.String() == msg.Name {
+		// fmt.Println("忽略这个查找")
 		return
 	}
 
@@ -118,8 +119,11 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
 	if recvNode.GetNodeId() == store.GetRootId() {
-		fmt.Println("这是我接收到的查询节点请求")
 		//自己发出的查找请求
+		if recvNode.GetFindId() == store.GetRootId() {
+			//擦，把自己给找到老
+			return
+		}
 		// nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
 		shouldNodeInt, _ := new(big.Int).SetString(*recvNode.FindId, 10)
 		newNode := &nodeStore.Node{
@@ -143,6 +147,7 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 		isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
 		// fmt.Println("这个节点是否需要：", isNeed)
 		if isNeed {
+			fmt.Println("接收请求:", *recvNode.FindId)
 			store.AddNode(newNode)
 			c.GetNet().AddClientConn(shouldNodeInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
 			if replace != "" {
