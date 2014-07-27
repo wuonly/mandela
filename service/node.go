@@ -92,15 +92,13 @@ func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) 
 		// c.GetNet().Send(msg., message.FindNodeRspNum, resultBytes)
 		return
 	}
+
 	if targetNode.NodeId.String() == msg.Name {
 		// fmt.Println("忽略这个查找")
 		return
 	}
 
-	// nodeForword := nodeStore.Get(findNode.GetFindId(), false, "")
-	// if nodeForword == nil {
-	// 	return
-	// }
+	//转发出去
 	session, ok := c.GetSession(targetNode.NodeId.String())
 	if !ok {
 		fmt.Println("这个session已经不存在了")
@@ -179,6 +177,67 @@ func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) 
 	if err != nil {
 		fmt.Println("node发送数据出错：", err.Error())
 	}
+}
+
+//查询相邻节点请求
+func (this *NodeManager) FindRecentNodeReq(c engine.Controller, msg engine.GetPacket) {
+	recvNode := new(message.FindRecentNodeReq)
+	proto.Unmarshal(msg.Date, recvNode)
+	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
+	allIds := store.GetRecentNodes()
+	if len(allIds) == 1 {
+		//这种情况一般是根节点
+		rspMsg := message.FindNodeRsp{
+			NodeId:  recvNode.NodeId,
+			FindId:  proto.String(store.GetRootId()),
+			Addr:    proto.String(store.Root.Addr),
+			IsProxy: proto.Bool(!store.Root.IsSuper),
+			TcpPort: proto.Int32(int32(store.Root.TcpPort)),
+			UdpPort: proto.Int32(int32(store.Root.UdpPort)),
+		}
+
+		resultBytes, _ := proto.Marshal(&rspMsg)
+		nodeResult := store.Get(recvNode.GetNodeId(), false, "")
+		if nodeResult == nil {
+			return
+		}
+		session, ok := c.GetSession(nodeResult.NodeId.String())
+		if !ok {
+			fmt.Println("这个session已经不存在了")
+			return
+		}
+		err := session.Send(message.FindNodeRspNum, &resultBytes)
+		if err != nil {
+			fmt.Println("node发送数据出错：", err.Error())
+		}
+		// c.GetNet().Send(msg., message.FindNodeRspNum, resultBytes)
+		return
+	}
+	// switch recvNode.Cmp(allIds[0]) {
+	// case 0:
+	// case -1:
+	// case 1:
+	// }
+
+	//转发出去
+	// targetNode := store.Get(recvNode.GetNodeId(), false, "")
+	// if targetNode == nil {
+	// 	return
+	// }
+	// if recvNode.GetNodeId() == msg.Name {
+	// 	// fmt.Println("忽略这个查找")
+	// 	return
+	// }
+	// session, ok := c.GetSession(targetNode.NodeId.String())
+	// if !ok {
+	// 	fmt.Println("这个session已经不存在了")
+	// 	return
+	// }
+	// err := session.Send(message.FindRecentNodeReqNum, &msg.Date)
+	// if err != nil {
+	// 	fmt.Println("node发送数据出错：", err.Error())
+	// }
+
 }
 
 //注册节点请求

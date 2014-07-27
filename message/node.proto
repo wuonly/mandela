@@ -5,6 +5,12 @@ option optimize_for = LITE_RUNTIME;
 
 /////////////////协议范围 101 ~~~~150
 
+//查找相邻节点请求
+message FindRecentNodeReq{
+	optional int32    Timeout         = 1;                   //超时时间，单位秒
+	optional string   NodeId          = 2;                   //节点id
+}
+
 //查找节点请求
 message FindNodeReq{
 	optional int32    Timeout         = 1;                   //超时时间，单位秒

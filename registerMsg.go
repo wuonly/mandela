@@ -10,6 +10,8 @@ func (this *Manager) registerMsg() {
 	this.engine.RegisterMsg(message.IntroduceSelf, nodeManager.IntroduceSelfRsp)
 	this.engine.RegisterMsg(message.FindNodeReqNum, nodeManager.FindNodeReq)
 	this.engine.RegisterMsg(message.FindNodeRspNum, nodeManager.FindNodeRsp)
+	this.engine.RegisterMsg(message.FindRecentNodeReqNum, nodeManager.FindRecentNodeReq)
+
 	dataStore := new(service.DataStore)
 	this.engine.RegisterMsg(message.SaveKeyValueReqNum, dataStore.SaveDataReq)
 

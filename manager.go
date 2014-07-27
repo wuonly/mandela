@@ -293,6 +293,34 @@ func (this *Manager) initPeerNode() {
 //处理查找节点的请求
 //本节点定期查询已知节点是否在线，更新节点信息
 func (this *Manager) read() {
+	//发出查找邻居节点请求
+	go func() {
+		for {
+			node := <-this.nodeManager.OutRecentNode
+			findNode := &msg.FindRecentNodeReq{
+				NodeId: proto.String(this.nodeManager.GetRootId()),
+			}
+			findNodeBytes, _ := proto.Marshal(findNode)
+			remote := this.nodeManager.Get(node.NodeId.String(), false, "")
+			var clientConn msgE.Session
+			if remote == nil {
+				clientConn, _ = this.engine.GetController().GetSession("superNode")
+				if clientConn == nil {
+					continue
+				}
+			} else {
+				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+				if clientConn == nil {
+					// fmt.Println(remote.NodeId.String())
+					continue
+				}
+			}
+			err := clientConn.Send(msg.FindRecentNodeReqNum, &findNodeBytes)
+			if err != nil {
+				fmt.Println("manager发送数据出错：", err.Error())
+			}
+		}
+	}()
 	// clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
 	for {
 		node := <-this.nodeManager.OutFindNode
