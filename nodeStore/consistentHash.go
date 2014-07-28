@@ -84,6 +84,18 @@ func (this *ConsistentHash) Get(nodeId *big.Int) *big.Int {
 	return nil
 }
 
+//获得左边或右边最近的节点
+func (this *ConsistentHash) GetLeftLow(isLeft bool, nodeId *big.Int) *big.Int {
+	// this.lock.Lock()
+	// defer this.lock.Unlock()
+	// if len(this.nodes) == 0 {
+	// 	return nil
+	// }
+	// for i, idOne := range this.nodes {
+
+	// }
+}
+
 //删除一个节点
 func (this *ConsistentHash) Del(node *big.Int) {
 	this.lock.Lock()
