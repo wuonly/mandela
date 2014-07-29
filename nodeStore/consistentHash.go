@@ -84,16 +84,80 @@ func (this *ConsistentHash) Get(nodeId *big.Int) *big.Int {
 	return nil
 }
 
-//获得左边或右边最近的节点
-func (this *ConsistentHash) GetLeftLow(isLeft bool, nodeId *big.Int) *big.Int {
-	// this.lock.Lock()
-	// defer this.lock.Unlock()
-	// if len(this.nodes) == 0 {
-	// 	return nil
-	// }
-	// for i, idOne := range this.nodes {
+//获得左边最近的节点
+//nodeId     要查询的节点id
+//maxId      查询的id数量
+func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if len(this.nodes) == 0 {
+		return nil
+	}
+	if len(this.nodes) <= count {
+		return this.nodes
+	}
+	maxId := new(big.Int).Lsh(big.NewInt(1), 256)
+	var idsTemp IdASC = make([]*big.Int, 0)
+	for _, idOne := range this.nodes {
+		switch idOne.Cmp(nodeId) {
+		case 0:
+		case -1:
+			idsTemp = append(idsTemp, new(big.Int).Add(idOne, maxId))
+		case 1:
+			idsTemp = append(idsTemp, idOne)
+		}
+	}
+	sort.Sort(idsTemp)
+	ids := make([]*big.Int, 0)
+	for _, idOne := range idsTemp[:count] {
+		switch idOne.Cmp(maxId) {
+		case 0:
+			ids = append(ids, big.NewInt(0))
+		case -1:
+			ids = append(ids, idOne)
+		case 1:
+			ids = append(ids, new(big.Int).Sub(idOne, maxId))
+		}
+	}
+	return ids
+}
 
-	// }
+//获得右边最近的节点
+//nodeId     要查询的节点id
+//maxId      查询的id数量
+func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if len(this.nodes) == 0 {
+		return nil
+	}
+	if len(this.nodes) <= count {
+		return this.nodes
+	}
+	maxId := new(big.Int).Lsh(big.NewInt(1), 256)
+	var idsTemp IdDESC = make([]*big.Int, 0)
+	for _, idOne := range this.nodes {
+		switch idOne.Cmp(nodeId) {
+		case 0:
+		case -1:
+			idsTemp = append(idsTemp, idOne)
+		case 1:
+			idsTemp = append(idsTemp, new(big.Int).Sub(idOne, maxId))
+		}
+	}
+	sort.Sort(idsTemp)
+	ids := make([]*big.Int, 0)
+	for _, idOne := range idsTemp[:count] {
+		switch idOne.Cmp(big.NewInt(0)) {
+		case 0:
+			ids = append(ids, big.NewInt(0))
+		case -1:
+			ids = append(ids, new(big.Int).Add(idOne, maxId))
+		case 1:
+			ids = append(ids, idOne)
+		}
+	}
+	return ids
 }
 
 //删除一个节点

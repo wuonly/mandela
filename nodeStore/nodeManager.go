@@ -18,12 +18,12 @@ type NodeManager struct {
 	isNew          bool             //是否是新节点
 	nodes          map[string]*Node //十进制字符串为键
 	consistentHash *ConsistentHash  //一致性hash表
-	recentNode     *RecentNode      //
 	InNodes        chan *Node       //需要更新的节点
 	OutFindNode    chan *Node       //需要查询是否在线的节点
 	OutRecentNode  chan *Node       //需要查询相邻节点
 	Groups         *NodeGroup       //组
 	NodeIdLevel    int              //节点id长度
+	// recentNode     *RecentNode      //
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
 }
@@ -74,13 +74,13 @@ func (this *NodeManager) AddNode(node *Node) {
 	node.LastContactTimestamp = time.Now()
 	this.nodes[node.NodeId.String()] = node
 	this.consistentHash.Add(node.NodeId)
-	this.recentNode.Add(node.NodeId)
+	// this.recentNode.Add(node.NodeId)
 }
 
 //删除一个节点
 func (this *NodeManager) DelNode(node *Node) {
 	this.consistentHash.Del(node.NodeId)
-	this.recentNode.Del(node.NodeId)
+	// this.recentNode.Del(node.NodeId)
 	delete(this.nodes, node.NodeId.String())
 }
 
@@ -107,12 +107,12 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 		}
 		consistentHash.Add(value.NodeId)
 	}
-	for _, id := range this.recentNode.GetAll() {
-		if outId != "" && id.String() == outId {
-			continue
-		}
-		consistentHash.Add(id)
-	}
+	// for _, id := range this.recentNode.GetAll() {
+	// 	if outId != "" && id.String() == outId {
+	// 		continue
+	// 	}
+	// 	consistentHash.Add(id)
+	// }
 	targetId := consistentHash.Get(nodeIdInt)
 
 	if targetId == nil {
@@ -220,13 +220,13 @@ func NewNodeManager(node *Node, bits int) *NodeManager {
 	nodeManager := &NodeManager{
 		Root:           node,
 		consistentHash: new(ConsistentHash),
-		recentNode:     NewRecentNode(node.NodeId, 2),
-		nodes:          make(map[string]*Node, 1000),
-		OutFindNode:    make(chan *Node, 1000),
-		OutRecentNode:  make(chan *Node, 1000),
-		InNodes:        make(chan *Node, 1000),
-		Groups:         NewNodeGroup(),
-		NodeIdLevel:    bits,
+		// recentNode:     NewRecentNode(node.NodeId, 2),
+		nodes:         make(map[string]*Node, 1000),
+		OutFindNode:   make(chan *Node, 1000),
+		OutRecentNode: make(chan *Node, 1000),
+		InNodes:       make(chan *Node, 1000),
+		Groups:        NewNodeGroup(),
+		NodeIdLevel:   bits,
 	}
 
 	go nodeManager.Run()

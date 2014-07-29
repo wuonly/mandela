@@ -8,7 +8,7 @@ import (
 )
 
 func TestIdSort(t *testing.T) {
-	idStoreSimple1()
+	// idStoreSimple1()
 }
 
 func idStoreSimple1() {
