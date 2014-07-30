@@ -58,7 +58,7 @@ func GetLocalIntenetIp() string {
 	  判断能联网的ip地址
 	*/
 
-	conn, err := net.Dial("udp", "google.com:80")
+	conn, err := net.Dial("udp", "baidu.com:80")
 	if err != nil {
 		log.Println(err.Error())
 	}
