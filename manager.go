@@ -294,36 +294,78 @@ func (this *Manager) initPeerNode() {
 //本节点定期查询已知节点是否在线，更新节点信息
 func (this *Manager) read() {
 	//发出查找邻居节点请求
-	go func() {
-		for {
-			node := <-this.nodeManager.OutRecentNode
-			findNode := &msg.FindRecentNodeReq{
-				NodeId: proto.String(this.nodeManager.GetRootId()),
+	// go func() {
+	// 	for {
+	// 		node := <-this.nodeManager.OutRecentNode
+	// 		findNode := &msg.FindRecentNodeReq{
+	// 			NodeId: proto.String(this.nodeManager.GetRootId()),
+	// 		}
+	// 		findNodeBytes, _ := proto.Marshal(findNode)
+	// 		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
+	// 		var clientConn msgE.Session
+	// 		if remote == nil {
+	// 			clientConn, _ = this.engine.GetController().GetSession("superNode")
+	// 			if clientConn == nil {
+	// 				continue
+	// 			}
+	// 		} else {
+	// 			clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+	// 			if clientConn == nil {
+	// 				// fmt.Println(remote.NodeId.String())
+	// 				continue
+	// 			}
+	// 		}
+	// 		err := clientConn.Send(msg.FindRecentNodeReqNum, &findNodeBytes)
+	// 		if err != nil {
+	// 			fmt.Println("manager发送数据出错：", err.Error())
+	// 		}
+	// 	}
+	// }()
+	// clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
+	for {
+		node := <-this.nodeManager.OutFindNode
+		//--------------------------------------------
+		//    查找邻居节点
+		//--------------------------------------------
+		if node.NodeId.String() == this.nodeManager.GetRootId() {
+			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId)
+			if id == nil {
+				continue
 			}
-			findNodeBytes, _ := proto.Marshal(findNode)
-			remote := this.nodeManager.Get(node.NodeId.String(), false, "")
-			var clientConn msgE.Session
-			if remote == nil {
-				clientConn, _ = this.engine.GetController().GetSession("superNode")
-				if clientConn == nil {
-					continue
-				}
-			} else {
-				clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
-				if clientConn == nil {
-					// fmt.Println(remote.NodeId.String())
-					continue
-				}
+			findNodeOne := &msg.FindNodeReq{
+				NodeId: proto.String(this.nodeManager.GetRootId()),
+				FindId: proto.String("left"),
+			}
+			findNodeBytes, _ := proto.Marshal(findNodeOne)
+			clientConn, _ := this.engine.GetController().GetSession(id.NodeId.String())
+			if clientConn == nil {
+				continue
 			}
 			err := clientConn.Send(msg.FindRecentNodeReqNum, &findNodeBytes)
 			if err != nil {
 				fmt.Println("manager发送数据出错：", err.Error())
 			}
+			id = this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId)
+			if id == nil {
+				continue
+			}
+			findNodeOne = &msg.FindNodeReq{
+				NodeId: proto.String(this.nodeManager.GetRootId()),
+				FindId: proto.String("right"),
+			}
+			findNodeBytes, _ = proto.Marshal(findNodeOne)
+			clientConn, _ = this.engine.GetController().GetSession(id.NodeId.String())
+			if clientConn == nil {
+				continue
+			}
+			err = clientConn.Send(msg.FindRecentNodeReqNum, &findNodeBytes)
+			if err != nil {
+				fmt.Println("manager发送数据出错：", err.Error())
+			}
 		}
-	}()
-	// clientConn, _ := this.engine.GetController().GetSession(this.rootId.String())
-	for {
-		node := <-this.nodeManager.OutFindNode
+		//--------------------------------------------
+		//    查找普通节点
+		//--------------------------------------------
 		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
 		var clientConn msgE.Session
 		if remote == nil {

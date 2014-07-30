@@ -9,7 +9,7 @@ import (
 	// "io/ioutil"
 	"math/big"
 	// "os"
-	"sort"
+	// "sort"
 	"time"
 )
 
@@ -20,9 +20,9 @@ type NodeManager struct {
 	consistentHash *ConsistentHash  //一致性hash表
 	InNodes        chan *Node       //需要更新的节点
 	OutFindNode    chan *Node       //需要查询是否在线的节点
-	OutRecentNode  chan *Node       //需要查询相邻节点
-	Groups         *NodeGroup       //组
-	NodeIdLevel    int              //节点id长度
+	// OutRecentNode  chan *Node       //需要查询相邻节点
+	Groups      *NodeGroup //组
+	NodeIdLevel int        //节点id长度
 	// recentNode     *RecentNode      //
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
@@ -39,7 +39,7 @@ func (this *NodeManager) Run() {
 		for _, idOne := range this.getNodeNetworkNum() {
 			this.OutFindNode <- &Node{NodeId: idOne}
 		}
-		this.OutRecentNode <- &Node{NodeId: this.Root.NodeId}
+		this.OutFindNode <- &Node{NodeId: this.Root.NodeId}
 		//清理离线的节点
 		// for _, nodeOne := range this.nodes {
 		// 	if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
@@ -124,18 +124,36 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 	return this.nodes[targetId.String()]
 }
 
+//得到左邻节点
+func (this *NodeManager) GetLeftNode(id big.Int) *Node {
+	ids := this.consistentHash.GetLeftLow(&id, 1)
+	if ids == nil {
+		return nil
+	}
+	return this.nodes[ids[0].String()]
+}
+
+//得到右邻节点
+func (this *NodeManager) GetRightNode(id big.Int) *Node {
+	ids := this.consistentHash.GetRightLow(&id, 1)
+	if ids == nil {
+		return nil
+	}
+	return this.nodes[ids[0].String()]
+}
+
 //得到所有的节点，不包括本节点
 func (this *NodeManager) GetAllNodes() map[string]*Node {
 	return this.nodes
 }
 
 //获取所有相邻节点，包括本节点
-func (this *NodeManager) GetRecentNodes() []*big.Int {
-	var ids IdDESC = this.recentNode.GetAll()
-	ids = append(ids, this.Root.NodeId)
-	sort.Sort(ids)
-	return this.recentNode.GetAll()
-}
+// func (this *NodeManager) GetRecentNodes() []*big.Int {
+// 	var ids IdDESC = this.recentNode.GetAll()
+// 	ids = append(ids, this.Root.NodeId)
+// 	sort.Sort(ids)
+// 	return this.recentNode.GetAll()
+// }
 
 //检查节点是否是本节点的逻辑节点
 func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace string) {
@@ -172,7 +190,23 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 		case 1:
 			return true, targetId.String()
 		}
-		return this.recentNode.CheckIn(nodeIdInt)
+		//判断是否是左边最近的临近节点
+		id := this.consistentHash.GetLeftLow(this.Root.NodeId, 1)[0]
+		switch id.Cmp(nodeIdInt) {
+		case 0:
+		case -1:
+		case 1:
+			return true, id.String()
+		}
+		//判断是否是右边最近的临近节点
+		id = this.consistentHash.GetRightLow(this.Root.NodeId, 1)[0]
+		switch id.Cmp(nodeIdInt) {
+		case 0:
+		case -1:
+			return true, id.String()
+		case 1:
+		}
+		return false, ""
 	} else {
 		//不在同一个网络
 		return true, ""
@@ -221,12 +255,12 @@ func NewNodeManager(node *Node, bits int) *NodeManager {
 		Root:           node,
 		consistentHash: new(ConsistentHash),
 		// recentNode:     NewRecentNode(node.NodeId, 2),
-		nodes:         make(map[string]*Node, 1000),
-		OutFindNode:   make(chan *Node, 1000),
-		OutRecentNode: make(chan *Node, 1000),
-		InNodes:       make(chan *Node, 1000),
-		Groups:        NewNodeGroup(),
-		NodeIdLevel:   bits,
+		nodes:       make(map[string]*Node, 1000),
+		OutFindNode: make(chan *Node, 1000),
+		// OutRecentNode: make(chan *Node, 1000),
+		InNodes:     make(chan *Node, 1000),
+		Groups:      NewNodeGroup(),
+		NodeIdLevel: bits,
 	}
 
 	go nodeManager.Run()

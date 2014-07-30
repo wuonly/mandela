@@ -122,7 +122,7 @@ func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 	return ids
 }
 
-//获得右边最近的节点
+//获得右边最近的节点，不包括被查询节点
 //nodeId     要查询的节点id
 //maxId      查询的id数量
 func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
