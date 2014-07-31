@@ -9,7 +9,7 @@ import (
 
 func TestCHash(t *testing.T) {
 	// distanceTest()
-	leftRecentTest()
+	// leftRecentTest()
 }
 
 func leftRecentTest() {

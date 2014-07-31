@@ -11,6 +11,43 @@ import (
 func TestNodeManager(t *testing.T) {
 	// nodeManagerTest()
 	// imitationSum()
+	checkNeedNodeTest()
+}
+
+func checkNeedNodeTest() {
+	// rootId, _ := new(big.Int).SetString("4", 10)
+	// node := &Node{NodeId: rootId}
+
+	// nodeManager := NewNodeManager(node, 4)
+
+	// idA, _ := new(big.Int).SetString("1", 10)
+	// nodeManager.AddNode(&Node{NodeId: idA})
+	// // idB, _ := new(big.Int).SetString("4", 10)
+	// // nodeManager.AddNode(&Node{NodeId: idB})
+	// idC, _ := new(big.Int).SetString("10", 10)
+	// nodeManager.AddNode(&Node{NodeId: idC})
+	// // idD, _ := new(big.Int).SetString("13", 10)
+	// // nodeManager.AddNode(&Node{NodeId: idD})
+
+	// ok, repl := nodeManager.CheckNeedNode("11")
+	// fmt.Println(ok, repl)
+
+	rootId, _ := new(big.Int).SetString("16150748265764598981528384649742060236560917133781620128630978025853295923984", 10)
+	node := &Node{NodeId: rootId}
+
+	nodeManager := NewNodeManager(node, 256)
+
+	idA, _ := new(big.Int).SetString("67640972541478364432952505193870669905159034569069658564100250759013705027272", 10)
+	nodeManager.AddNode(&Node{NodeId: idA})
+	idB, _ := new(big.Int).SetString("27015727647420526438664431923389954352445911947824793446716416081024838558426", 10)
+	nodeManager.AddNode(&Node{NodeId: idB})
+	// idC, _ := new(big.Int).SetString("10", 10)
+	// nodeManager.AddNode(&Node{NodeId: idC})
+	// idD, _ := new(big.Int).SetString("13", 10)
+	// nodeManager.AddNode(&Node{NodeId: idD})
+
+	ok, repl := nodeManager.CheckNeedNode("27015727647420526438664431923389954352445911947824793446716416081024838558426")
+	fmt.Println(ok, repl)
 }
 
 func imitationSum2() {

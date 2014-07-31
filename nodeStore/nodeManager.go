@@ -21,8 +21,9 @@ type NodeManager struct {
 	InNodes        chan *Node       //需要更新的节点
 	OutFindNode    chan *Node       //需要查询是否在线的节点
 	// OutRecentNode  chan *Node       //需要查询相邻节点
-	Groups      *NodeGroup //组
-	NodeIdLevel int        //节点id长度
+	Groups         *NodeGroup //组
+	NodeIdLevel    int        //节点id长度
+	maxRecentCount int        //最多多少个邻居节点
 	// recentNode     *RecentNode      //
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
@@ -184,15 +185,28 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 	if consHash.Get(targetId).Cmp(consHash.Get(nodeIdInt)) == 0 {
 		switch targetId.Cmp(nodeIdInt) {
 		case 0:
-			// return false, ""
+			return false, ""
 		case -1:
 			// return false, ""
 		case 1:
+			for _, idOne := range this.consistentHash.GetLeftLow(this.Root.NodeId, this.maxRecentCount) {
+				if idOne.Cmp(targetId) == 0 {
+					return true, ""
+				}
+			}
+			for _, idOne := range this.consistentHash.GetRightLow(this.Root.NodeId, this.maxRecentCount) {
+				if idOne.Cmp(targetId) == 0 {
+					return true, ""
+				}
+			}
 			return true, targetId.String()
 		}
+
 		//判断是否是左边最近的临近节点
 		id := this.consistentHash.GetLeftLow(this.Root.NodeId, 1)[0]
-		switch id.Cmp(nodeIdInt) {
+		distanceA := new(big.Int).Xor(id, this.Root.NodeId)
+		distanceB := new(big.Int).Xor(nodeIdInt, this.Root.NodeId)
+		switch distanceA.Cmp(distanceB) {
 		case 0:
 		case -1:
 		case 1:
@@ -200,11 +214,12 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 		}
 		//判断是否是右边最近的临近节点
 		id = this.consistentHash.GetRightLow(this.Root.NodeId, 1)[0]
-		switch id.Cmp(nodeIdInt) {
+		distanceA = new(big.Int).Xor(id, this.Root.NodeId)
+		switch distanceA.Cmp(distanceB) {
 		case 0:
 		case -1:
-			return true, id.String()
 		case 1:
+			return true, id.String()
 		}
 		return false, ""
 	} else {
@@ -258,9 +273,10 @@ func NewNodeManager(node *Node, bits int) *NodeManager {
 		nodes:       make(map[string]*Node, 1000),
 		OutFindNode: make(chan *Node, 1000),
 		// OutRecentNode: make(chan *Node, 1000),
-		InNodes:     make(chan *Node, 1000),
-		Groups:      NewNodeGroup(),
-		NodeIdLevel: bits,
+		InNodes:        make(chan *Node, 1000),
+		Groups:         NewNodeGroup(),
+		NodeIdLevel:    bits,
+		maxRecentCount: 2,
 	}
 
 	go nodeManager.Run()

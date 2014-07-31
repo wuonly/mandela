@@ -109,7 +109,10 @@ func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 	}
 	sort.Sort(idsTemp)
 	ids := make([]*big.Int, 0)
-	for _, idOne := range idsTemp[:count] {
+	if len(idsTemp) > count {
+		idsTemp = idsTemp[:count]
+	}
+	for _, idOne := range idsTemp {
 		switch idOne.Cmp(maxId) {
 		case 0:
 			ids = append(ids, big.NewInt(0))
@@ -147,7 +150,10 @@ func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
 	}
 	sort.Sort(idsTemp)
 	ids := make([]*big.Int, 0)
-	for _, idOne := range idsTemp[:count] {
+	if len(idsTemp) > count {
+		idsTemp = idsTemp[:count]
+	}
+	for _, idOne := range idsTemp {
 		switch idOne.Cmp(big.NewInt(0)) {
 		case 0:
 			ids = append(ids, big.NewInt(0))

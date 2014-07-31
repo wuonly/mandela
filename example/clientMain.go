@@ -50,7 +50,17 @@ func StartUP() {
 			}
 
 		case "see":
-			m.See()
+			if len(commands) == 1 {
+				m.See()
+			}
+			if len(commands) == 2 {
+				if commands[1] == "left" {
+					m.SeeLeftNode()
+				}
+				if commands[1] == "right" {
+					m.SeeRightNode()
+				}
+			}
 		case "odp":
 		case "cdp":
 		case "dump":
