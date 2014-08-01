@@ -20,10 +20,11 @@ type NodeManager struct {
 	consistentHash *ConsistentHash  //一致性hash表
 	InNodes        chan *Node       //需要更新的节点
 	OutFindNode    chan *Node       //需要查询是否在线的节点
+	Groups         *NodeGroup       //组
+	NodeIdLevel    int              //节点id长度
+	MaxRecentCount int              //最多多少个邻居节点
+	Proxys         map[string]*Node //被代理的节点，十进制字符串为键
 	// OutRecentNode  chan *Node       //需要查询相邻节点
-	Groups         *NodeGroup //组
-	NodeIdLevel    int        //节点id长度
-	MaxRecentCount int        //最多多少个邻居节点
 	// recentNode     *RecentNode      //
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
@@ -78,6 +79,21 @@ func (this *NodeManager) AddNode(node *Node) {
 	// this.recentNode.Add(node.NodeId)
 }
 
+//添加一个被代理的节点
+func (this *NodeManager) AddProxyNode(node *Node) {
+	this.Proxys[node.NodeId.String()] = node
+}
+
+//得到一个被代理的节点
+func (this *NodeManager) GetProxyNode(id string) (*Node, bool) {
+	return this.Proxys[id]
+}
+
+//删除一个被代理的节点
+func (this *NodeManager) DelProxyNode(id string) {
+	delete(this.Proxys, id)
+}
+
 //删除一个节点
 func (this *NodeManager) DelNode(node *Node) {
 	this.consistentHash.Del(node.NodeId)
@@ -99,7 +115,6 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 
 	consistentHash := NewHash()
 	if includeSelf {
-		// fmt.Println("添加根节点：", this.Root)
 		consistentHash.Add(this.Root.NodeId)
 	}
 	for key, value := range this.GetAllNodes() {
@@ -108,12 +123,6 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 		}
 		consistentHash.Add(value.NodeId)
 	}
-	// for _, id := range this.recentNode.GetAll() {
-	// 	if outId != "" && id.String() == outId {
-	// 		continue
-	// 	}
-	// 	consistentHash.Add(id)
-	// }
 	targetId := consistentHash.Get(nodeIdInt)
 
 	if targetId == nil {
@@ -156,14 +165,6 @@ func (this *NodeManager) GetAllNodes() map[string]*Node {
 	return this.nodes
 }
 
-//获取所有相邻节点，包括本节点
-// func (this *NodeManager) GetRecentNodes() []*big.Int {
-// 	var ids IdDESC = this.recentNode.GetAll()
-// 	ids = append(ids, this.Root.NodeId)
-// 	sort.Sort(ids)
-// 	return this.recentNode.GetAll()
-// }
-
 //检查节点是否是本节点的逻辑节点
 func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace string) {
 	/*
@@ -184,7 +185,6 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 		consHash.Add(value.NodeId)
 	}
 	targetId := consHash.Get(nodeIdInt)
-
 	consHash = NewHash()
 	for _, value := range this.getNodeNetworkNum() {
 		consHash.Add(value)
@@ -209,24 +209,17 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 			}
 			return true, targetId.String()
 		}
-
 		//判断是否是左边最近的临近节点
 		id := this.consistentHash.GetLeftLow(this.Root.NodeId, 1)[0]
 		distanceA := new(big.Int).Xor(id, this.Root.NodeId)
 		distanceB := new(big.Int).Xor(nodeIdInt, this.Root.NodeId)
-		switch distanceA.Cmp(distanceB) {
-		case 0:
-		case -1:
-		case 1:
+		if distanceA.Cmp(distanceB) == 1 {
 			return true, id.String()
 		}
 		//判断是否是右边最近的临近节点
 		id = this.consistentHash.GetRightLow(this.Root.NodeId, 1)[0]
 		distanceA = new(big.Int).Xor(id, this.Root.NodeId)
-		switch distanceA.Cmp(distanceB) {
-		case 0:
-		case -1:
-		case 1:
+		if distanceA.Cmp(distanceB) == 1 {
 			return true, id.String()
 		}
 		return false, ""
@@ -254,208 +247,25 @@ func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
 		//最后一位取反
 		//---------------------------------
 		networkNum := new(big.Int).Xor(startInt, new(big.Int).Lsh(big.NewInt(1), uint(i)))
-		// fmt.Println("haha", i)
-		// Print(networkNum)
-		// networkNums = append(networkNums, networkNum)
 		networkNums[networkNum.String()] = networkNum
 	}
 	return networkNums
 }
 
 func NewNodeManager(node *Node, bits int) *NodeManager {
-	// node := Node{
-	// 	NodeId:  nodeId,
-	// 	IsSuper: IsSuper,
-	// 	Addr:    Addr,
-	// 	TcpPort: TcpPort,
-	// 	UdpPort: UdpPort,
-	// 	// Key:     privateKey,
-	// }
-
-	// fmt.Println("本次创建的nodeid为：", node.NodeId, "私钥：", node.Key)
 	//节点长度为512,深度为513
 	nodeManager := &NodeManager{
 		Root:           node,
 		consistentHash: new(ConsistentHash),
-		// recentNode:     NewRecentNode(node.NodeId, 2),
-		nodes:       make(map[string]*Node, 1000),
-		OutFindNode: make(chan *Node, 1000),
-		// OutRecentNode: make(chan *Node, 1000),
+		nodes:          make(map[string]*Node, 0),
+		OutFindNode:    make(chan *Node, 1000),
 		InNodes:        make(chan *Node, 1000),
 		Groups:         NewNodeGroup(),
 		NodeIdLevel:    bits,
 		MaxRecentCount: 2,
+		Proxys:         make(map[string]*Node, 0),
 	}
 
 	go nodeManager.Run()
 	return nodeManager
 }
-
-//=====================================================
-
-// var (
-// 	NodeIdLevel       = 256         //节点id二进制长度
-// 	IsSuper           = false       //是否是超级节点，并且提供代理功能
-// 	Addr              = "127.0.0.1" //外网地址
-// 	TcpPort     int32 = 0           //外网端口
-// 	UdpPort     int32 = 0           //外网端口
-// )
-
-// type NodeStore struct {
-// 	root           *Node            //
-// 	isNew          bool             //是否是新节点
-// 	nodes          map[string]*Node //十进制字符串为键
-// 	consistentHash *ConsistentHash  //一致性hash表
-// 	pipeNode       chan *Node       //收集各个节点更新，下线消息的管道
-// 	InNodes        chan *Node       //需要更新的节点
-// 	OutFindNode    chan *Node       //需要查询是否在线的节点
-// 	Groups         *NodeGroup       //组
-// }
-
-// func (this *NodeStore) Run() {
-// 	go this.recv()
-// 	go this.checkSelf()
-// 	go this.nodeComm()
-// 	//向网络中查找自己，通知相关节点自己上线了
-// 	this.OutFindNode <- this.root
-// 	idsInt := this.getNodeNetworkNum()
-// 	for _, idOne := range idsInt {
-// 		this.OutFindNode <- &Node{NodeIdShould: idOne}
-// 	}
-// }
-
-// //检查下线的节点，把他们移除掉
-// func (this *NodeStore) checkSelf() {
-// 	//160分钟检查一次
-// 	time.Sleep(time.Minute * 160)
-// 	for _, value := range this.nodes {
-// 		if value.Status == 3 {
-// 			this.delNode(value)
-// 		}
-// 	}
-// 	go this.checkSelf()
-// }
-
-// //需要更新的节点
-// func (this *NodeStore) recv() {
-// 	for {
-// 		node := <-this.InNodes
-// 		this.AddNode(node)
-// 	}
-// }
-
-// //负责处理仓库中节点发来的更新，下线消息
-// func (this *NodeStore) nodeComm() {
-// 	for {
-// 		node := <-this.pipeNode
-// 		switch node.Status {
-// 		case 1:
-// 		case 2:
-// 			//需要查询是否在线的节点
-// 			this.OutFindNode <- node
-// 		case 3:
-// 			//需要下线的节点
-// 		}
-// 	}
-// }
-
-// //添加一个节点
-// func (this *NodeStore) AddNode(node *Node) {
-// 	//添加本节点
-// 	if node.NodeId.Cmp(this.root.NodeId) == 0 {
-// 		this.nodes[this.root.NodeId.String()] = this.root
-// 		return
-// 	}
-// 	node.Out = this.pipeNode
-// 	node.LastContactTimestamp = time.Now()
-// 	node.OverTime = 1 * 60 * 60
-// 	node.SelectTime = 5 * 60
-// 	go node.ticker()
-// 	this.nodes[node.NodeId.String()] = node
-// 	this.consistentHash.Add(node.NodeId)
-// }
-
-// //删除一个节点
-// func (this *NodeStore) delNode(node *Node) {
-// 	this.consistentHash.Del(node.NodeId)
-// 	delete(this.nodes, node.NodeId.String())
-// }
-
-// //得到每个节点网络的网络号，不包括本节点
-// func (this *NodeStore) getNodeNetworkNum() map[string]*big.Int {
-// 	// rootInt, _ := new(big.Int).SetString(, 10)
-// 	networkNums := make(map[string]*big.Int, 3000)
-// 	for i := 0; i < NodeIdLevel; i++ {
-// 		//---------------------------------
-// 		//将后面的i位置零
-// 		//---------------------------------
-// 		startInt := new(big.Int).Lsh(new(big.Int).Rsh(this.root.NodeId, uint(i)), uint(i))
-// 		//---------------------------------
-// 		//最后一位取反
-// 		//---------------------------------
-// 		networkNum := new(big.Int).Xor(startInt, new(big.Int).Lsh(big.NewInt(1), uint(i)))
-// 		// fmt.Println("haha", i)
-// 		// Print(networkNum)
-// 		// networkNums = append(networkNums, networkNum)
-// 		networkNums[networkNum.String()] = networkNum
-// 	}
-// 	return networkNums
-// }
-
-// //根据节点id得到一个节点的信息，id为十进制字符串
-// func (this *NodeStore) Get(nodeId string) *Node {
-// 	nodeIdInt, b := new(big.Int).SetString(nodeId, 10)
-// 	if !b {
-// 		fmt.Println("节点id格式不正确，应该为十进制字符串")
-// 	}
-// 	targetNodeId := this.consistentHash.Get(nodeIdInt)
-// 	if targetNodeId != nil {
-// 		return this.nodes[targetNodeId.String()]
-// 	}
-// 	return this.root
-// }
-
-// //得到所有的节点
-// func (this *NodeStore) GetAllNodes() map[string]*Node {
-// 	return this.nodes
-// }
-
-// //得到本节点id
-// func (this *NodeStore) GetRootId() string {
-// 	return this.root.NodeId.String()
-// }
-
-// //根据域名和帐号名称创建一个节点
-// //域名为p2p网络中唯一域名
-// //域名加帐号名称才能够确定一个节点id，为了把域名和帐号绑定
-// func NewNodeStore(nodeId *big.Int) *NodeStore {
-
-// 	node := Node{
-// 		NodeId:  nodeId,
-// 		IsSuper: IsSuper,
-// 		Addr:    Addr,
-// 		TcpPort: TcpPort,
-// 		UdpPort: UdpPort,
-// 		// Key:     privateKey,
-// 	}
-
-// 	// fmt.Println("本次创建的nodeid为：", node.NodeId, "私钥：", node.Key)
-// 	//节点长度为512,深度为513
-// 	nodeStore := &NodeStore{
-// 		root:           &node,
-// 		consistentHash: new(ConsistentHash),
-// 		nodes:          make(map[string]*Node, 1000),
-// 		OutFindNode:    make(chan *Node, 1000),
-// 		pipeNode:       make(chan *Node, 1000),
-// 		InNodes:        make(chan *Node, 1000),
-// 		Groups:         NewNodeGroup(),
-// 	}
-
-// 	go nodeStore.Run()
-// 	return nodeStore
-// }
-
-// type PrivateKey struct {
-// 	NodeId     string
-// 	PrivateKey rsa.PrivateKey
-// }

@@ -29,29 +29,36 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 	newNode := &nodeStore.Node{
 		NodeId:  nodeIdInt,
 		Addr:    *recvNode.Addr,
-		IsSuper: !*recvNode.IsProxy,
+		IsSuper: *recvNode.IsProxy,
 		TcpPort: int32(*recvNode.TcpPort),
 		UdpPort: int32(*recvNode.UdpPort),
 	}
 
-	isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
-	// fmt.Println("这个节点是否需要：", isNeed)
-	if isNeed {
-		store.AddNode(newNode)
-		c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
-		if replace != "" {
-			//删除原来的连接
-			fmt.Println("替换原有的连接：", replace)
-			if session, ok := c.GetSession(replace); ok {
-				session.Close()
+	//是超级节点
+	if newNode.IsSuper {
+		isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
+		// fmt.Println("这个节点是否需要：", isNeed)
+		if isNeed {
+			store.AddNode(newNode)
+			c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
+			if replace != "" {
+				//删除原来的连接
+				fmt.Println("替换原有的连接：", replace)
+				if session, ok := c.GetSession(replace); ok {
+					session.Close()
 
-				delNode := new(nodeStore.Node)
-				delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
-				store.DelNode(delNode)
-				fmt.Println("替换成功")
+					delNode := new(nodeStore.Node)
+					delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
+					store.DelNode(delNode)
+					fmt.Println("替换成功")
+				}
 			}
 		}
+	} else {
+		//是被代理的节点
+		// store.
 	}
+
 	//--------------------------------------------
 	//    互相介绍自己
 	//--------------------------------------------

@@ -150,7 +150,7 @@ func (this *Manager) Run() error {
 		// this.initPeerNode()
 		node := &nodeStore.Node{
 			NodeId:  this.rootId,
-			IsSuper: true, //是超级节点
+			IsSuper: false, //是超级节点
 			Addr:    this.hostIp,
 			TcpPort: this.HostPort,
 			UdpPort: 0,
