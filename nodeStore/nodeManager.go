@@ -23,7 +23,7 @@ type NodeManager struct {
 	// OutRecentNode  chan *Node       //需要查询相邻节点
 	Groups         *NodeGroup //组
 	NodeIdLevel    int        //节点id长度
-	maxRecentCount int        //最多多少个邻居节点
+	MaxRecentCount int        //最多多少个邻居节点
 	// recentNode     *RecentNode      //
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
@@ -126,21 +126,29 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 }
 
 //得到左邻节点
-func (this *NodeManager) GetLeftNode(id big.Int) *Node {
-	ids := this.consistentHash.GetLeftLow(&id, 1)
+func (this *NodeManager) GetLeftNode(id big.Int, count int) []*Node {
+	ids := this.consistentHash.GetLeftLow(&id, count)
 	if ids == nil {
 		return nil
 	}
-	return this.nodes[ids[0].String()]
+	temp := make([]*Node, 0)
+	for _, id := range ids {
+		temp = append(temp, this.nodes[id.String()])
+	}
+	return temp
 }
 
 //得到右邻节点
-func (this *NodeManager) GetRightNode(id big.Int) *Node {
-	ids := this.consistentHash.GetRightLow(&id, 1)
+func (this *NodeManager) GetRightNode(id big.Int, count int) []*Node {
+	ids := this.consistentHash.GetRightLow(&id, count)
 	if ids == nil {
 		return nil
 	}
-	return this.nodes[ids[0].String()]
+	temp := make([]*Node, 0)
+	for _, id := range ids {
+		temp = append(temp, this.nodes[id.String()])
+	}
+	return temp
 }
 
 //得到所有的节点，不包括本节点
@@ -189,12 +197,12 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 		case -1:
 			// return false, ""
 		case 1:
-			for _, idOne := range this.consistentHash.GetLeftLow(this.Root.NodeId, this.maxRecentCount) {
+			for _, idOne := range this.consistentHash.GetLeftLow(this.Root.NodeId, this.MaxRecentCount) {
 				if idOne.Cmp(targetId) == 0 {
 					return true, ""
 				}
 			}
-			for _, idOne := range this.consistentHash.GetRightLow(this.Root.NodeId, this.maxRecentCount) {
+			for _, idOne := range this.consistentHash.GetRightLow(this.Root.NodeId, this.MaxRecentCount) {
 				if idOne.Cmp(targetId) == 0 {
 					return true, ""
 				}
@@ -276,7 +284,7 @@ func NewNodeManager(node *Node, bits int) *NodeManager {
 		InNodes:        make(chan *Node, 1000),
 		Groups:         NewNodeGroup(),
 		NodeIdLevel:    bits,
-		maxRecentCount: 2,
+		MaxRecentCount: 2,
 	}
 
 	go nodeManager.Run()

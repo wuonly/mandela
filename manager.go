@@ -299,7 +299,7 @@ func (this *Manager) read() {
 		//    查找邻居节点
 		//--------------------------------------------
 		if node.NodeId.String() == this.nodeManager.GetRootId() {
-			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId)
+			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
@@ -308,7 +308,7 @@ func (this *Manager) read() {
 				FindId: proto.String("left"),
 			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
-			clientConn, _ := this.engine.GetController().GetSession(id.NodeId.String())
+			clientConn, _ := this.engine.GetController().GetSession(id[0].NodeId.String())
 			if clientConn == nil {
 				continue
 			}
@@ -316,7 +316,7 @@ func (this *Manager) read() {
 			if err != nil {
 				fmt.Println("manager发送数据出错：", err.Error())
 			}
-			id = this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId)
+			id = this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
@@ -325,7 +325,7 @@ func (this *Manager) read() {
 				FindId: proto.String("right"),
 			}
 			findNodeBytes, _ = proto.Marshal(findNodeOne)
-			clientConn, _ = this.engine.GetController().GetSession(id.NodeId.String())
+			clientConn, _ = this.engine.GetController().GetSession(id[0].NodeId.String())
 			if clientConn == nil {
 				continue
 			}
@@ -431,9 +431,15 @@ func (this *Manager) See() {
 }
 
 func (this *Manager) SeeLeftNode() {
-	fmt.Println(this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId).NodeId.String())
+	nodes := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, this.nodeManager.MaxRecentCount)
+	for _, id := range nodes {
+		fmt.Println(id.NodeId.String())
+	}
 }
 
 func (this *Manager) SeeRightNode() {
-	fmt.Println(this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId).NodeId.String())
+	nodes := this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, this.nodeManager.MaxRecentCount)
+	for _, id := range nodes {
+		fmt.Println(id.NodeId.String())
+	}
 }

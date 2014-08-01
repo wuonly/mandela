@@ -213,55 +213,60 @@ func (this *NodeManager) FindRecentNodeReq(c engine.Controller, msg engine.GetPa
 	proto.Unmarshal(msg.Date, recvNode)
 
 	nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
-	var node *nodeStore.Node
+	// var node *nodeStore.Node
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 	if recvNode.GetFindId() == "left" {
-		node = store.GetLeftNode(*nodeIdInt)
+		node := store.GetLeftNode(*nodeIdInt, store.MaxRecentCount)
 		if node == nil {
 			return
 		}
-		rspMsg := message.FindNodeRsp{
-			NodeId:  recvNode.NodeId,
-			FindId:  proto.String(node.NodeId.String()),
-			Addr:    proto.String(node.Addr),
-			IsProxy: proto.Bool(!node.IsSuper),
-			TcpPort: proto.Int32(int32(node.TcpPort)),
-			UdpPort: proto.Int32(int32(node.UdpPort)),
+		for _, nodeOne := range node {
+			rspMsg := message.FindNodeRsp{
+				NodeId:  recvNode.NodeId,
+				FindId:  proto.String(nodeOne.NodeId.String()),
+				Addr:    proto.String(nodeOne.Addr),
+				IsProxy: proto.Bool(!nodeOne.IsSuper),
+				TcpPort: proto.Int32(int32(nodeOne.TcpPort)),
+				UdpPort: proto.Int32(int32(nodeOne.UdpPort)),
+			}
+			resultBytes, _ := proto.Marshal(&rspMsg)
+			session, ok := c.GetSession(msg.Name)
+			if !ok {
+				fmt.Println("这个session已经不存在了")
+				return
+			}
+			err := session.Send(message.FindNodeRspNum, &resultBytes)
+			if err != nil {
+				fmt.Println("node发送数据出错：", err.Error())
+			}
 		}
-		resultBytes, _ := proto.Marshal(&rspMsg)
-		session, ok := c.GetSession(msg.Name)
-		if !ok {
-			fmt.Println("这个session已经不存在了")
-			return
-		}
-		err := session.Send(message.FindNodeRspNum, &resultBytes)
-		if err != nil {
-			fmt.Println("node发送数据出错：", err.Error())
-		}
+
 	}
 
 	if recvNode.GetFindId() == "right" {
-		node = store.GetRightNode(*nodeIdInt)
+		node := store.GetRightNode(*nodeIdInt, store.MaxRecentCount)
 		if node == nil {
 			return
 		}
-		rspMsg := message.FindNodeRsp{
-			NodeId:  recvNode.NodeId,
-			FindId:  proto.String(node.NodeId.String()),
-			Addr:    proto.String(node.Addr),
-			IsProxy: proto.Bool(!node.IsSuper),
-			TcpPort: proto.Int32(int32(node.TcpPort)),
-			UdpPort: proto.Int32(int32(node.UdpPort)),
-		}
-		resultBytes, _ := proto.Marshal(&rspMsg)
-		session, ok := c.GetSession(msg.Name)
-		if !ok {
-			fmt.Println("这个session已经不存在了")
-			return
-		}
-		err := session.Send(message.FindNodeRspNum, &resultBytes)
-		if err != nil {
-			fmt.Println("node发送数据出错：", err.Error())
+		for _, nodeOne := range node {
+			rspMsg := message.FindNodeRsp{
+				NodeId:  recvNode.NodeId,
+				FindId:  proto.String(nodeOne.NodeId.String()),
+				Addr:    proto.String(nodeOne.Addr),
+				IsProxy: proto.Bool(!nodeOne.IsSuper),
+				TcpPort: proto.Int32(int32(nodeOne.TcpPort)),
+				UdpPort: proto.Int32(int32(nodeOne.UdpPort)),
+			}
+			resultBytes, _ := proto.Marshal(&rspMsg)
+			session, ok := c.GetSession(msg.Name)
+			if !ok {
+				fmt.Println("这个session已经不存在了")
+				return
+			}
+			err := session.Send(message.FindNodeRspNum, &resultBytes)
+			if err != nil {
+				fmt.Println("node发送数据出错：", err.Error())
+			}
 		}
 	}
 }
