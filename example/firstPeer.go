@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/prestonTao/mandela"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -31,8 +32,8 @@ func StartUP() {
 
 	for running {
 		data, _, _ := reader.ReadLine()
-		command := string(data)
-		switch command {
+		commands := strings.Split(string(data), " ")
+		switch commands[0] {
 		case "help":
 
 		case "q":
@@ -40,6 +41,18 @@ func StartUP() {
 		case "info":
 
 		case "send":
+		case "see":
+			if len(commands) == 1 {
+				m.See()
+			}
+			if len(commands) == 2 {
+				if commands[1] == "left" {
+					m.SeeLeftNode()
+				}
+				if commands[1] == "right" {
+					m.SeeRightNode()
+				}
+			}
 		case "cap":
 		case "odp":
 		case "cdp":

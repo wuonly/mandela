@@ -10,10 +10,12 @@ import (
 	"math/big"
 	// "os"
 	// "sort"
+	"sync"
 	"time"
 )
 
 type NodeManager struct {
+	lock           *sync.Mutex      //锁
 	Root           *Node            //
 	isNew          bool             //是否是新节点
 	nodes          map[string]*Node //十进制字符串为键
@@ -85,8 +87,9 @@ func (this *NodeManager) AddProxyNode(node *Node) {
 }
 
 //得到一个被代理的节点
-func (this *NodeManager) GetProxyNode(id string) (*Node, bool) {
-	return this.Proxys[id]
+func (this *NodeManager) GetProxyNode(id string) (node *Node, ok bool) {
+	node, ok = this.Proxys[id]
+	return
 }
 
 //删除一个被代理的节点
@@ -142,6 +145,7 @@ func (this *NodeManager) GetLeftNode(id big.Int, count int) []*Node {
 	}
 	temp := make([]*Node, 0)
 	for _, id := range ids {
+		// fmt.Println("left:", id.String())
 		temp = append(temp, this.nodes[id.String()])
 	}
 	return temp
@@ -155,6 +159,7 @@ func (this *NodeManager) GetRightNode(id big.Int, count int) []*Node {
 	}
 	temp := make([]*Node, 0)
 	for _, id := range ids {
+		// fmt.Println("right:", id.String())
 		temp = append(temp, this.nodes[id.String()])
 	}
 	return temp
@@ -255,6 +260,7 @@ func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
 func NewNodeManager(node *Node, bits int) *NodeManager {
 	//节点长度为512,深度为513
 	nodeManager := &NodeManager{
+		lock:           new(sync.Mutex),
 		Root:           node,
 		consistentHash: new(ConsistentHash),
 		nodes:          make(map[string]*Node, 0),

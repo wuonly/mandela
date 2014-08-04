@@ -52,132 +52,79 @@ func (this *Manager) Run() error {
 	if this.IsRoot {
 		//随机产生一个nodeid
 		this.rootId = RandNodeId(256)
-		fmt.Println("本客户端随机id为：", this.rootId.String())
-		//---------------------------------------------------------------
-		//   启动消息服务器
-		//---------------------------------------------------------------
-		// this.initMsgEngine(this.rootId.String())
-		this.hostIp = GetLocalIntenetIp()
-		l, err := net.ListenPacket("udp", this.hostIp+":")
-		if err != nil {
-			fmt.Println("获取端口失败")
-			return err
-		}
-		hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
-		this.HostPort = int32(hostPort)
+	} else {
+		//随机产生一个nodeid
+		this.rootId = RandNodeId(256)
+		this.nodeStoreManager = new(NodeStoreManager)
+		this.nodeStoreManager.loadPeerEntry()
+	}
+	fmt.Println("本客户端随机id为：", this.rootId.String())
+	//---------------------------------------------------------------
+	//   启动消息服务器
+	//---------------------------------------------------------------
+	// this.initMsgEngine(this.rootId.String())
+	this.hostIp = GetLocalIntenetIp()
+	l, err := net.ListenPacket("udp", this.hostIp+":")
+	if err != nil {
+		fmt.Println("获取端口失败")
+		return err
+	}
+	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
+	this.HostPort = int32(hostPort)
 
-		this.engine = msgE.NewEngine(this.rootId.String())
-		//注册所有的消息
-		this.registerMsg()
+	this.engine = msgE.NewEngine(this.rootId.String())
+	//注册所有的消息
+	this.registerMsg()
+	//---------------------------------------------------------------
+	//  end
+	//---------------------------------------------------------------
+	// var err error
+	//生成密钥
+	this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		fmt.Println("生成密钥错误", err.Error())
+		return nil
+	}
 
-		//---------------------------------------------------------------
-		//  end
-		//---------------------------------------------------------------
-		// var err error
-		//生成密钥
-		this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-		if err != nil {
-			fmt.Println("生成密钥错误", err.Error())
-			return nil
-		}
-		//---------------------------------------------------------------
-		//  启动分布式哈希表
-		//---------------------------------------------------------------
-		// this.initPeerNode()
-		node := &nodeStore.Node{
-			NodeId:  this.rootId,
-			IsSuper: true, //是超级节点
-			Addr:    this.hostIp,
-			TcpPort: this.HostPort,
-			UdpPort: 0,
-		}
-		this.nodeManager = nodeStore.NewNodeManager(node, 256)
-		//---------------------------------------------------------------
-		//  end
-		//---------------------------------------------------------------
-		//---------------------------------------------------------------
-		//  设置回调函数后监听
-		//---------------------------------------------------------------
-		auth := new(Auth)
-		auth.nodeManager = this.nodeManager
-		this.engine.SetAuth(auth)
-		this.engine.Listen(this.hostIp, this.HostPort)
-		this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
-		//---------------------------------------------------------------
-		//  end
-		//---------------------------------------------------------------
+	//---------------------------------------------------------------
+	//  启动分布式哈希表
+	//---------------------------------------------------------------
+	// this.initPeerNode()
+	node := &nodeStore.Node{
+		NodeId:  this.rootId,
+		IsSuper: true, //是超级节点
+		Addr:    this.hostIp,
+		TcpPort: this.HostPort,
+		UdpPort: 0,
+	}
+	this.nodeManager = nodeStore.NewNodeManager(node, 256)
+	//---------------------------------------------------------------
+	//  end
+	//---------------------------------------------------------------
+	//---------------------------------------------------------------
+	//  设置回调函数后监听
+	//---------------------------------------------------------------
+	auth := new(Auth)
+	auth.nodeManager = this.nodeManager
+	this.engine.SetAuth(auth)
+	this.engine.SetCloseCallback(this.closeConnCallback)
+	this.engine.Listen(this.hostIp, this.HostPort)
+	this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
+	//---------------------------------------------------------------
+	//  end
+	//---------------------------------------------------------------
+	if this.IsRoot {
 		//自己连接自己
 		// this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false)
 	} else {
-		//加载本地超级节点列表，
-		// this.nodeStore = NewNodeStoreManager()
-		this.nodeStoreManager = new(NodeStoreManager)
-		this.nodeStoreManager.loadPeerEntry()
-
-		//随机产生一个nodeid
-		this.rootId = RandNodeId(256)
-		fmt.Println("本客户端随机id为：", this.rootId.String())
-		//---------------------------------------------------------------
-		//   启动消息服务器
-		//---------------------------------------------------------------
-		// this.initMsgEngine(this.rootId.String())
-		this.hostIp = GetLocalIntenetIp()
-		l, err := net.ListenPacket("udp", this.hostIp+":")
-		if err != nil {
-			fmt.Println("获取端口失败")
-			return err
-		}
-		hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
-		this.HostPort = int32(hostPort)
-
-		this.engine = msgE.NewEngine(this.rootId.String())
-		//注册所有的消息
-		this.registerMsg()
-		//---------------------------------------------------------------
-		//  end
-		//---------------------------------------------------------------
-		// var err error
-		//生成密钥
-		this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-		if err != nil {
-			fmt.Println("生成密钥错误", err.Error())
-			return nil
-		}
-
-		//---------------------------------------------------------------
-		//  启动分布式哈希表
-		//---------------------------------------------------------------
-		// this.initPeerNode()
-		node := &nodeStore.Node{
-			NodeId:  this.rootId,
-			IsSuper: false, //是超级节点
-			Addr:    this.hostIp,
-			TcpPort: this.HostPort,
-			UdpPort: 0,
-		}
-		this.nodeManager = nodeStore.NewNodeManager(node, 256)
-		//---------------------------------------------------------------
-		//  end
-		//---------------------------------------------------------------
-		//---------------------------------------------------------------
-		//  设置回调函数后监听
-		//---------------------------------------------------------------
-		auth := new(Auth)
-		auth.nodeManager = this.nodeManager
-		this.engine.SetAuth(auth)
-		this.engine.SetCloseCallback(this.closeConnCallback)
-		this.engine.Listen(this.hostIp, this.HostPort)
-		this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
-		//---------------------------------------------------------------
-		//  end
-		//---------------------------------------------------------------
 		//连接到超级节点
-		hotsAndPost := strings.Split(this.nodeStoreManager.superNodeEntry[0], ":")
-		port, err := strconv.Atoi(hotsAndPost[1])
+		host, portStr, _ := net.SplitHostPort(this.nodeStoreManager.superNodeEntry[0])
+		// hotsAndPost := strings.Split(this.nodeStoreManager.superNodeEntry[0], ":")
+		port, err := strconv.Atoi(portStr)
 		if err != nil {
 			return err
 		}
-		this.engine.AddClientConn("superNode", hotsAndPost[0], int32(port), false)
+		this.engine.AddClientConn("superNode", host, int32(port), false)
 		//给目标机器发送自己的名片
 		this.introduceSelf()
 	}
@@ -185,6 +132,145 @@ func (this *Manager) Run() error {
 	this.engine.GetController().SetAttribute("cache", this.cache)
 	go this.read()
 	return nil
+
+	// if this.IsRoot {
+	// 	//随机产生一个nodeid
+	// 	this.rootId = RandNodeId(256)
+	// 	fmt.Println("本客户端随机id为：", this.rootId.String())
+	// 	//---------------------------------------------------------------
+	// 	//   启动消息服务器
+	// 	//---------------------------------------------------------------
+	// 	// this.initMsgEngine(this.rootId.String())
+	// 	this.hostIp = GetLocalIntenetIp()
+	// 	l, err := net.ListenPacket("udp", this.hostIp+":")
+	// 	if err != nil {
+	// 		fmt.Println("获取端口失败")
+	// 		return err
+	// 	}
+	// 	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
+	// 	this.HostPort = int32(hostPort)
+
+	// 	this.engine = msgE.NewEngine(this.rootId.String())
+	// 	//注册所有的消息
+	// 	this.registerMsg()
+
+	// 	//---------------------------------------------------------------
+	// 	//  end
+	// 	//---------------------------------------------------------------
+	// 	// var err error
+	// 	//生成密钥
+	// 	this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	// 	if err != nil {
+	// 		fmt.Println("生成密钥错误", err.Error())
+	// 		return nil
+	// 	}
+	// 	//---------------------------------------------------------------
+	// 	//  启动分布式哈希表
+	// 	//---------------------------------------------------------------
+	// 	// this.initPeerNode()
+	// 	node := &nodeStore.Node{
+	// 		NodeId:  this.rootId,
+	// 		IsSuper: true, //是超级节点
+	// 		Addr:    this.hostIp,
+	// 		TcpPort: this.HostPort,
+	// 		UdpPort: 0,
+	// 	}
+	// 	this.nodeManager = nodeStore.NewNodeManager(node, 256)
+	// 	//---------------------------------------------------------------
+	// 	//  end
+	// 	//---------------------------------------------------------------
+	// 	//---------------------------------------------------------------
+	// 	//  设置回调函数后监听
+	// 	//---------------------------------------------------------------
+	// 	auth := new(Auth)
+	// 	auth.nodeManager = this.nodeManager
+	// 	this.engine.SetAuth(auth)
+	// 	this.engine.SetCloseCallback(this.closeConnCallback)
+	// 	this.engine.Listen(this.hostIp, this.HostPort)
+	// 	this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
+	// 	//---------------------------------------------------------------
+	// 	//  end
+	// 	//---------------------------------------------------------------
+	// 	//自己连接自己
+	// 	// this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false)
+	// } else {
+	// 	//加载本地超级节点列表，
+	// 	// this.nodeStore = NewNodeStoreManager()
+	// 	this.nodeStoreManager = new(NodeStoreManager)
+	// 	this.nodeStoreManager.loadPeerEntry()
+
+	// 	//随机产生一个nodeid
+	// 	this.rootId = RandNodeId(256)
+	// 	fmt.Println("本客户端随机id为：", this.rootId.String())
+	// 	//---------------------------------------------------------------
+	// 	//   启动消息服务器
+	// 	//---------------------------------------------------------------
+	// 	// this.initMsgEngine(this.rootId.String())
+	// 	this.hostIp = GetLocalIntenetIp()
+	// 	l, err := net.ListenPacket("udp", this.hostIp+":")
+	// 	if err != nil {
+	// 		fmt.Println("获取端口失败")
+	// 		return err
+	// 	}
+	// 	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
+	// 	this.HostPort = int32(hostPort)
+
+	// 	this.engine = msgE.NewEngine(this.rootId.String())
+	// 	//注册所有的消息
+	// 	this.registerMsg()
+	// 	//---------------------------------------------------------------
+	// 	//  end
+	// 	//---------------------------------------------------------------
+	// 	// var err error
+	// 	//生成密钥
+	// 	this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	// 	if err != nil {
+	// 		fmt.Println("生成密钥错误", err.Error())
+	// 		return nil
+	// 	}
+
+	// 	//---------------------------------------------------------------
+	// 	//  启动分布式哈希表
+	// 	//---------------------------------------------------------------
+	// 	// this.initPeerNode()
+	// 	node := &nodeStore.Node{
+	// 		NodeId:  this.rootId,
+	// 		IsSuper: true, //是超级节点
+	// 		Addr:    this.hostIp,
+	// 		TcpPort: this.HostPort,
+	// 		UdpPort: 0,
+	// 	}
+	// 	this.nodeManager = nodeStore.NewNodeManager(node, 256)
+	// 	//---------------------------------------------------------------
+	// 	//  end
+	// 	//---------------------------------------------------------------
+	// 	//---------------------------------------------------------------
+	// 	//  设置回调函数后监听
+	// 	//---------------------------------------------------------------
+	// 	auth := new(Auth)
+	// 	auth.nodeManager = this.nodeManager
+	// 	this.engine.SetAuth(auth)
+	// 	this.engine.SetCloseCallback(this.closeConnCallback)
+	// 	this.engine.Listen(this.hostIp, this.HostPort)
+	// 	this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
+	// 	//---------------------------------------------------------------
+	// 	//  end
+	// 	//---------------------------------------------------------------
+	// 	//连接到超级节点
+	// 	host, portStr, _ := net.SplitHostPort(this.nodeStoreManager.superNodeEntry[0])
+	// 	// hotsAndPost := strings.Split(this.nodeStoreManager.superNodeEntry[0], ":")
+	// 	port, err := strconv.Atoi(portStr)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	this.engine.AddClientConn("superNode", host, int32(port), false)
+	// 	//给目标机器发送自己的名片
+	// 	this.introduceSelf()
+	// }
+	// this.cache = cache.NewMencache()
+	// this.engine.GetController().SetAttribute("cache", this.cache)
+	// go this.read()
+	// return nil
 }
 
 //连接超级节点后，向超级节点介绍自己

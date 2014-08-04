@@ -122,6 +122,7 @@ func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 			ids = append(ids, new(big.Int).Sub(idOne, maxId))
 		}
 	}
+	// fmt.Println("left:", ids)
 	return ids
 }
 
@@ -163,6 +164,7 @@ func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
 			ids = append(ids, idOne)
 		}
 	}
+	// fmt.Println("right:", ids)
 	return ids
 }
 
