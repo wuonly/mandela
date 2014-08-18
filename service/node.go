@@ -23,19 +23,20 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 	recvNode := new(message.FindNodeRsp)
 	proto.Unmarshal(msg.Date, recvNode)
 	// fmt.Println("接收到：", *recvNode.NodeId)
-	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-
-	nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
-	newNode := &nodeStore.Node{
-		NodeId:  nodeIdInt,
-		Addr:    *recvNode.Addr,
-		IsSuper: *recvNode.IsProxy,
-		TcpPort: int32(*recvNode.TcpPort),
-		UdpPort: int32(*recvNode.UdpPort),
-	}
-
 	//是超级节点
-	if newNode.IsSuper {
+	if recvNode.GetIsProxy() {
+		store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
+
+		nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
+		newNode := &nodeStore.Node{
+			NodeId:  nodeIdInt,
+			Addr:    *recvNode.Addr,
+			IsSuper: *recvNode.IsProxy,
+			TcpPort: int32(*recvNode.TcpPort),
+			UdpPort: int32(*recvNode.UdpPort),
+		}
+
+		//是超级节点
 		isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
 		// fmt.Println("这个节点是否需要：", isNeed)
 		if isNeed {
@@ -54,31 +55,31 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 				}
 			}
 		}
-	} else {
-		//是被代理的节点
-		// store.
-	}
 
-	//--------------------------------------------
-	//    互相介绍自己
-	//--------------------------------------------
-	rspMsg := message.FindNodeRsp{
-		NodeId:  recvNode.NodeId,
-		FindId:  proto.String(store.GetRootId()),
-		Addr:    proto.String(store.Root.Addr),
-		IsProxy: proto.Bool(!store.Root.IsSuper),
-		TcpPort: proto.Int32(int32(store.Root.TcpPort)),
-		UdpPort: proto.Int32(int32(store.Root.UdpPort)),
-	}
-	resultBytes, _ := proto.Marshal(&rspMsg)
-	session, ok := c.GetSession(msg.Name)
-	if !ok {
-		fmt.Println("这个session已经不存在了")
-		return
-	}
-	err := session.Send(message.FindNodeRspNum, &resultBytes)
-	if err != nil {
-		fmt.Println("node发送数据出错：", err.Error())
+		//--------------------------------------------
+		//    互相介绍自己
+		//--------------------------------------------
+		rspMsg := message.FindNodeRsp{
+			NodeId:  recvNode.NodeId,
+			FindId:  proto.String(store.GetRootId()),
+			Addr:    proto.String(store.Root.Addr),
+			IsProxy: proto.Bool(!store.Root.IsSuper),
+			TcpPort: proto.Int32(int32(store.Root.TcpPort)),
+			UdpPort: proto.Int32(int32(store.Root.UdpPort)),
+		}
+		resultBytes, _ := proto.Marshal(&rspMsg)
+		session, ok := c.GetSession(msg.Name)
+		if !ok {
+			fmt.Println("这个session已经不存在了")
+			return
+		}
+		err := session.Send(message.FindNodeRspNum, &resultBytes)
+		if err != nil {
+			fmt.Println("node发送数据出错：", err.Error())
+		}
+	} else {
+		//不是超级节点
+
 	}
 }
 
