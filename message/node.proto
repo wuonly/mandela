@@ -34,6 +34,30 @@ message FindNodeRsp{
 	optional int32    UdpPort         = 7;                   //udp连接端口
 }
 
+//代理某节点查找节点请求
+message FindNodeProxyReq{
+	optional int32    Timeout         = 1;                   //超时时间，单位秒
+	optional string   NodeId          = 2;                   //节点id
+	optional string   FindId          = 3;                   //要查找节点id
+	optional bool     IsSuper         = 4;                   //是否是超级节点
+	optional string   Addr            = 5;                   //外网地址
+	optional int32    TcpPort         = 6;                   //TCP端口
+	optional int32    UdpPort         = 7;                   //UDP端口
+	optional int32    Status          = 8;                   //节点状态
+}
+
+//代理查找节点返回
+message FindNodeProxyRsp{
+	optional int32    Timeout         = 1;                   //超时时间，单位秒
+	optional string   NodeId          = 2;                   //节点id
+	optional string   FindId          = 3;                   //要查找节点id
+	optional string   Addr            = 4;                   //外网地址
+	optional bool     IsProxy         = 5;                   //该节点是否被代理
+	optional int32    TcpPort         = 6;                   //tcp连接端口
+	optional int32    UdpPort         = 7;                   //udp连接端口
+}
+
+
 //注册一个节点请求
 message RegisterNodeReq{
 	optional int32    Timeout         = 1;                   //超时时间，单位秒

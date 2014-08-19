@@ -279,6 +279,17 @@ func (this *NodeManager) FindRecentNodeReq(c engine.Controller, msg engine.GetPa
 	}
 }
 
+//被代理的节点需要找到自己匹配的超级节点
+//代理查找超级节点
+func (this *NodeManager) FindNodeProxyReq(c engine.Controller, msg engine.GetPacket) {
+
+}
+
+//代理节点处理返回
+func (this *NodeManager) FindNodeProxyRsp(c engine.Controller, msg engine.GetPacket) {
+
+}
+
 //注册节点请求
 func (this *NodeManager) RegisterNodeReq(c engine.Controller, msg engine.GetPacket) {
 
