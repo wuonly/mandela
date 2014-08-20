@@ -10,6 +10,7 @@ It is generated from these files:
 
 It has these top-level messages:
 	BaseMsg
+	CommonMsg
 */
 package message
 
@@ -44,6 +45,70 @@ func (m *BaseMsg) GetTimeout() int32 {
 		return *m.Timeout
 	}
 	return 0
+}
+
+type CommonMsg struct {
+	MsgType          *int32  `protobuf:"varint,1,opt" json:"MsgType,omitempty"`
+	Time             *uint64 `protobuf:"varint,2,opt" json:"Time,omitempty"`
+	Nanosecond       *uint64 `protobuf:"varint,3,opt" json:"Nanosecond,omitempty"`
+	IsProxy          *bool   `protobuf:"varint,4,opt" json:"IsProxy,omitempty"`
+	TTL              *int32  `protobuf:"varint,5,opt" json:"TTL,omitempty"`
+	Id               *string `protobuf:"bytes,6,opt" json:"Id,omitempty"`
+	Content          []byte  `protobuf:"bytes,7,opt" json:"Content,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *CommonMsg) Reset()         { *m = CommonMsg{} }
+func (m *CommonMsg) String() string { return proto.CompactTextString(m) }
+func (*CommonMsg) ProtoMessage()    {}
+
+func (m *CommonMsg) GetMsgType() int32 {
+	if m != nil && m.MsgType != nil {
+		return *m.MsgType
+	}
+	return 0
+}
+
+func (m *CommonMsg) GetTime() uint64 {
+	if m != nil && m.Time != nil {
+		return *m.Time
+	}
+	return 0
+}
+
+func (m *CommonMsg) GetNanosecond() uint64 {
+	if m != nil && m.Nanosecond != nil {
+		return *m.Nanosecond
+	}
+	return 0
+}
+
+func (m *CommonMsg) GetIsProxy() bool {
+	if m != nil && m.IsProxy != nil {
+		return *m.IsProxy
+	}
+	return false
+}
+
+func (m *CommonMsg) GetTTL() int32 {
+	if m != nil && m.TTL != nil {
+		return *m.TTL
+	}
+	return 0
+}
+
+func (m *CommonMsg) GetId() string {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return ""
+}
+
+func (m *CommonMsg) GetContent() []byte {
+	if m != nil {
+		return m.Content
+	}
+	return nil
 }
 
 func init() {

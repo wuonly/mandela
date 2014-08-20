@@ -10,10 +10,7 @@ It is generated from these files:
 
 It has these top-level messages:
 	FindRecentNodeReq
-	FindNodeReq
-	FindNodeRsp
-	RegisterNodeReq
-	RegisterNodeRsp
+	FindNode
 */
 package message
 
@@ -50,186 +47,82 @@ func (m *FindRecentNodeReq) GetNodeId() string {
 	return ""
 }
 
-type FindNodeReq struct {
+type FindNode struct {
 	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
 	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
 	FindId           *string `protobuf:"bytes,3,opt" json:"FindId,omitempty"`
-	IsSuper          *bool   `protobuf:"varint,4,opt" json:"IsSuper,omitempty"`
-	Addr             *string `protobuf:"bytes,5,opt" json:"Addr,omitempty"`
-	TcpPort          *int32  `protobuf:"varint,6,opt" json:"TcpPort,omitempty"`
-	UdpPort          *int32  `protobuf:"varint,7,opt" json:"UdpPort,omitempty"`
-	Status           *int32  `protobuf:"varint,8,opt" json:"Status,omitempty"`
+	IsProxy          *bool   `protobuf:"varint,4,opt" json:"IsProxy,omitempty"`
+	ProxyId          *string `protobuf:"bytes,5,opt" json:"ProxyId,omitempty"`
+	Addr             *string `protobuf:"bytes,6,opt" json:"Addr,omitempty"`
+	TcpPort          *int32  `protobuf:"varint,7,opt" json:"TcpPort,omitempty"`
+	UdpPort          *int32  `protobuf:"varint,8,opt" json:"UdpPort,omitempty"`
+	Status           *int32  `protobuf:"varint,9,opt" json:"Status,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *FindNodeReq) Reset()         { *m = FindNodeReq{} }
-func (m *FindNodeReq) String() string { return proto.CompactTextString(m) }
-func (*FindNodeReq) ProtoMessage()    {}
+func (m *FindNode) Reset()         { *m = FindNode{} }
+func (m *FindNode) String() string { return proto.CompactTextString(m) }
+func (*FindNode) ProtoMessage()    {}
 
-func (m *FindNodeReq) GetTimeout() int32 {
+func (m *FindNode) GetTimeout() int32 {
 	if m != nil && m.Timeout != nil {
 		return *m.Timeout
 	}
 	return 0
 }
 
-func (m *FindNodeReq) GetNodeId() string {
+func (m *FindNode) GetNodeId() string {
 	if m != nil && m.NodeId != nil {
 		return *m.NodeId
 	}
 	return ""
 }
 
-func (m *FindNodeReq) GetFindId() string {
+func (m *FindNode) GetFindId() string {
 	if m != nil && m.FindId != nil {
 		return *m.FindId
 	}
 	return ""
 }
 
-func (m *FindNodeReq) GetIsSuper() bool {
-	if m != nil && m.IsSuper != nil {
-		return *m.IsSuper
-	}
-	return false
-}
-
-func (m *FindNodeReq) GetAddr() string {
-	if m != nil && m.Addr != nil {
-		return *m.Addr
-	}
-	return ""
-}
-
-func (m *FindNodeReq) GetTcpPort() int32 {
-	if m != nil && m.TcpPort != nil {
-		return *m.TcpPort
-	}
-	return 0
-}
-
-func (m *FindNodeReq) GetUdpPort() int32 {
-	if m != nil && m.UdpPort != nil {
-		return *m.UdpPort
-	}
-	return 0
-}
-
-func (m *FindNodeReq) GetStatus() int32 {
-	if m != nil && m.Status != nil {
-		return *m.Status
-	}
-	return 0
-}
-
-type FindNodeRsp struct {
-	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
-	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
-	FindId           *string `protobuf:"bytes,3,opt" json:"FindId,omitempty"`
-	Addr             *string `protobuf:"bytes,4,opt" json:"Addr,omitempty"`
-	IsProxy          *bool   `protobuf:"varint,5,opt" json:"IsProxy,omitempty"`
-	TcpPort          *int32  `protobuf:"varint,6,opt" json:"TcpPort,omitempty"`
-	UdpPort          *int32  `protobuf:"varint,7,opt" json:"UdpPort,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *FindNodeRsp) Reset()         { *m = FindNodeRsp{} }
-func (m *FindNodeRsp) String() string { return proto.CompactTextString(m) }
-func (*FindNodeRsp) ProtoMessage()    {}
-
-func (m *FindNodeRsp) GetTimeout() int32 {
-	if m != nil && m.Timeout != nil {
-		return *m.Timeout
-	}
-	return 0
-}
-
-func (m *FindNodeRsp) GetNodeId() string {
-	if m != nil && m.NodeId != nil {
-		return *m.NodeId
-	}
-	return ""
-}
-
-func (m *FindNodeRsp) GetFindId() string {
-	if m != nil && m.FindId != nil {
-		return *m.FindId
-	}
-	return ""
-}
-
-func (m *FindNodeRsp) GetAddr() string {
-	if m != nil && m.Addr != nil {
-		return *m.Addr
-	}
-	return ""
-}
-
-func (m *FindNodeRsp) GetIsProxy() bool {
+func (m *FindNode) GetIsProxy() bool {
 	if m != nil && m.IsProxy != nil {
 		return *m.IsProxy
 	}
 	return false
 }
 
-func (m *FindNodeRsp) GetTcpPort() int32 {
+func (m *FindNode) GetProxyId() string {
+	if m != nil && m.ProxyId != nil {
+		return *m.ProxyId
+	}
+	return ""
+}
+
+func (m *FindNode) GetAddr() string {
+	if m != nil && m.Addr != nil {
+		return *m.Addr
+	}
+	return ""
+}
+
+func (m *FindNode) GetTcpPort() int32 {
 	if m != nil && m.TcpPort != nil {
 		return *m.TcpPort
 	}
 	return 0
 }
 
-func (m *FindNodeRsp) GetUdpPort() int32 {
+func (m *FindNode) GetUdpPort() int32 {
 	if m != nil && m.UdpPort != nil {
 		return *m.UdpPort
 	}
 	return 0
 }
 
-type RegisterNodeReq struct {
-	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
-	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *RegisterNodeReq) Reset()         { *m = RegisterNodeReq{} }
-func (m *RegisterNodeReq) String() string { return proto.CompactTextString(m) }
-func (*RegisterNodeReq) ProtoMessage()    {}
-
-func (m *RegisterNodeReq) GetTimeout() int32 {
-	if m != nil && m.Timeout != nil {
-		return *m.Timeout
-	}
-	return 0
-}
-
-func (m *RegisterNodeReq) GetNodeId() string {
-	if m != nil && m.NodeId != nil {
-		return *m.NodeId
-	}
-	return ""
-}
-
-type RegisterNodeRsp struct {
-	Timeout          *int32 `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
-	Result           *int32 `protobuf:"varint,2,opt" json:"Result,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
-}
-
-func (m *RegisterNodeRsp) Reset()         { *m = RegisterNodeRsp{} }
-func (m *RegisterNodeRsp) String() string { return proto.CompactTextString(m) }
-func (*RegisterNodeRsp) ProtoMessage()    {}
-
-func (m *RegisterNodeRsp) GetTimeout() int32 {
-	if m != nil && m.Timeout != nil {
-		return *m.Timeout
-	}
-	return 0
-}
-
-func (m *RegisterNodeRsp) GetResult() int32 {
-	if m != nil && m.Result != nil {
-		return *m.Result
+func (m *FindNode) GetStatus() int32 {
+	if m != nil && m.Status != nil {
+		return *m.Status
 	}
 	return 0
 }
