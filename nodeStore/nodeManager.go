@@ -268,7 +268,7 @@ func NewNodeManager(node *Node, bits int) *NodeManager {
 		InNodes:        make(chan *Node, 1000),
 		Groups:         NewNodeGroup(),
 		NodeIdLevel:    bits,
-		MaxRecentCount: 2,
+		MaxRecentCount: 1,
 		Proxys:         make(map[string]*Node, 0),
 	}
 

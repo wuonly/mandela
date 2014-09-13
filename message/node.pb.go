@@ -9,7 +9,6 @@ It is generated from these files:
 	node.proto
 
 It has these top-level messages:
-	FindRecentNodeReq
 	FindNode
 */
 package message
@@ -22,30 +21,6 @@ import math "math"
 var _ = proto.Marshal
 var _ = &json.SyntaxError{}
 var _ = math.Inf
-
-type FindRecentNodeReq struct {
-	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
-	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *FindRecentNodeReq) Reset()         { *m = FindRecentNodeReq{} }
-func (m *FindRecentNodeReq) String() string { return proto.CompactTextString(m) }
-func (*FindRecentNodeReq) ProtoMessage()    {}
-
-func (m *FindRecentNodeReq) GetTimeout() int32 {
-	if m != nil && m.Timeout != nil {
-		return *m.Timeout
-	}
-	return 0
-}
-
-func (m *FindRecentNodeReq) GetNodeId() string {
-	if m != nil && m.NodeId != nil {
-		return *m.NodeId
-	}
-	return ""
-}
 
 type FindNode struct {
 	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`

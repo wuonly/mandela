@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"github.com/prestonTao/mandela/cache"
+	// "github.com/prestonTao/mandela/cache"
 	msg "github.com/prestonTao/mandela/message"
 	"github.com/prestonTao/mandela/nodeStore"
 	msgE "github.com/prestonTao/messageEngine"
@@ -28,8 +28,8 @@ type Manager struct {
 	privateKey       *rsa.PrivateKey
 	upnp             *upnp.Upnp
 	engine           *msgE.Engine
-	cache            *cache.Memcache
-	auth             *msgE.Auth
+	// cache            *cache.Memcache
+	auth *msgE.Auth
 }
 
 //-------------------------------------------------------
@@ -122,15 +122,16 @@ func (this *Manager) Run() error {
 		//给目标机器发送自己的名片
 		this.introduceSelf()
 	}
-	this.cache = cache.NewMencache()
-	this.engine.GetController().SetAttribute("cache", this.cache)
+	//这里启动存储系统
+	// this.cache = cache.NewMencache()
+	// this.engine.GetController().SetAttribute("cache", this.cache)
 	go this.read()
 	return nil
 }
 
 //连接超级节点后，向超级节点介绍自己
 func (this *Manager) introduceSelf() {
-	nodeMsg := msg.FindNodeRsp{
+	nodeMsg := msg.FindNode{
 		NodeId:  proto.String(this.nodeManager.GetRootId()),
 		Addr:    proto.String(this.hostIp),
 		IsProxy: proto.Bool(this.nodeManager.Root.IsSuper),
@@ -167,7 +168,7 @@ func (this *Manager) read() {
 			if id == nil {
 				continue
 			}
-			findNodeOne := &msg.FindNodeReq{
+			findNodeOne := &msg.FindNode{
 				NodeId: proto.String(this.nodeManager.GetRootId()),
 				FindId: proto.String("left"),
 			}
@@ -184,7 +185,7 @@ func (this *Manager) read() {
 			if id == nil {
 				continue
 			}
-			findNodeOne = &msg.FindNodeReq{
+			findNodeOne = &msg.FindNode{
 				NodeId: proto.String(this.nodeManager.GetRootId()),
 				FindId: proto.String("right"),
 			}
@@ -217,7 +218,7 @@ func (this *Manager) read() {
 		}
 		// fmt.Println(remote.NodeId.String())
 		// clientConn, _ := this.engine.GetController().GetSession(remote.NodeId.String())
-		findNodeOne := &msg.FindNodeReq{
+		findNodeOne := &msg.FindNode{
 			NodeId: proto.String(this.nodeManager.GetRootId()),
 			FindId: proto.String(node.NodeId.String()),
 		}

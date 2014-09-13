@@ -20,7 +20,7 @@ type NodeManager struct {
 
 //连接到本机后，目标机器会给自己发送它的名片
 func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPacket) {
-	recvNode := new(message.FindNodeRsp)
+	recvNode := new(message.FindNode)
 	proto.Unmarshal(msg.Date, recvNode)
 	// fmt.Println("接收到：", *recvNode.NodeId)
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
@@ -77,11 +77,11 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 	} else {
 		//不是超级节点
 		targetNode := store.Get(recvNode.GetNodeId(), true, "")
-		if targetNode.NodeId.String() == nodeStore.GetRootId() {
+		if targetNode.NodeId.String() == store.GetRootId() {
 			proxyReqMsg := message.FindNode{
 				NodeId:  recvNode.NodeId,
 				FindId:  proto.String(store.GetRootId()),
-				IsProxy: false,
+				IsProxy: proto.Bool(false),
 			}
 			resultBytes, _ := proto.Marshal(&proxyReqMsg)
 			session, ok := c.GetSession(targetNode.NodeId.String())
@@ -98,7 +98,7 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 		proxyReqMsg := message.FindNode{
 			NodeId:  proto.String(store.GetRootId()),
 			FindId:  proto.String(recvNode.GetNodeId()),
-			IsProxy: true,
+			IsProxy: proto.Bool(true),
 			ProxyId: proto.String(recvNode.GetNodeId()),
 		}
 		resultBytes, _ := proto.Marshal(&proxyReqMsg)
@@ -118,7 +118,7 @@ func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPac
 //
 //处理查找节点请求
 func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) {
-	findNode := new(message.FindNodeReq)
+	findNode := new(message.FindNode)
 	proto.Unmarshal(msg.Date, findNode)
 	nodeStore := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 
@@ -258,7 +258,7 @@ func (this *NodeManager) FindRecentNodeReq(c engine.Controller, msg engine.GetPa
 	//--------------------------------------------
 	//    查找邻居节点
 	//--------------------------------------------
-	recvNode := new(message.FindNodeRsp)
+	recvNode := new(message.FindNode)
 	proto.Unmarshal(msg.Date, recvNode)
 
 	nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
