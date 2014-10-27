@@ -18,325 +18,208 @@ import (
 type NodeManager struct {
 }
 
-//连接到本机后，目标机器会给自己发送它的名片
-func (this *NodeManager) IntroduceSelfRsp(c engine.Controller, msg engine.GetPacket) {
-	recvNode := new(message.FindNode)
-	proto.Unmarshal(msg.Date, recvNode)
-	// fmt.Println("接收到：", *recvNode.NodeId)
-	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	//是超级节点
-	if recvNode.GetIsProxy() {
-		nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
-		newNode := &nodeStore.Node{
-			NodeId:  nodeIdInt,
-			Addr:    *recvNode.Addr,
-			IsSuper: *recvNode.IsProxy,
-			TcpPort: int32(*recvNode.TcpPort),
-			UdpPort: int32(*recvNode.UdpPort),
-		}
-		//是超级节点
-		isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
-		// fmt.Println("这个节点是否需要：", isNeed)
-		if isNeed {
-			store.AddNode(newNode)
-			c.GetNet().AddClientConn(nodeIdInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
-			if replace != "" {
-				//删除原来的连接
-				fmt.Println("替换原有的连接：", replace)
-				if session, ok := c.GetSession(replace); ok {
-					session.Close()
-
-					delNode := new(nodeStore.Node)
-					delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
-					store.DelNode(delNode)
-					fmt.Println("替换成功")
-				}
-			}
-		}
-		//--------------------------------------------
-		//    互相介绍自己
-		//--------------------------------------------
-		rspMsg := message.FindNode{
-			NodeId:  recvNode.NodeId,
-			FindId:  proto.String(store.GetRootId()),
-			Addr:    proto.String(store.Root.Addr),
-			IsProxy: proto.Bool(!store.Root.IsSuper),
-			TcpPort: proto.Int32(int32(store.Root.TcpPort)),
-			UdpPort: proto.Int32(int32(store.Root.UdpPort)),
-		}
-		resultBytes, _ := proto.Marshal(&rspMsg)
-		session, ok := c.GetSession(msg.Name)
-		if !ok {
-			fmt.Println("这个session已经不存在了")
-			return
-		}
-		err := session.Send(message.FindNodeRspNum, &resultBytes)
-		if err != nil {
-			fmt.Println("node发送数据出错：", err.Error())
-		}
-	} else {
-		//不是超级节点
-		targetNode := store.Get(recvNode.GetNodeId(), true, "")
-		if targetNode.NodeId.String() == store.GetRootId() {
-			proxyReqMsg := message.FindNode{
-				NodeId:  recvNode.NodeId,
-				FindId:  proto.String(store.GetRootId()),
-				IsProxy: proto.Bool(false),
-			}
-			resultBytes, _ := proto.Marshal(&proxyReqMsg)
-			session, ok := c.GetSession(targetNode.NodeId.String())
-			if !ok {
-				fmt.Println("这个session已经不存在了")
-				return
-			}
-			err := session.Send(message.FindNodeRspNum, &resultBytes)
-			if err != nil {
-				fmt.Println("node发送数据出错：", err.Error())
-			}
-			return
-		}
-		proxyReqMsg := message.FindNode{
-			NodeId:  proto.String(store.GetRootId()),
-			FindId:  proto.String(recvNode.GetNodeId()),
-			IsProxy: proto.Bool(true),
-			ProxyId: proto.String(recvNode.GetNodeId()),
-		}
-		resultBytes, _ := proto.Marshal(&proxyReqMsg)
-		session, ok := c.GetSession(targetNode.NodeId.String())
-		if !ok {
-			fmt.Println("这个session已经不存在了")
-			return
-		}
-		err := session.Send(message.FindNodeReqNum, &resultBytes)
-		if err != nil {
-			fmt.Println("node发送数据出错：", err.Error())
-		}
-
-	}
-}
-
-//
-//处理查找节点请求
-func (this *NodeManager) FindNodeReq(c engine.Controller, msg engine.GetPacket) {
+//查找结点消息
+func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	findNode := new(message.FindNode)
 	proto.Unmarshal(msg.Date, findNode)
-	nodeStore := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
+	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
+	//--------------------------------------------
+	//    接收查找请求
+	//--------------------------------------------
+	if findNode.GetFindId() != "" {
+		//普通节点收到自己发出的代理查找请求
+		if findNode.GetIsProxy() && (findNode.GetProxyId() == store.GetRootId()) {
+			fmt.Println("普通节点收到自己发出的代理查找请求")
+			//自己保存这个节点
+			this.saveNode(findNode, store, c)
+			return
+		}
+		//是自己发出的非代理查找请求
+		if findNode.GetNodeId() == store.GetRootId() {
+			//是自己的代理节点发的请求
+			if findNode.GetIsProxy() {
+				this.sendMsg(findNode.GetProxyId(), &msg.Date, c)
+				return
+			}
+			//不是代理查找，自己接收这个
+			// fmt.Println("找到一个节点：", findNode.GetFindId())
+			this.saveNode(findNode, store, c)
+			return
+		}
+		//不是自己发出的查找请求转发粗去
+		//查找除了刚发过来的节点并且包括自己，的临近结点
+		targetNode := store.Get(findNode.GetWantId(), true, msg.Name)
+		//查找的就是自己，可这个节点已经下线
+		if targetNode.NodeId.String() == store.GetRootId() {
+			//这里要想个办法解决下
+			fmt.Println("想办法解决下这个问题")
+			return
+		}
+		//转发粗去
+		this.sendMsg(targetNode.NodeId.String(), &msg.Date, c)
+		return
+	}
 
 	//--------------------------------------------
-	//    查找节点
+	//    发出查找请求
 	//--------------------------------------------
-	targetNode := nodeStore.Get(findNode.GetFindId(), true, findNode.GetNodeId())
-
-	if targetNode.NodeId.String() == nodeStore.GetRootId() {
-		//找到了
-		// fmt.Println("查找到：", targetNode.NodeId.String())
+	//自己的代理节点发过来的代理查找请求
+	if findNode.GetIsProxy() && (msg.Name == findNode.GetProxyId()) {
+		//超级节点刚上线
+		if findNode.GetIsSuper() {
+			newNode := message.FindNode{
+				NodeId:  findNode.ProxyId,
+				WantId:  findNode.WantId,
+				FindId:  findNode.ProxyId,
+				IsProxy: findNode.IsProxy,
+				ProxyId: findNode.ProxyId,
+				Addr:    findNode.Addr,
+				IsSuper: findNode.IsSuper,
+				TcpPort: findNode.TcpPort,
+				UdpPort: findNode.UdpPort,
+			}
+			this.saveNode(&newNode, store, c)
+		}
+		//查找除了被代理的节点并且包括自己，的临近结点
+		targetNode := store.Get(findNode.GetWantId(), true, findNode.GetProxyId())
+		//要查找的节点就是自己，则发送给自己的代理节点
+		if targetNode.NodeId.String() == store.GetRootId() {
+			// fmt.Println("自己的代理节点发出的查找请求查找到临近结点：", targetNode.NodeId.String())
+			rspMsg := message.FindNode{
+				NodeId:  findNode.NodeId,
+				WantId:  findNode.WantId,
+				FindId:  proto.String(store.GetRootId()),
+				IsProxy: findNode.IsProxy,
+				ProxyId: findNode.ProxyId,
+				Addr:    proto.String(store.Root.Addr),
+				IsSuper: proto.Bool(store.Root.IsSuper),
+				TcpPort: proto.Int32(store.Root.TcpPort),
+				UdpPort: proto.Int32(store.Root.UdpPort),
+			}
+			resultBytes, _ := proto.Marshal(&rspMsg)
+			this.sendMsg(msg.Name, &resultBytes, c)
+			return
+		}
+		//转发代理查找请求
 		rspMsg := message.FindNode{
-			NodeId:  findNode.NodeId,
-			FindId:  proto.String(targetNode.NodeId.String()),
-			Addr:    proto.String(targetNode.Addr),
-			IsProxy: proto.Bool(!targetNode.IsSuper),
-			TcpPort: proto.Int32(int32(targetNode.TcpPort)),
-			UdpPort: proto.Int32(int32(targetNode.UdpPort)),
+			NodeId:  proto.String(store.GetRootId()),
+			WantId:  findNode.WantId,
+			IsProxy: findNode.IsProxy,
+			ProxyId: findNode.ProxyId,
 		}
 		resultBytes, _ := proto.Marshal(&rspMsg)
-		nodeResult := nodeStore.Get(findNode.GetNodeId(), false, "")
-		if nodeResult == nil {
-			return
-		}
-		session, ok := c.GetSession(nodeResult.NodeId.String())
-		if !ok {
-			fmt.Println("这个session已经不存在了")
-			return
-		}
-		err := session.Send(message.FindNodeRspNum, &resultBytes)
-		if err != nil {
-			fmt.Println("node发送数据出错：", err.Error())
-		}
-		// c.GetNet().Send(msg., message.FindNodeRspNum, resultBytes)
+		this.sendMsg(targetNode.NodeId.String(), &resultBytes, c)
 		return
 	}
 
-	if targetNode.NodeId.String() == msg.Name {
-		// fmt.Println("忽略这个查找")
+	//--------------------------------------------
+	//    查找邻居节点，只有超级节点才会找邻居节点
+	//--------------------------------------------
+	if findNode.GetWantId() == "left" || findNode.GetWantId() == "right" {
+		//不是代理查找
+		nodeIdInt, _ := new(big.Int).SetString(findNode.GetNodeId(), 10)
+		var nodes []*nodeStore.Node
+		//查找左邻居节点
+		if findNode.GetWantId() == "left" {
+			nodes = store.GetLeftNode(*nodeIdInt, store.MaxRecentCount)
+			if nodes == nil {
+				return
+			}
+		}
+		//查找右邻居节点
+		if findNode.GetWantId() == "right" {
+			nodes = store.GetRightNode(*nodeIdInt, store.MaxRecentCount)
+			if nodes == nil {
+				return
+			}
+		}
+		//把找到的邻居节点返回给查找者
+		for _, nodeOne := range nodes {
+			rspMsg := message.FindNode{
+				NodeId:  findNode.NodeId,
+				WantId:  findNode.WantId,
+				FindId:  proto.String(nodeOne.NodeId.String()),
+				IsProxy: findNode.IsProxy,
+				ProxyId: findNode.ProxyId,
+				Addr:    proto.String(nodeOne.Addr),
+				IsSuper: proto.Bool(nodeOne.IsSuper),
+				TcpPort: proto.Int32(int32(nodeOne.TcpPort)),
+				UdpPort: proto.Int32(int32(nodeOne.UdpPort)),
+			}
+			resultBytes, _ := proto.Marshal(&rspMsg)
+			this.sendMsg(msg.Name, &resultBytes, c)
+		}
 		return
 	}
 
-	//转发出去
-	session, ok := c.GetSession(targetNode.NodeId.String())
+	//查找除了客户端节点并且包括自己的临近结点
+	targetNode := store.Get(findNode.GetWantId(), true, msg.Name)
+	//要查找的节点就是自己
+	if targetNode.NodeId.String() == store.GetRootId() {
+		rspMsg := message.FindNode{
+			NodeId:  findNode.NodeId,
+			WantId:  findNode.WantId,
+			FindId:  proto.String(store.GetRootId()),
+			IsProxy: findNode.IsProxy,
+			ProxyId: findNode.ProxyId,
+			Addr:    proto.String(store.Root.Addr),
+			IsSuper: proto.Bool(store.Root.IsSuper),
+			TcpPort: proto.Int32(store.Root.TcpPort),
+			UdpPort: proto.Int32(store.Root.UdpPort),
+		}
+		resultBytes, _ := proto.Marshal(&rspMsg)
+		this.sendMsg(msg.Name, &resultBytes, c)
+		return
+	}
+	//要找的不是自己，则转发出去
+	this.sendMsg(targetNode.NodeId.String(), &msg.Date, c)
+}
+
+func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controller) {
+	session, ok := c.GetSession(nodeId)
 	if !ok {
 		fmt.Println("这个session已经不存在了")
 		return
 	}
-	err := session.Send(message.FindNodeReqNum, &msg.Date)
+	err := session.Send(message.FindNodeNum, data)
 	if err != nil {
 		fmt.Println("node发送数据出错：", err.Error())
 	}
 }
 
-//处理查找节点返回请求
-func (this *NodeManager) FindNodeRsp(c engine.Controller, msg engine.GetPacket) {
-	recvNode := new(message.FindNode)
-	proto.Unmarshal(msg.Date, recvNode)
-	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	if store.Root.IsSuper {
-		if recvNode.GetNodeId() == store.GetRootId() {
-			//自己发出的查找请求
-			if recvNode.GetFindId() == store.GetRootId() {
-				//擦，把自己给找到老
-				return
-			}
-			// nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
-			shouldNodeInt, _ := new(big.Int).SetString(*recvNode.FindId, 10)
-			newNode := &nodeStore.Node{
-				NodeId:  shouldNodeInt,
-				Addr:    *recvNode.Addr,
-				IsSuper: !*recvNode.IsProxy,
-				TcpPort: int32(*recvNode.TcpPort),
-				UdpPort: int32(*recvNode.UdpPort),
-			}
-			// fmt.Println(*recvNode.NodeId)
-			// _, ok := c.GetSession(*recvNode.NodeId)
-
-			// if !ok {
-			// 	fmt.Println(*recvNode.NodeId)
-			// 	c.GetNet().AddClientConn(*recvNode.NodeId, *recvNode.Addr, store.GetRootId(), *recvNode.TcpPort, false)
-			// }
-
-			// // newNode
-			// store.AddNode(newNode)
-
-			isNeed, replace := store.CheckNeedNode(newNode.NodeId.String())
-			// fmt.Println("这个节点是否需要：", isNeed)
-			if isNeed {
-				fmt.Println("接收请求:", *recvNode.FindId, "要替换", replace)
-				store.AddNode(newNode)
-				c.GetNet().AddClientConn(shouldNodeInt.String(), newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
-				if replace != "" {
-					fmt.Println("替换原有的连接：", replace)
-					//删除原来的连接
-					if session, ok := c.GetSession(replace); ok {
-						session.Close()
-						delNode := new(nodeStore.Node)
-						delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
-						store.DelNode(delNode)
-						fmt.Println("替换成功")
-					}
+//自己保存这个节点，可以保存超级节点，也可以保存代理节点
+func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.NodeManager, c engine.Controller) {
+	shouldNodeInt, _ := new(big.Int).SetString(findNode.GetFindId(), 10)
+	newNode := &nodeStore.Node{
+		NodeId:  shouldNodeInt,
+		IsSuper: findNode.GetIsSuper(),
+		Addr:    findNode.GetAddr(),
+		TcpPort: findNode.GetTcpPort(),
+		UdpPort: findNode.GetUdpPort(),
+	}
+	//是否需要这个节点
+	if isNeed, replace := store.CheckNeedNode(findNode.GetFindId()); isNeed {
+		store.AddNode(newNode)
+		//把替换的节点连接删除
+		if replace != "" {
+			//是否要替换超级节点
+			if session, ok := c.GetNet().GetSession(store.SuperName); ok {
+				if replace == session.GetName() {
+					session.Close()
+					session, _ := c.GetNet().AddClientConn(newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
+					store.SuperName = session.GetName()
 				}
-				fmt.Println("end")
 			}
-			return
+			if session, ok := c.GetSession(replace); ok {
+				session.Close()
+				delNode := new(nodeStore.Node)
+				delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
+				store.DelNode(delNode)
+			}
 		}
-
-		//不是自己的回复，转发请求
-		nodeForword := store.Get(recvNode.GetNodeId(), false, "")
-		if nodeForword == nil {
-			return
-		}
-		session, ok := c.GetSession(nodeForword.NodeId.String())
-		if !ok {
-			fmt.Println("这个session已经不存在了")
-			return
-		}
-		err := session.Send(message.FindNodeRspNum, &msg.Date)
-		if err != nil {
-			fmt.Println("node发送数据出错：", err.Error())
-		}
-	} else {
-		session, _ := c.GetSession("superNode")
-		superNodeId := session.GetName()
-		superNodeIdInt, _ := new(big.Int).SetString(superNodeId, 10)
-		newSuperNodeIdInt, _ := new(big.Int).SetString(recvNode.GetFindId(), 10)
-		if new(big.Int).Xor(store.Root.NodeId, superNodeIdInt).Cmp(new(big.Int).Xor(store.Root.NodeId, newSuperNodeIdInt)) == 1 {
-			c.GetNet().AddClientConn("superNode", recvNode.GetAddr(), "superNode", recvNode.GetTcpPort(), false)
+		if store.Root.IsSuper {
+			fmt.Println("接收请求:", findNode.GetFindId(), "要替换", replace)
+			c.GetNet().AddClientConn(newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
 		}
 	}
-
-}
-
-//查询相邻节点请求
-func (this *NodeManager) FindRecentNodeReq(c engine.Controller, msg engine.GetPacket) {
-	//--------------------------------------------
-	//    查找邻居节点
-	//--------------------------------------------
-	recvNode := new(message.FindNode)
-	proto.Unmarshal(msg.Date, recvNode)
-
-	nodeIdInt, _ := new(big.Int).SetString(*recvNode.NodeId, 10)
-	// var node *nodeStore.Node
-	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	if recvNode.GetFindId() == "left" {
-		node := store.GetLeftNode(*nodeIdInt, store.MaxRecentCount)
-		if node == nil {
-			return
-		}
-		for _, nodeOne := range node {
-			rspMsg := message.FindNode{
-				NodeId:  recvNode.NodeId,
-				FindId:  proto.String(nodeOne.NodeId.String()),
-				Addr:    proto.String(nodeOne.Addr),
-				IsProxy: proto.Bool(!nodeOne.IsSuper),
-				TcpPort: proto.Int32(int32(nodeOne.TcpPort)),
-				UdpPort: proto.Int32(int32(nodeOne.UdpPort)),
-			}
-			resultBytes, _ := proto.Marshal(&rspMsg)
-			session, ok := c.GetSession(msg.Name)
-			if !ok {
-				fmt.Println("这个session已经不存在了")
-				return
-			}
-			err := session.Send(message.FindNodeRspNum, &resultBytes)
-			if err != nil {
-				fmt.Println("node发送数据出错：", err.Error())
-			}
-		}
-
-	}
-
-	if recvNode.GetFindId() == "right" {
-		node := store.GetRightNode(*nodeIdInt, store.MaxRecentCount)
-		if node == nil {
-			return
-		}
-		for _, nodeOne := range node {
-			rspMsg := message.FindNode{
-				NodeId:  recvNode.NodeId,
-				FindId:  proto.String(nodeOne.NodeId.String()),
-				Addr:    proto.String(nodeOne.Addr),
-				IsProxy: proto.Bool(!nodeOne.IsSuper),
-				TcpPort: proto.Int32(int32(nodeOne.TcpPort)),
-				UdpPort: proto.Int32(int32(nodeOne.UdpPort)),
-			}
-			resultBytes, _ := proto.Marshal(&rspMsg)
-			session, ok := c.GetSession(msg.Name)
-			if !ok {
-				fmt.Println("这个session已经不存在了")
-				return
-			}
-			err := session.Send(message.FindNodeRspNum, &resultBytes)
-			if err != nil {
-				fmt.Println("node发送数据出错：", err.Error())
-			}
-		}
-	}
-}
-
-//被代理的节点需要找到自己匹配的超级节点
-//代理查找超级节点
-func (this *NodeManager) FindNodeProxyReq(c engine.Controller, msg engine.GetPacket) {
-
-}
-
-//代理节点处理返回
-func (this *NodeManager) FindNodeProxyRsp(c engine.Controller, msg engine.GetPacket) {
-
-}
-
-//注册节点请求
-func (this *NodeManager) RegisterNodeReq(c engine.Controller, msg engine.GetPacket) {
-
-}
-
-//注册节点返回
-func (this *NodeManager) RegisterNodeRsp(c engine.Controller, msg engine.GetPacket) {
-
 }

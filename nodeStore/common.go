@@ -1,24 +1,24 @@
 package nodeStore
 
-// import (
-// 	"crypto/sha256"
-// 	"encoding/hex"
-// 	"fmt"
-// 	"math/big"
-// 	"math/rand"
-// 	"time"
-// )
+import (
+	// "crypto/sha256"
+	// "encoding/hex"
+	// "fmt"
+	"math/big"
+	"math/rand"
+	"time"
+)
 
-// //得到指定长度的节点id
-// //@return 10进制字符串
-// func RandNodeId(lenght int) *big.Int {
-// 	min := rand.New(rand.NewSource(99))
-// 	timens := int64(time.Now().Nanosecond())
-// 	min.Seed(timens)
-// 	maxId := new(big.Int).Lsh(big.NewInt(1), uint(lenght))
-// 	randInt := new(big.Int).Rand(min, maxId)
-// 	return randInt
-// }
+//得到指定长度的节点id
+//@return 10进制字符串
+func RandNodeId() *big.Int {
+	min := rand.New(rand.NewSource(99))
+	timens := int64(time.Now().Nanosecond())
+	min.Seed(timens)
+	maxId := new(big.Int).Lsh(big.NewInt(1), uint(NodeIdLevel))
+	randInt := new(big.Int).Rand(min, maxId)
+	return randInt
+}
 
 // //通过一个域名和用户名得到节点的id
 // //@return 10进制字符串

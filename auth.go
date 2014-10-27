@@ -42,20 +42,34 @@ name：连接名称
 */
 
 //发送
-func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (string, error) {
-
+//@name                 本机服务器的名称
+//@return  remoteName   对方服务器的名称
+func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (remoteName string, err error) {
+	//第一次连接，向对方发送自己的名称
 	lenght := int32(len(name))
 	buf := bytes.NewBuffer([]byte{})
 	binary.Write(buf, binary.BigEndian, lenght)
-
 	buf.Write([]byte(name))
 	conn.Write(buf.Bytes())
 
-	return name, nil
+	//对方服务器验证成功后发送给自己的名称
+	lenghtByte := make([]byte, 4)
+	io.ReadFull(conn, lenghtByte)
+	nameLenght := binary.BigEndian.Uint32(lenghtByte)
+	nameByte := make([]byte, nameLenght)
+	n, e := conn.Read(nameByte)
+	if e != nil {
+		err = e
+		return
+	}
+	//得到对方名称
+	remoteName = string(nameByte[:n])
+	return
 }
 
 //接收
-func (this *Auth) RecvKey(conn net.Conn) (name string, err error) {
+//@return  remoteName   对方服务器的名称
+func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err error) {
 	lenghtByte := make([]byte, 4)
 	io.ReadFull(conn, lenghtByte)
 	lenght := binary.BigEndian.Uint32(lenghtByte)
@@ -66,20 +80,15 @@ func (this *Auth) RecvKey(conn net.Conn) (name string, err error) {
 		err = e
 		return
 	}
-	name = string(nameByte[:n])
+	//得到对方名称
+	remoteName = string(nameByte[:n])
+	//开始验证对方客户端名称
 
-	// node := new(nodeStore.Node)
-	// nodeIdInt, b := new(big.Int).SetString(name, 10)
-	// if !b {
-	// 	// fmt.Println("节点id格式不正确，应该为十进制字符串")
-	// 	err = errors.New("节点id格式不正确，应该为十进制字符串")
-	// 	return
-	// }
-	// node.NodeId = nodeIdInt
-	// node.Addr = conn.RemoteAddr().String()
-	// // node.TcpPort = conn.RemoteAddr()
-	// fmt.Println("huhuihuihui", conn.RemoteAddr().String())
-
-	// this.nodeManager.AddNode(node)
+	//验证成功后，向对方发送自己的名称
+	nameLenght := int32(len(name))
+	buf := bytes.NewBuffer([]byte{})
+	binary.Write(buf, binary.BigEndian, nameLenght)
+	buf.Write([]byte(name))
+	conn.Write(buf.Bytes())
 	return
 }

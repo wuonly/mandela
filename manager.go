@@ -17,7 +17,7 @@ import (
 )
 
 type Manager struct {
-	IsRoot           bool
+	IsRoot           bool //是否是第一个节点
 	nodeStoreManager *NodeStoreManager
 	nodeManager      *nodeStore.NodeManager
 	superNodeIp      string
@@ -45,10 +45,10 @@ type Manager struct {
 func (this *Manager) Run() error {
 	if this.IsRoot {
 		//随机产生一个nodeid
-		this.rootId = RandNodeId(256)
+		this.rootId = nodeStore.RandNodeId()
 	} else {
 		//随机产生一个nodeid
-		this.rootId = RandNodeId(256)
+		this.rootId = nodeStore.RandNodeId()
 		this.nodeStoreManager = new(NodeStoreManager)
 		this.nodeStoreManager.loadPeerEntry()
 	}
@@ -91,12 +91,12 @@ func (this *Manager) Run() error {
 		TcpPort: this.HostPort,
 		UdpPort: 0,
 	}
-	this.nodeManager = nodeStore.NewNodeManager(node, 256)
+	this.nodeManager = nodeStore.NewNodeManager(node)
 	//---------------------------------------------------------------
 	//  end
 	//---------------------------------------------------------------
 	//---------------------------------------------------------------
-	//  设置回调函数后监听
+	//  设置关闭连接回调函数后监听
 	//---------------------------------------------------------------
 	auth := new(Auth)
 	auth.nodeManager = this.nodeManager
@@ -118,7 +118,7 @@ func (this *Manager) Run() error {
 		if err != nil {
 			return err
 		}
-		this.engine.AddClientConn("superNode", host, int32(port), false)
+		this.nodeManager.SuperName = this.engine.AddClientConn(host, int32(port), false)
 		//给目标机器发送自己的名片
 		this.introduceSelf()
 	}
@@ -130,24 +130,30 @@ func (this *Manager) Run() error {
 }
 
 //连接超级节点后，向超级节点介绍自己
+//第一次连接超级节点，用代理方式查找离自己最近的节点
 func (this *Manager) introduceSelf() {
+	session, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
+
+	//用代理方式查找最近的超级节点
 	nodeMsg := msg.FindNode{
-		NodeId:  proto.String(this.nodeManager.GetRootId()),
-		Addr:    proto.String(this.hostIp),
-		IsProxy: proto.Bool(this.nodeManager.Root.IsSuper),
-		TcpPort: proto.Int32(this.HostPort),
-		UdpPort: proto.Int32(this.HostPort),
+		NodeId:  proto.String(session.GetName()),
+		WantId:  proto.String(this.nodeManager.GetRootId()),
+		IsProxy: proto.Bool(true),
+		ProxyId: proto.String(this.nodeManager.GetRootId()),
+		IsSuper: proto.Bool(true),
+		Addr:    proto.String(this.nodeManager.Root.Addr),
+		TcpPort: proto.Int32(this.nodeManager.Root.TcpPort),
+		UdpPort: proto.Int32(this.nodeManager.Root.UdpPort),
 	}
 	resultBytes, _ := proto.Marshal(&nodeMsg)
-	session, _ := this.engine.GetController().GetSession("superNode")
-	session.Send(msg.IntroduceSelf, &resultBytes)
-	// fmt.Println("发送名片完成")
+
+	session.Send(msg.FindNodeNum, &resultBytes)
 }
 
 //一个连接断开后的回调方法
 func (this *Manager) closeConnCallback(name string) {
 	fmt.Println("客户端离线：", name)
-	if name == "superNode" {
+	if name == this.nodeManager.SuperName {
 		return
 	}
 	delNode := new(nodeStore.Node)
@@ -160,72 +166,85 @@ func (this *Manager) closeConnCallback(name string) {
 func (this *Manager) read() {
 	for {
 		node := <-this.nodeManager.OutFindNode
+		session, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
+
+		findNodeOne := &msg.FindNode{
+			NodeId:  proto.String(this.nodeManager.GetRootId()),
+			IsProxy: proto.Bool(false),
+			ProxyId: proto.String(this.nodeManager.GetRootId()),
+		}
+		//普通节点只需要定时查找最近的超级节点
+		if !this.nodeManager.Root.IsSuper {
+			if node.NodeId.String() == this.nodeManager.GetRootId() {
+				findNodeOne.NodeId = proto.String(session.GetName())
+				findNodeOne.IsProxy = proto.Bool(true)
+				findNodeOne.WantId = proto.String(node.NodeId.String())
+				findNodeOne.IsSuper = proto.Bool(true)
+				findNodeOne.Addr = proto.String(this.nodeManager.Root.Addr)
+				findNodeOne.TcpPort = proto.Int32(this.nodeManager.Root.TcpPort)
+				findNodeOne.UdpPort = proto.Int32(this.nodeManager.Root.UdpPort)
+
+				resultBytes, _ := proto.Marshal(findNodeOne)
+				session.Send(msg.FindNodeNum, &resultBytes)
+			}
+			continue
+		}
 		//--------------------------------------------
-		//    查找邻居节点
+		//    查找邻居节点，只有超级节点才需要查找
 		//--------------------------------------------
 		if node.NodeId.String() == this.nodeManager.GetRootId() {
+			//先发送左邻居节点查找请求
+			findNodeOne.WantId = proto.String("left")
 			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
-			findNodeOne := &msg.FindNode{
-				NodeId: proto.String(this.nodeManager.GetRootId()),
-				FindId: proto.String("left"),
-			}
 			findNodeBytes, _ := proto.Marshal(findNodeOne)
-			clientConn, _ := this.engine.GetController().GetSession(id[0].NodeId.String())
-			if clientConn == nil {
+			clientConn, ok := this.engine.GetController().GetSession(id[0].NodeId.String())
+			if !ok {
 				continue
 			}
-			err := clientConn.Send(msg.FindRecentNodeReqNum, &findNodeBytes)
+			err := clientConn.Send(msg.FindNodeNum, &findNodeBytes)
 			if err != nil {
 				fmt.Println("manager发送数据出错：", err.Error())
 			}
+			//发送右邻居节点查找请求
+			findNodeOne.WantId = proto.String("right")
 			id = this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
-			findNodeOne = &msg.FindNode{
-				NodeId: proto.String(this.nodeManager.GetRootId()),
-				FindId: proto.String("right"),
-			}
 			findNodeBytes, _ = proto.Marshal(findNodeOne)
-			clientConn, _ = this.engine.GetController().GetSession(id[0].NodeId.String())
-			if clientConn == nil {
+			clientConn, ok = this.engine.GetController().GetSession(id[0].NodeId.String())
+			if !ok {
 				continue
 			}
-			err = clientConn.Send(msg.FindRecentNodeReqNum, &findNodeBytes)
+			err = clientConn.Send(msg.FindNodeNum, &findNodeBytes)
 			if err != nil {
 				fmt.Println("manager发送数据出错：", err.Error())
 			}
+			continue
 		}
 		//--------------------------------------------
-		//    查找普通节点
+		//    查找普通节点，只有超级节点才需要查找
 		//--------------------------------------------
-		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
-		var clientConn msgE.Session
-		if remote == nil {
-			clientConn, _ = this.engine.GetController().GetSession("superNode")
-			if clientConn == nil {
-				continue
-			}
-		} else {
-			clientConn, _ = this.engine.GetController().GetSession(remote.NodeId.String())
-			if clientConn == nil {
-				// fmt.Println(remote.NodeId.String())
-				continue
-			}
+		//这里临时加上去
+		if this.nodeManager.Root.IsSuper {
+			continue
 		}
-		// fmt.Println(remote.NodeId.String())
-		// clientConn, _ := this.engine.GetController().GetSession(remote.NodeId.String())
-		findNodeOne := &msg.FindNode{
-			NodeId: proto.String(this.nodeManager.GetRootId()),
-			FindId: proto.String(node.NodeId.String()),
-		}
+		findNodeOne.WantId = proto.String(node.NodeId.String())
 		findNodeBytes, _ := proto.Marshal(findNodeOne)
-		// clientConn := this.engine.GetController().GetClientByName("firstConnPeer")
-		// fmt.Println(clientConn, "-0-\n")
-		err := clientConn.Send(msg.FindNodeReqNum, &findNodeBytes)
+
+		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
+		if remote == nil {
+			continue
+		}
+		session, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+		if session == nil {
+			continue
+		}
+
+		err := session.Send(msg.FindNodeNum, &findNodeBytes)
 		if err != nil {
 			fmt.Println("manager发送数据出错：", err.Error())
 		}
@@ -234,7 +253,7 @@ func (this *Manager) read() {
 
 //保存一个键值对
 func (this *Manager) SaveData(key, value string) {
-	clientConn, _ := this.engine.GetController().GetSession("superNode")
+	clientConn, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
 	data := []byte(key + "!" + value)
 	clientConn.Send(msg.SaveKeyValueReqNum, &data)
 }
@@ -242,15 +261,11 @@ func (this *Manager) SaveData(key, value string) {
 //给所有客户端发送消息
 func (this *Manager) SendMsgForAll(message string) {
 	for idOne, _ := range this.nodeManager.GetAllNodes() {
-		clientConn, _ := this.engine.GetController().GetSession(idOne)
-		if clientConn == nil {
-			continue
+		if clientConn, ok := this.engine.GetController().GetSession(idOne); ok {
+			data := []byte(message)
+			clientConn.Send(msg.SaveKeyValueReqNum, &data)
 		}
-		data := []byte(message)
-		err := clientConn.Send(msg.SaveKeyValueReqNum, &data)
-		if err != nil {
-			continue
-		}
+
 	}
 }
 

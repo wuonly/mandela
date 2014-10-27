@@ -12,13 +12,15 @@ option optimize_for = LITE_RUNTIME;
 
 //查找节点请求
 message FindNode{
-	optional int32    Timeout         = 1;                   //超时时间，单位秒
-	optional string   NodeId          = 2;                   //超级节点id
-	optional string   FindId          = 3;                   //要查找节点id
-	optional bool     IsProxy         = 4;                   //是否是被代理
-	optional string   ProxyId         = 5;                   //被代理节点id
-	optional string   Addr            = 6;                   //外网地址
-	optional int32    TcpPort         = 7;                   //TCP端口
-	optional int32    UdpPort         = 8;                   //UDP端口
-	optional int32    Status          = 9;                   //节点状态
+	optional int32    Timeout      = 1;         //超时时间，单位秒
+	optional string   NodeId       = 2;         //超级节点id
+	optional string   WantId       = 3;         //要查找的节点id，当查找左邻居节点的时候是left，查找右邻居节点的时候是right
+	optional string   FindId       = 4;         //实际查找到的id
+	optional bool     IsProxy      = 5;         //是否是被代理查找
+	optional string   ProxyId      = 6;         //被代理节点id
+	optional string   Addr         = 7;         //外网地址
+	optional bool     IsSuper      = 8;         //是否是超级节点
+	optional int32    TcpPort      = 9;         //TCP端口
+	optional int32    UdpPort      = 10;        //UDP端口
+	optional int32    Status       = 11;        //节点状态
 }

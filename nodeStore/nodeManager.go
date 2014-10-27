@@ -24,8 +24,9 @@ type NodeManager struct {
 	OutFindNode    chan *Node       //需要查询是否在线的节点
 	Groups         *NodeGroup       //组
 	NodeIdLevel    int              //节点id长度
-	MaxRecentCount int              //最多多少个邻居节点
+	MaxRecentCount int              //最多存放多少个邻居节点
 	Proxys         map[string]*Node //被代理的节点，十进制字符串为键
+	SuperName      string           //超级节点名称
 	// OutRecentNode  chan *Node       //需要查询相邻节点
 	// recentNode     *RecentNode      //
 	// OverTime       time.Duration    `1 * 60 * 60` //超时时间，单位为秒
@@ -37,20 +38,13 @@ type NodeManager struct {
 //5分钟清理一次已经不在线的节点
 func (this *NodeManager) Run() {
 	go this.recv()
-	//向网络中查找自己，通知相关节点自己上线了
-	// this.OutFindNode <- this.Root
 	for {
 		for _, idOne := range this.getNodeNetworkNum() {
 			this.OutFindNode <- &Node{NodeId: idOne}
 		}
+		//向网络中查找自己
 		this.OutFindNode <- &Node{NodeId: this.Root.NodeId}
-		//清理离线的节点
-		// for _, nodeOne := range this.nodes {
-		// 	if time.Now().Sub(nodeOne.LastContactTimestamp) > time.Hour {
-		// 		this.DelNode(nodeOne)
-		// 	}
-		// }
-		time.Sleep(time.Minute * 1)
+		time.Sleep(SpacingInterval)
 	}
 }
 
@@ -108,7 +102,7 @@ func (this *NodeManager) DelNode(node *Node) {
 //@nodeId         要查找的节点
 //@includeSelf    是否包括自己
 //@outId          排除一个节点
-//@return         查找到底节点id，可能为空
+//@return         查找到的节点id，可能为空
 func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Node {
 	nodeIdInt, b := new(big.Int).SetString(nodeId, 10)
 	if !b {
@@ -138,6 +132,8 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 }
 
 //得到左邻节点
+//@id         要查询的节点id
+//@count      查询的id数量
 func (this *NodeManager) GetLeftNode(id big.Int, count int) []*Node {
 	ids := this.consistentHash.GetLeftLow(&id, count)
 	if ids == nil {
@@ -152,6 +148,8 @@ func (this *NodeManager) GetLeftNode(id big.Int, count int) []*Node {
 }
 
 //得到右邻节点
+//@id         要查询的节点id
+//@count      查询的id数量
 func (this *NodeManager) GetRightNode(id big.Int, count int) []*Node {
 	ids := this.consistentHash.GetRightLow(&id, count)
 	if ids == nil {
@@ -257,7 +255,7 @@ func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
 	return networkNums
 }
 
-func NewNodeManager(node *Node, bits int) *NodeManager {
+func NewNodeManager(node *Node) *NodeManager {
 	//节点长度为512,深度为513
 	nodeManager := &NodeManager{
 		lock:           new(sync.Mutex),
@@ -267,8 +265,8 @@ func NewNodeManager(node *Node, bits int) *NodeManager {
 		OutFindNode:    make(chan *Node, 1000),
 		InNodes:        make(chan *Node, 1000),
 		Groups:         NewNodeGroup(),
-		NodeIdLevel:    bits,
-		MaxRecentCount: 1,
+		NodeIdLevel:    NodeIdLevel,
+		MaxRecentCount: MaxRecentCount,
 		Proxys:         make(map[string]*Node, 0),
 	}
 

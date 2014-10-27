@@ -25,13 +25,15 @@ var _ = math.Inf
 type FindNode struct {
 	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
 	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
-	FindId           *string `protobuf:"bytes,3,opt" json:"FindId,omitempty"`
-	IsProxy          *bool   `protobuf:"varint,4,opt" json:"IsProxy,omitempty"`
-	ProxyId          *string `protobuf:"bytes,5,opt" json:"ProxyId,omitempty"`
-	Addr             *string `protobuf:"bytes,6,opt" json:"Addr,omitempty"`
-	TcpPort          *int32  `protobuf:"varint,7,opt" json:"TcpPort,omitempty"`
-	UdpPort          *int32  `protobuf:"varint,8,opt" json:"UdpPort,omitempty"`
-	Status           *int32  `protobuf:"varint,9,opt" json:"Status,omitempty"`
+	WantId           *string `protobuf:"bytes,3,opt" json:"WantId,omitempty"`
+	FindId           *string `protobuf:"bytes,4,opt" json:"FindId,omitempty"`
+	IsProxy          *bool   `protobuf:"varint,5,opt" json:"IsProxy,omitempty"`
+	ProxyId          *string `protobuf:"bytes,6,opt" json:"ProxyId,omitempty"`
+	Addr             *string `protobuf:"bytes,7,opt" json:"Addr,omitempty"`
+	IsSuper          *bool   `protobuf:"varint,8,opt" json:"IsSuper,omitempty"`
+	TcpPort          *int32  `protobuf:"varint,9,opt" json:"TcpPort,omitempty"`
+	UdpPort          *int32  `protobuf:"varint,10,opt" json:"UdpPort,omitempty"`
+	Status           *int32  `protobuf:"varint,11,opt" json:"Status,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -49,6 +51,13 @@ func (m *FindNode) GetTimeout() int32 {
 func (m *FindNode) GetNodeId() string {
 	if m != nil && m.NodeId != nil {
 		return *m.NodeId
+	}
+	return ""
+}
+
+func (m *FindNode) GetWantId() string {
+	if m != nil && m.WantId != nil {
+		return *m.WantId
 	}
 	return ""
 }
@@ -79,6 +88,13 @@ func (m *FindNode) GetAddr() string {
 		return *m.Addr
 	}
 	return ""
+}
+
+func (m *FindNode) GetIsSuper() bool {
+	if m != nil && m.IsSuper != nil {
+		return *m.IsSuper
+	}
+	return false
 }
 
 func (m *FindNode) GetTcpPort() int32 {

@@ -85,8 +85,8 @@ func (this *ConsistentHash) Get(nodeId *big.Int) *big.Int {
 }
 
 //获得左边最近的节点
-//nodeId     要查询的节点id
-//maxId      查询的id数量
+//@nodeId     要查询的节点id
+//@maxId      查询的id数量
 func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -127,8 +127,8 @@ func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 }
 
 //获得右边最近的节点，不包括被查询节点
-//nodeId     要查询的节点id
-//maxId      查询的id数量
+//@nodeId     要查询的节点id
+//@maxId      查询的id数量
 func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
 	this.lock.Lock()
 	defer this.lock.Unlock()

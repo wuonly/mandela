@@ -6,22 +6,11 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"math/rand"
+	// "math/rand"
 	"net"
 	"strings"
-	"time"
+	// "time"
 )
-
-//得到指定长度的节点id
-//@return 10进制字符串
-func RandNodeId(lenght int) *big.Int {
-	min := rand.New(rand.NewSource(99))
-	timens := int64(time.Now().Nanosecond())
-	min.Seed(timens)
-	maxId := new(big.Int).Lsh(big.NewInt(1), uint(lenght))
-	randInt := new(big.Int).Rand(min, maxId)
-	return randInt
-}
 
 //通过一个域名和用户名得到节点的id
 //@return 10进制字符串
