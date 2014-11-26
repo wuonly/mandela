@@ -6,18 +6,15 @@ import (
 )
 
 func (this *Manager) registerMsg() {
+	//注册节点查找服务
 	nodeManager := new(service.NodeManager)
-	// this.engine.RegisterMsg(message.IntroduceSelf, nodeManager.IntroduceSelfRsp)
-	// this.engine.RegisterMsg(message.FindNodeReqNum, nodeManager.FindNodeReq)
-	// this.engine.RegisterMsg(message.FindNodeRspNum, nodeManager.FindNodeRsp)
-	// this.engine.RegisterMsg(message.FindRecentNodeReqNum, nodeManager.FindRecentNodeReq)
-
 	this.engine.RegisterMsg(message.FindNodeNum, nodeManager.FindNode)
+
+	//注册发送消息服务
+	messageService := new(service.Message)
+	this.engine.RegisterMsg(message.SendMessage, messageService.RecvMsg)
 
 	dataStore := new(service.DataStore)
 	this.engine.RegisterMsg(message.SaveKeyValueReqNum, dataStore.SaveDataReq)
-
-	messageService := new(service.Message)
-	this.engine.RegisterMsg(message.SendMessage, messageService.RecvMsg)
 
 }

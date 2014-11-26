@@ -263,9 +263,8 @@ func (this *Manager) SendMsgForAll(message string) {
 	for idOne, _ := range this.nodeManager.GetAllNodes() {
 		if clientConn, ok := this.engine.GetController().GetSession(idOne); ok {
 			data := []byte(message)
-			clientConn.Send(msg.SaveKeyValueReqNum, &data)
+			clientConn.Send(msg.SendMessage, &data)
 		}
-
 	}
 }
 

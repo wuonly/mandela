@@ -24,25 +24,3 @@ type Node struct {
 	// SelectTime           time.Duration `5 * 60`      //查询时间，单位为秒
 	// Key                  *rsa.PrivateKey //保存的公钥和私钥信息
 }
-
-// //节点一个小时查询是否在线
-// func (this *Node) ticker() {
-// 	go func(this *Node) {
-// 		//睡眠一小时
-// 		time.Sleep(time.Second * this.OverTime)
-// 		this.Status = 2
-// 		this.Out <- this
-// 		go this.timeOut()
-// 	}(this)
-// }
-
-// //节点发送查询请求5分钟没有回应的，标记为节点下线
-// func (this *Node) timeOut() {
-// 	fmt.Println("timeout")
-// 	time.Sleep(time.Second * this.SelectTime)
-// 	switch this.Status {
-// 	case 2:
-// 		this.Status = 3
-// 	case 3:
-// 	}
-// }
