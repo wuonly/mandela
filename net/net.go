@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type Net struct {
@@ -15,8 +16,16 @@ type Net struct {
 	router       *RouterStore  //请求路径路由表
 }
 
-func (this *Net) Router(url string, handler MsgHandler) {
-	this.router.AddRouter(url, handler)
+// func (this *Net) Router(url string, handler MsgHandler) {
+// 	this.router.AddRouter(url, handler)
+// }
+
+func (this *Net) RegisterMsg(msgId int, handler MsgHandler) {
+	if msgId <= 100 {
+		fmt.Println("该消息不能注册，消息编号0-100被系统占用。")
+		return
+	}
+	this.router.AddRouter(msgId, handler)
 }
 
 func (this *Net) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -30,11 +39,7 @@ func (this *Net) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (this *Net) Listen(ip string, port int32) {
-	for key, value := range this.router.getMapping() {
-		http.HandlerFunc(key, value)
-	}
-
+func (this *Net) Listen(ip string, port int) {
 	go http.ListenAndServe(ip+":"+strconv.Itoa(port), this)
 
 	fmt.Println("webServer startup...")
@@ -42,13 +47,13 @@ func (this *Net) Listen(ip string, port int32) {
 }
 
 //关闭连接
-func (this *Net) CloseClient(name string) bool {
+// func (this *Net) CloseClient(name string) bool {
 
-}
+// }
 
 //@serverName   给客户端发送的自己的名字
-func (this *Net) AddClientConn(ip, serverName string, port int32, powerful bool) (Session, error) {
-
+func (this *Net) AddClientConn(ip, serverName string, port int, powerful bool) (session Session, b error) {
+	return
 }
 
 func (this *Net) GetSession(name string) (Session, bool) {
@@ -56,7 +61,7 @@ func (this *Net) GetSession(name string) (Session, bool) {
 }
 
 //发送数据
-func (this *Net) Send(name string, msgID uint32, data []byte) bool {
+func (this *Net) Send(name string, msgID int, data []byte) bool {
 	session, ok := this.sessionStore.getSession(name)
 	if ok {
 		session.Send(msgID, &data)

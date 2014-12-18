@@ -6,11 +6,11 @@ import (
 
 //session接口
 type Session interface {
-	Send(msgID uint32, data *[]byte) error //发送一个消息
-	Set(name string, value interface{})    //保存到session中一个键值对
-	Get(name string) interface{}           //从session中获得一个键值对
-	GetName() string                       //得到这个session的名称
-	SetName(name string)                   //设置这个session的名称
+	Send(msgID int, data *[]byte) error //发送一个消息
+	Set(name string, value interface{}) //保存到session中一个键值对
+	Get(name string) interface{}        //从session中获得一个键值对
+	GetName() string                    //得到这个session的名称
+	SetName(name string)                //设置这个session的名称
 }
 
 //实现session接口
@@ -31,7 +31,7 @@ func (this *sessionBase) GetName() string {
 func (this *sessionBase) SetName(name string) {
 	this.name = name
 }
-func (this *sessionBase) Send(msgID uint32, data *[]byte) (err error) { return }
+func (this *sessionBase) Send(msgID int, data *[]byte) (err error) { return }
 
 //session仓库，保存着所有session
 type sessionStore struct {

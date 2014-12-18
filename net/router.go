@@ -4,33 +4,34 @@ import (
 	"sync"
 )
 
-type MsgHandler func(c Controller, msg GetPacket)
+type MsgHandler func(c Controller, msg interface{})
 
 type RouterStore struct {
 	lock     *sync.RWMutex
-	handlers map[string]MsgHandler
+	handlers map[int]MsgHandler
 }
 
-func (this *RouterStore) AddRouter(url string, handler MsgHandler) {
+func (this *RouterStore) AddRouter(msgId int, handler MsgHandler) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.handlers[url] = handler
+	this.handlers[msgId] = handler
 }
 
-func (this *RouterStore) GetHandler(url string) MsgHandler {
+func (this *RouterStore) GetHandler(msgId int) MsgHandler {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	handler := this.handlers[url]
+
+	handler := this.handlers[msgId]
 	return handler
 }
 
-func (this *RouterStore) getMapping() map[string]MsgHandler {
-	return this.handlers
-}
+// func (this *RouterStore) getMapping() map[int]MsgHandler {
+// 	return this.handlers
+// }
 
 func NewRouter() *RouterStore {
 	router := new(RouterStore)
 	router.lock = new(sync.RWMutex)
-	router.handlers = make(map[string]MsgHandler)
+	router.handlers = make(map[int]MsgHandler)
 	return router
 }

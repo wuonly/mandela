@@ -12,11 +12,11 @@ type Controller interface {
 }
 
 type ControllerImpl struct {
-	lock       *sync.RWMutex
-	net        *Net
-	engine     *Engine
+	lock *sync.RWMutex
+	net  *Net
+	// engine     *Engine
 	attributes map[string]interface{}
-	msgGroup   *msgGroupManager
+	// msgGroup   *msgGroupManager
 }
 
 //得到net模块，用于给用户发送消息
