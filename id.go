@@ -10,13 +10,13 @@ import (
 
 //Id信息
 type IdInfo struct {
-	Id           string `json:"id"`           //id
-	CreateTime   string `json:"createtime"`   //创建时间
-	UserName     string `json:"username"`     //用户名
-	Email        string `json:"email"`        //email
-	Local        string `json:"local"`        //地址
-	SuperNodeId  string `json:"supernodeid"`  //创建者节点id
-	SuperNodeKey string `json:"supernodekey"` //创建者公钥
+	Id          string `json:"id"`          //id
+	CreateTime  string `json:"createtime"`  //创建时间
+	UserName    string `json:"username"`    //用户名
+	Email       string `json:"email"`       //email
+	Local       string `json:"local"`       //地址
+	SuperNodeId string `json:"supernodeid"` //创建者节点id
+	// SuperNodeKey string `json:"supernodekey"` //创建者公钥
 }
 
 func (this *IdInfo) Parse(code []byte) (err error) {
@@ -37,7 +37,7 @@ func (this *IdInfo) Build() []byte {
 //superNodeKey  超级节点密钥
 //rerutn idInfo
 //return err
-func NewIdInfo(userName, email, local, superNodeId, superNodeKey string) (idInfo *IdInfo, err error) {
+func NewIdInfo(userName, email, local, superNodeId string) (idInfo *IdInfo, err error) {
 	if len(userName) > 100 {
 		err = errors.New("userName 长度不能超过100个字符")
 		return
@@ -54,24 +54,24 @@ func NewIdInfo(userName, email, local, superNodeId, superNodeKey string) (idInfo
 		err = errors.New("superNodeId 参数长度不正确")
 		return
 	}
-	if len(superNodeKey) > 100 {
-		err = errors.New("superNodeKey 长度不能超过100个字符")
-		return
-	}
+	// if len(superNodeKey) > 100 {
+	// 	err = errors.New("superNodeKey 长度不能超过100个字符")
+	// 	return
+	// }
 
 	hash := sha256.New()
-	hash.Write([]byte(userName + "#" + email + "#" + local + "#" + superNodeId + "#" + superNodeKey))
+	hash.Write([]byte(userName + "#" + email + "#" + local + "#" + superNodeId))
 	md := hash.Sum(nil)
 	mdStr := hex.EncodeToString(md)
 
 	idInfo = &IdInfo{
-		Id:           mdStr,
-		CreateTime:   time.Now().Format("2006-01-02 15:04:05.999999999"),
-		UserName:     userName,
-		Email:        email,
-		Local:        local,
-		SuperNodeId:  superNodeId,
-		SuperNodeKey: superNodeKey,
+		Id:          mdStr,
+		CreateTime:  time.Now().Format("2006-01-02 15:04:05.999999999"),
+		UserName:    userName,
+		Email:       email,
+		Local:       local,
+		SuperNodeId: superNodeId,
+		// SuperNodeKey: superNodeKey,
 	}
 	return
 }

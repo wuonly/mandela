@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/prestonTao/mandela/net"
+	"time"
 )
 
 func main() {
@@ -11,13 +12,15 @@ func main() {
 
 func example1() {
 	server := net.NewNet("tao")
+	server.RegisterMsg(101, hello)
+	time.Sleep(time.Minute * 10)
 	// server
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "hello World")
+func hello(c net.Controller, msg FindNode) {
+
 }
 
-func nimei(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "nimei")
+type FindNode struct {
+	Name string `json:"name"`
 }

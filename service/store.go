@@ -6,7 +6,7 @@ import (
 	// "github.com/prestonTao/mandela/nodeStore"
 	// "fmt"
 	// "github.com/prestonTao/mandela/cache"
-	engine "github.com/prestonTao/messageEngine"
+	engine "github.com/prestonTao/mandela/net"
 	// "math/big"
 )
 
