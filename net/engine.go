@@ -1,4 +1,4 @@
-package messageEngine
+package net
 
 import (
 	// "mandela/peerNode/messageEngine/net"
