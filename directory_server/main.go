@@ -56,9 +56,14 @@ func main() {
 		commands := strings.Split(string(data), " ")
 		switch commands[0] {
 		case "help":
+			fmt.Println(`       ------------------------------
+       stop    关闭目录服务器
+       ------------------------------`)
 		case "stop":
 			running = false
 		case "info":
+		default:
+			fmt.Println("--server: not find " + commands[0] + " command")
 		}
 	}
 }
