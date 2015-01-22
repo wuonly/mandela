@@ -16,19 +16,17 @@ import (
 )
 
 type Manager struct {
-	IsRoot           bool //是否是第一个节点
-	nodeStoreManager *NodeStoreManager
-	nodeManager      *nodeStore.NodeManager
-	superNodeIp      string
-	superNodePort    int
-	hostIp           string
-	HostPort         int32
-	rootId           *big.Int
-	privateKey       *rsa.PrivateKey
-	upnp             *upnp.Upnp
-	engine           *msgE.Engine
-	// cache            *cache.Memcache
-	auth *msgE.Auth
+	IsRoot        bool //是否是第一个节点
+	nodeManager   *nodeStore.NodeManager
+	superNodeIp   string
+	superNodePort int
+	hostIp        string
+	HostPort      int32
+	rootId        *big.Int
+	privateKey    *rsa.PrivateKey
+	upnp          *upnp.Upnp
+	engine        *msgE.Engine
+	auth          *msgE.Auth
 }
 
 //-------------------------------------------------------
@@ -48,8 +46,6 @@ func (this *Manager) Run() error {
 	} else {
 		//随机产生一个nodeid
 		this.rootId = nodeStore.RandNodeId()
-		this.nodeStoreManager = new(NodeStoreManager)
-		this.nodeStoreManager.loadPeerEntry()
 	}
 	fmt.Println("本客户端随机id为：", this.rootId.String())
 	//---------------------------------------------------------------
@@ -111,7 +107,7 @@ func (this *Manager) Run() error {
 		// this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false)
 	} else {
 		//连接到超级节点
-		host, portStr, _ := net.SplitHostPort(this.nodeStoreManager.superNodeEntry[0])
+		host, portStr, _ := net.SplitHostPort(Sys_superNodeEntry[0])
 		// hotsAndPost := strings.Split(this.nodeStoreManager.superNodeEntry[0], ":")
 		port, err := strconv.Atoi(portStr)
 		if err != nil {

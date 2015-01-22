@@ -5,8 +5,33 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"time"
 )
+
+const (
+	Path_Id = "conf/id.json"
+)
+
+//节点是否是新节点，
+//新节点需要连接超级节点，然后超级节点给她生成id
+var Init_NewPeer = true
+
+var Init_IdInfo IdInfo
+
+func init() {
+	data, err := ioutil.ReadFile(Path_Id)
+	if err != nil {
+		Init_NewPeer = true
+		return
+	}
+	err = json.Unmarshal(data, Init_IdInfo)
+	if err != nil {
+		Init_NewPeer = true
+		return
+	}
+	Init_NewPeer = false
+}
 
 //Id信息
 type IdInfo struct {
