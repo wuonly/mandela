@@ -4,8 +4,8 @@ import (
 	"code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/prestonTao/mandela/message"
+	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
-	engine "github.com/prestonTao/messageEngine"
 	"math/big"
 )
 

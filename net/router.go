@@ -1,23 +1,24 @@
 package net
 
 import (
+	// "mandela/peerNode/messageEngine/net"
 	"sync"
 )
 
-type MsgHandler func(c Controller, msg interface{})
+type MsgHandler func(c Controller, msg GetPacket)
 
 type RouterStore struct {
 	lock     *sync.RWMutex
-	handlers map[int]MsgHandler
+	handlers map[int32]MsgHandler
 }
 
-func (this *RouterStore) AddRouter(msgId int, handler MsgHandler) {
+func (this *RouterStore) AddRouter(msgId int32, handler MsgHandler) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.handlers[msgId] = handler
 }
 
-func (this *RouterStore) GetHandler(msgId int) MsgHandler {
+func (this *RouterStore) GetHandler(msgId int32) MsgHandler {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -25,13 +26,9 @@ func (this *RouterStore) GetHandler(msgId int) MsgHandler {
 	return handler
 }
 
-// func (this *RouterStore) getMapping() map[int]MsgHandler {
-// 	return this.handlers
-// }
-
 func NewRouter() *RouterStore {
 	router := new(RouterStore)
 	router.lock = new(sync.RWMutex)
-	router.handlers = make(map[int]MsgHandler)
+	router.handlers = make(map[int32]MsgHandler)
 	return router
 }

@@ -1,19 +1,11 @@
 package net
 
 import (
+	// "errors"
+	// "fmt"
 	"sync"
 )
 
-//session接口
-type Session interface {
-	Send(msgID int, data *[]byte) error //发送一个消息
-	Set(name string, value interface{}) //保存到session中一个键值对
-	Get(name string) interface{}        //从session中获得一个键值对
-	GetName() string                    //得到这个session的名称
-	SetName(name string)                //设置这个session的名称
-}
-
-//实现session接口
 type sessionBase struct {
 	name      string
 	attrbutes map[string]interface{}
@@ -31,11 +23,21 @@ func (this *sessionBase) GetName() string {
 func (this *sessionBase) SetName(name string) {
 	this.name = name
 }
-func (this *sessionBase) Send(msgID int, data *[]byte) (err error) { return }
+func (this *sessionBase) Send(msgID uint32, data *[]byte) (err error) { return }
+func (this *sessionBase) Close()                                      {}
 
-//session仓库，保存着所有session
+type Session interface {
+	Send(msgID uint32, data *[]byte) error
+	Close()
+	Set(name string, value interface{})
+	Get(name string) interface{}
+	GetName() string
+	SetName(name string)
+}
+
 type sessionStore struct {
-	lock      *sync.RWMutex
+	lock *sync.RWMutex
+	// store     map[int64]Session
 	nameStore map[string]Session
 }
 
@@ -43,6 +45,7 @@ func (this *sessionStore) addSession(name string, session Session) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.nameStore[session.GetName()] = session
+	// sessionStore.store[sessionId] = session
 }
 
 func (this *sessionStore) getSession(name string) (Session, bool) {
@@ -64,3 +67,10 @@ func NewSessionStore() *sessionStore {
 	sessionStore.nameStore = make(map[string]Session)
 	return sessionStore
 }
+
+// var sessionStore = new(sessionStore)
+
+// func init() {
+// 	sessionStore.lock = new(sync.RWMutex)
+// 	sessionStore.nameStore = make(map[string]Session, 10000)
+// }
