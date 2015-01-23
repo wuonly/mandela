@@ -1,13 +1,11 @@
 package service
 
 import (
-	"code.google.com/p/goprotobuf/proto"
+	"encoding/json"
 	"fmt"
-	// "github.com/prestonTao/mandela/cache"
 	"github.com/prestonTao/mandela/message"
 	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
-	// "math/big"
 )
 
 type Message struct {
@@ -15,13 +13,14 @@ type Message struct {
 
 func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 	messageRecv := new(message.Message)
-	proto.Unmarshal(msg.Date, messageRecv)
+	json.Unmarshal(msg.Date, messageRecv)
+	// proto.Unmarshal(msg.Date, messageRecv)
 
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	if store.GetRootId() == *messageRecv.TargetId {
+	if store.GetRootId() == messageRecv.TargetId {
 		fmt.Println(string(messageRecv.Content))
 	} else {
-		targetNode := store.Get(*messageRecv.TargetId, true, "")
+		targetNode := store.Get(messageRecv.TargetId, true, "")
 		if targetNode == nil {
 			return
 		}
@@ -34,5 +33,4 @@ func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 			fmt.Println("message发送数据出错：", err.Error())
 		}
 	}
-
 }

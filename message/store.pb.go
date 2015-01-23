@@ -13,86 +13,86 @@ It has these top-level messages:
 */
 package message
 
-import proto "code.google.com/p/goprotobuf/proto"
-import json "encoding/json"
-import math "math"
+// import proto "code.google.com/p/goprotobuf/proto"
+// import json "encoding/json"
+// import math "math"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
-var _ = proto.Marshal
-var _ = &json.SyntaxError{}
-var _ = math.Inf
+// // Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// var _ = proto.Marshal
+// var _ = &json.SyntaxError{}
+// var _ = math.Inf
 
-type SaveDataReq struct {
-	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
-	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
-	FindId           *string `protobuf:"bytes,3,opt" json:"FindId,omitempty"`
-	IsSuper          *bool   `protobuf:"varint,4,opt" json:"IsSuper,omitempty"`
-	Addr             *string `protobuf:"bytes,5,opt" json:"Addr,omitempty"`
-	TcpPort          *int32  `protobuf:"varint,6,opt" json:"TcpPort,omitempty"`
-	UdpPort          *int32  `protobuf:"varint,7,opt" json:"UdpPort,omitempty"`
-	Status           *int32  `protobuf:"varint,8,opt" json:"Status,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
+// type SaveDataReq struct {
+// 	Timeout          *int32  `protobuf:"varint,1,opt" json:"Timeout,omitempty"`
+// 	NodeId           *string `protobuf:"bytes,2,opt" json:"NodeId,omitempty"`
+// 	FindId           *string `protobuf:"bytes,3,opt" json:"FindId,omitempty"`
+// 	IsSuper          *bool   `protobuf:"varint,4,opt" json:"IsSuper,omitempty"`
+// 	Addr             *string `protobuf:"bytes,5,opt" json:"Addr,omitempty"`
+// 	TcpPort          *int32  `protobuf:"varint,6,opt" json:"TcpPort,omitempty"`
+// 	UdpPort          *int32  `protobuf:"varint,7,opt" json:"UdpPort,omitempty"`
+// 	Status           *int32  `protobuf:"varint,8,opt" json:"Status,omitempty"`
+// 	XXX_unrecognized []byte  `json:"-"`
+// }
 
-func (m *SaveDataReq) Reset()         { *m = SaveDataReq{} }
-func (m *SaveDataReq) String() string { return proto.CompactTextString(m) }
-func (*SaveDataReq) ProtoMessage()    {}
+// func (m *SaveDataReq) Reset()         { *m = SaveDataReq{} }
+// func (m *SaveDataReq) String() string { return proto.CompactTextString(m) }
+// func (*SaveDataReq) ProtoMessage()    {}
 
-func (m *SaveDataReq) GetTimeout() int32 {
-	if m != nil && m.Timeout != nil {
-		return *m.Timeout
-	}
-	return 0
-}
+// func (m *SaveDataReq) GetTimeout() int32 {
+// 	if m != nil && m.Timeout != nil {
+// 		return *m.Timeout
+// 	}
+// 	return 0
+// }
 
-func (m *SaveDataReq) GetNodeId() string {
-	if m != nil && m.NodeId != nil {
-		return *m.NodeId
-	}
-	return ""
-}
+// func (m *SaveDataReq) GetNodeId() string {
+// 	if m != nil && m.NodeId != nil {
+// 		return *m.NodeId
+// 	}
+// 	return ""
+// }
 
-func (m *SaveDataReq) GetFindId() string {
-	if m != nil && m.FindId != nil {
-		return *m.FindId
-	}
-	return ""
-}
+// func (m *SaveDataReq) GetFindId() string {
+// 	if m != nil && m.FindId != nil {
+// 		return *m.FindId
+// 	}
+// 	return ""
+// }
 
-func (m *SaveDataReq) GetIsSuper() bool {
-	if m != nil && m.IsSuper != nil {
-		return *m.IsSuper
-	}
-	return false
-}
+// func (m *SaveDataReq) GetIsSuper() bool {
+// 	if m != nil && m.IsSuper != nil {
+// 		return *m.IsSuper
+// 	}
+// 	return false
+// }
 
-func (m *SaveDataReq) GetAddr() string {
-	if m != nil && m.Addr != nil {
-		return *m.Addr
-	}
-	return ""
-}
+// func (m *SaveDataReq) GetAddr() string {
+// 	if m != nil && m.Addr != nil {
+// 		return *m.Addr
+// 	}
+// 	return ""
+// }
 
-func (m *SaveDataReq) GetTcpPort() int32 {
-	if m != nil && m.TcpPort != nil {
-		return *m.TcpPort
-	}
-	return 0
-}
+// func (m *SaveDataReq) GetTcpPort() int32 {
+// 	if m != nil && m.TcpPort != nil {
+// 		return *m.TcpPort
+// 	}
+// 	return 0
+// }
 
-func (m *SaveDataReq) GetUdpPort() int32 {
-	if m != nil && m.UdpPort != nil {
-		return *m.UdpPort
-	}
-	return 0
-}
+// func (m *SaveDataReq) GetUdpPort() int32 {
+// 	if m != nil && m.UdpPort != nil {
+// 		return *m.UdpPort
+// 	}
+// 	return 0
+// }
 
-func (m *SaveDataReq) GetStatus() int32 {
-	if m != nil && m.Status != nil {
-		return *m.Status
-	}
-	return 0
-}
+// func (m *SaveDataReq) GetStatus() int32 {
+// 	if m != nil && m.Status != nil {
+// 		return *m.Status
+// 	}
+// 	return 0
+// }
 
-func init() {
-}
+// func init() {
+// }

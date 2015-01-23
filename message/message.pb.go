@@ -13,38 +13,38 @@ It has these top-level messages:
 */
 package message
 
-import proto "code.google.com/p/goprotobuf/proto"
-import json "encoding/json"
-import math "math"
+// import proto "code.google.com/p/goprotobuf/proto"
+// import json "encoding/json"
+// import math "math"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
-var _ = proto.Marshal
-var _ = &json.SyntaxError{}
-var _ = math.Inf
+// // Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// var _ = proto.Marshal
+// var _ = &json.SyntaxError{}
+// var _ = math.Inf
 
-type Message struct {
-	TargetId         *string `protobuf:"bytes,1,opt" json:"TargetId,omitempty"`
-	Content          []byte  `protobuf:"bytes,2,opt" json:"Content,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
+// type Message struct {
+// 	TargetId         *string `protobuf:"bytes,1,opt" json:"TargetId,omitempty"`
+// 	Content          []byte  `protobuf:"bytes,2,opt" json:"Content,omitempty"`
+// 	XXX_unrecognized []byte  `json:"-"`
+// }
 
-func (m *Message) Reset()         { *m = Message{} }
-func (m *Message) String() string { return proto.CompactTextString(m) }
-func (*Message) ProtoMessage()    {}
+// func (m *Message) Reset()         { *m = Message{} }
+// func (m *Message) String() string { return proto.CompactTextString(m) }
+// func (*Message) ProtoMessage()    {}
 
-func (m *Message) GetTargetId() string {
-	if m != nil && m.TargetId != nil {
-		return *m.TargetId
-	}
-	return ""
-}
+// func (m *Message) GetTargetId() string {
+// 	if m != nil && m.TargetId != nil {
+// 		return *m.TargetId
+// 	}
+// 	return ""
+// }
 
-func (m *Message) GetContent() []byte {
-	if m != nil {
-		return m.Content
-	}
-	return nil
-}
+// func (m *Message) GetContent() []byte {
+// 	if m != nil {
+// 		return m.Content
+// 	}
+// 	return nil
+// }
 
-func init() {
-}
+// func init() {
+// }

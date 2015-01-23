@@ -1,9 +1,10 @@
 package mandela
 
 import (
-	"code.google.com/p/goprotobuf/proto"
+	// "code.google.com/p/goprotobuf/proto"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	msg "github.com/prestonTao/mandela/message"
 	msgE "github.com/prestonTao/mandela/net"
@@ -131,16 +132,17 @@ func (this *Manager) introduceSelf() {
 
 	//用代理方式查找最近的超级节点
 	nodeMsg := msg.FindNode{
-		NodeId:  proto.String(session.GetName()),
-		WantId:  proto.String(this.nodeManager.GetRootId()),
-		IsProxy: proto.Bool(true),
-		ProxyId: proto.String(this.nodeManager.GetRootId()),
-		IsSuper: proto.Bool(true),
-		Addr:    proto.String(this.nodeManager.Root.Addr),
-		TcpPort: proto.Int32(this.nodeManager.Root.TcpPort),
-		UdpPort: proto.Int32(this.nodeManager.Root.UdpPort),
+		NodeId:  session.GetName(),
+		WantId:  this.nodeManager.GetRootId(),
+		IsProxy: true,
+		ProxyId: this.nodeManager.GetRootId(),
+		IsSuper: true,
+		Addr:    this.nodeManager.Root.Addr,
+		TcpPort: this.nodeManager.Root.TcpPort,
+		UdpPort: this.nodeManager.Root.UdpPort,
 	}
-	resultBytes, _ := proto.Marshal(&nodeMsg)
+	// resultBytes, _ := proto.Marshal(&nodeMsg)
+	resultBytes, _ := json.Marshal(nodeMsg)
 
 	session.Send(msg.FindNodeNum, &resultBytes)
 }
@@ -164,22 +166,23 @@ func (this *Manager) read() {
 		session, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
 
 		findNodeOne := &msg.FindNode{
-			NodeId:  proto.String(this.nodeManager.GetRootId()),
-			IsProxy: proto.Bool(false),
-			ProxyId: proto.String(this.nodeManager.GetRootId()),
+			NodeId:  this.nodeManager.GetRootId(),
+			IsProxy: false,
+			ProxyId: this.nodeManager.GetRootId(),
 		}
 		//普通节点只需要定时查找最近的超级节点
 		if !this.nodeManager.Root.IsSuper {
 			if node.NodeId.String() == this.nodeManager.GetRootId() {
-				findNodeOne.NodeId = proto.String(session.GetName())
-				findNodeOne.IsProxy = proto.Bool(true)
-				findNodeOne.WantId = proto.String(node.NodeId.String())
-				findNodeOne.IsSuper = proto.Bool(true)
-				findNodeOne.Addr = proto.String(this.nodeManager.Root.Addr)
-				findNodeOne.TcpPort = proto.Int32(this.nodeManager.Root.TcpPort)
-				findNodeOne.UdpPort = proto.Int32(this.nodeManager.Root.UdpPort)
+				findNodeOne.NodeId = session.GetName()
+				findNodeOne.IsProxy = true
+				findNodeOne.WantId = node.NodeId.String()
+				findNodeOne.IsSuper = true
+				findNodeOne.Addr = this.nodeManager.Root.Addr
+				findNodeOne.TcpPort = this.nodeManager.Root.TcpPort
+				findNodeOne.UdpPort = this.nodeManager.Root.UdpPort
 
-				resultBytes, _ := proto.Marshal(findNodeOne)
+				// resultBytes, _ := proto.Marshal(findNodeOne)
+				resultBytes, _ := json.Marshal(findNodeOne)
 				session.Send(msg.FindNodeNum, &resultBytes)
 			}
 			continue
@@ -189,12 +192,12 @@ func (this *Manager) read() {
 		//--------------------------------------------
 		if node.NodeId.String() == this.nodeManager.GetRootId() {
 			//先发送左邻居节点查找请求
-			findNodeOne.WantId = proto.String("left")
+			findNodeOne.WantId = "left"
 			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
-			findNodeBytes, _ := proto.Marshal(findNodeOne)
+			findNodeBytes, _ := json.Marshal(findNodeOne)
 			clientConn, ok := this.engine.GetController().GetSession(id[0].NodeId.String())
 			if !ok {
 				continue
@@ -204,12 +207,12 @@ func (this *Manager) read() {
 				fmt.Println("manager发送数据出错：", err.Error())
 			}
 			//发送右邻居节点查找请求
-			findNodeOne.WantId = proto.String("right")
+			findNodeOne.WantId = "right"
 			id = this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
-			findNodeBytes, _ = proto.Marshal(findNodeOne)
+			findNodeBytes, _ = json.Marshal(findNodeOne)
 			clientConn, ok = this.engine.GetController().GetSession(id[0].NodeId.String())
 			if !ok {
 				continue
@@ -227,8 +230,8 @@ func (this *Manager) read() {
 		if this.nodeManager.Root.IsSuper {
 			continue
 		}
-		findNodeOne.WantId = proto.String(node.NodeId.String())
-		findNodeBytes, _ := proto.Marshal(findNodeOne)
+		findNodeOne.WantId = node.NodeId.String()
+		findNodeBytes, _ := json.Marshal(findNodeOne)
 
 		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
 		if remote == nil {
@@ -281,11 +284,12 @@ func (this *Manager) SendMsgForOne(target, message string) {
 	}
 
 	messageSend := msg.Message{
-		TargetId: proto.String(target),
+		TargetId: target,
 		Content:  []byte(message),
 	}
 	// proto.
-	sendBytes, _ := proto.Marshal(&messageSend)
+	// sendBytes, _ := proto.Marshal(&messageSend)
+	sendBytes, _ := json.Marshal(&messageSend)
 	err := session.Send(msg.SendMessage, &sendBytes)
 	if err != nil {
 		fmt.Println("message发送数据出错：", err.Error())
