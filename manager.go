@@ -46,6 +46,11 @@ type Manager struct {
 //   处理查找节点的请求
 //-------------------------------------------------------
 func (this *Manager) Run() error {
+	//是新节点
+	if Init_NewPeer {
+
+	}
+
 	if this.IsRoot {
 		//随机产生一个nodeid
 		this.rootId = nodeStore.RandNodeId()
