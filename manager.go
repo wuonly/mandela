@@ -18,8 +18,41 @@ import (
 )
 
 var (
-	Listen_port = 9981
+	Sys_LocalAddress         = ""    //本地地址
+	Sys_GlobalUnicastAddress = ""    //公网地址
+	Sys_LocalPort            = 9981  //本地监听端口
+	Sys_MappingPort          = 9981  //映射到路由器的端口
+	Sys_IsSuperPeer          = false //是超级节点
 )
+
+/*
+	判断自己是否有公网ip地址
+	是否支持upnp协议，添加一个端口映射
+*/
+func init() {
+	hostIp := GetLocalIntenetIp()
+	ip := net.ParseIP(hostIp)
+	//本地地址是公网单播地址
+	if ip.IsGlobalUnicast() {
+		Sys_IsSuperPeer = true
+		return
+	}
+	mapping := new(upnp.Upnp)
+	err := mapping.ExternalIPAddr()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	} else {
+		Sys_GlobalUnicastAddress = mapping.GetewayOutsideIP
+	}
+	if err := mapping.AddPortMapping(Sys_LocalPort, Sys_MappingPort, "TCP"); err == nil {
+		Sys_IsSuperPeer = true
+		fmt.Println("端口映射成功")
+		return
+	} else {
+		fmt.Println("端口映射失败")
+	}
+}
 
 type Manager struct {
 	IsRoot        bool //是否是第一个节点
