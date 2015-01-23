@@ -96,7 +96,7 @@ func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 	if len(this.nodes) <= count {
 		return this.nodes
 	}
-	maxId := new(big.Int).Lsh(big.NewInt(1), 256)
+	maxId := new(big.Int).Lsh(big.NewInt(1), NodeIdLevel)
 	var idsTemp IdASC = make([]*big.Int, 0)
 	for _, idOne := range this.nodes {
 		switch idOne.Cmp(nodeId) {
@@ -138,7 +138,7 @@ func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
 	if len(this.nodes) <= count {
 		return this.nodes
 	}
-	maxId := new(big.Int).Lsh(big.NewInt(1), 256)
+	maxId := new(big.Int).Lsh(big.NewInt(1), NodeIdLevel)
 	var idsTemp IdDESC = make([]*big.Int, 0)
 	for _, idOne := range this.nodes {
 		switch idOne.Cmp(nodeId) {

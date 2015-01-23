@@ -1,6 +1,7 @@
 package nodeStore
 
 import (
+	"encoding/hex"
 	"math/big"
 	"sort"
 )
@@ -33,7 +34,7 @@ func (this *RecentNode) CheckIn(nodeId *big.Int) (bool, string) {
 		if passId.Cmp(nodeId) == 0 {
 			return false, ""
 		}
-		return true, passId.String()
+		return true, hex.EncodeToString(passId.Bytes())
 	case 1: //在节点后面
 		temp.sufNodes = append(temp.sufNodes, nodeId)
 		sort.Sort(temp.sufNodes)
@@ -41,7 +42,7 @@ func (this *RecentNode) CheckIn(nodeId *big.Int) (bool, string) {
 		if passId.Cmp(nodeId) == 0 {
 			return false, ""
 		}
-		return true, passId.String()
+		return true, hex.EncodeToString(passId.Bytes())
 	}
 	return false, ""
 	// if nodeId.Cmp(this.root) == 0 {

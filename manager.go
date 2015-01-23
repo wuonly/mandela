@@ -4,6 +4,7 @@ import (
 	// "code.google.com/p/goprotobuf/proto"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	msg "github.com/prestonTao/mandela/message"
@@ -48,7 +49,7 @@ func (this *Manager) Run() error {
 		//随机产生一个nodeid
 		this.rootId = nodeStore.RandNodeId()
 	}
-	fmt.Println("本客户端随机id为：", this.rootId.String())
+	fmt.Println("---本客户端随机id为：", hex.EncodeToString(this.rootId.Bytes()))
 	//---------------------------------------------------------------
 	//   启动消息服务器
 	//---------------------------------------------------------------
@@ -62,7 +63,7 @@ func (this *Manager) Run() error {
 	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
 	this.HostPort = int32(hostPort)
 
-	this.engine = msgE.NewEngine(this.rootId.String())
+	this.engine = msgE.NewEngine(hex.EncodeToString(this.rootId.Bytes()))
 	//注册所有的消息
 	this.registerMsg()
 	//---------------------------------------------------------------
@@ -154,7 +155,7 @@ func (this *Manager) closeConnCallback(name string) {
 		return
 	}
 	delNode := new(nodeStore.Node)
-	delNode.NodeId, _ = new(big.Int).SetString(name, 10)
+	delNode.NodeId, _ = new(big.Int).SetString(name, nodeStore.IdStrBit)
 	this.nodeManager.DelNode(delNode)
 }
 
@@ -172,10 +173,10 @@ func (this *Manager) read() {
 		}
 		//普通节点只需要定时查找最近的超级节点
 		if !this.nodeManager.Root.IsSuper {
-			if node.NodeId.String() == this.nodeManager.GetRootId() {
+			if hex.EncodeToString(node.NodeId.Bytes()) == this.nodeManager.GetRootId() {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
-				findNodeOne.WantId = node.NodeId.String()
+				findNodeOne.WantId = hex.EncodeToString(node.NodeId.Bytes())
 				findNodeOne.IsSuper = true
 				findNodeOne.Addr = this.nodeManager.Root.Addr
 				findNodeOne.TcpPort = this.nodeManager.Root.TcpPort
@@ -190,7 +191,7 @@ func (this *Manager) read() {
 		//--------------------------------------------
 		//    查找邻居节点，只有超级节点才需要查找
 		//--------------------------------------------
-		if node.NodeId.String() == this.nodeManager.GetRootId() {
+		if hex.EncodeToString(node.NodeId.Bytes()) == this.nodeManager.GetRootId() {
 			//先发送左邻居节点查找请求
 			findNodeOne.WantId = "left"
 			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, 1)
@@ -198,7 +199,7 @@ func (this *Manager) read() {
 				continue
 			}
 			findNodeBytes, _ := json.Marshal(findNodeOne)
-			clientConn, ok := this.engine.GetController().GetSession(id[0].NodeId.String())
+			clientConn, ok := this.engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
 			if !ok {
 				continue
 			}
@@ -213,7 +214,7 @@ func (this *Manager) read() {
 				continue
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
-			clientConn, ok = this.engine.GetController().GetSession(id[0].NodeId.String())
+			clientConn, ok = this.engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
 			if !ok {
 				continue
 			}
@@ -230,14 +231,14 @@ func (this *Manager) read() {
 		if this.nodeManager.Root.IsSuper {
 			continue
 		}
-		findNodeOne.WantId = node.NodeId.String()
+		findNodeOne.WantId = hex.EncodeToString(node.NodeId.Bytes())
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
-		remote := this.nodeManager.Get(node.NodeId.String(), false, "")
+		remote := this.nodeManager.Get(hex.EncodeToString(node.NodeId.Bytes()), false, "")
 		if remote == nil {
 			continue
 		}
-		session, _ = this.engine.GetController().GetSession(remote.NodeId.String())
+		session, _ = this.engine.GetController().GetSession(hex.EncodeToString(remote.NodeId.Bytes()))
 		if session == nil {
 			continue
 		}
@@ -258,9 +259,13 @@ func (this *Manager) SaveData(key, value string) {
 
 //给所有客户端发送消息
 func (this *Manager) SendMsgForAll(message string) {
+	messageSend := msg.Message{
+		Content: []byte(message),
+	}
 	for idOne, _ := range this.nodeManager.GetAllNodes() {
 		if clientConn, ok := this.engine.GetController().GetSession(idOne); ok {
-			data := []byte(message)
+			messageSend.TargetId = idOne
+			data, _ := json.Marshal(messageSend)
 			clientConn.Send(msg.SendMessage, &data)
 		}
 	}
@@ -278,7 +283,7 @@ func (this *Manager) SendMsgForOne(target, message string) {
 		fmt.Println("本节点未连入网络")
 		return
 	}
-	session, ok := this.engine.GetController().GetSession(targetNode.NodeId.String())
+	session, ok := this.engine.GetController().GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
 	if !ok {
 		return
 	}
@@ -311,13 +316,13 @@ func (this *Manager) See() {
 func (this *Manager) SeeLeftNode() {
 	nodes := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, this.nodeManager.MaxRecentCount)
 	for _, id := range nodes {
-		fmt.Println(id.NodeId.String())
+		fmt.Println(hex.EncodeToString(id.NodeId.Bytes()))
 	}
 }
 
 func (this *Manager) SeeRightNode() {
 	nodes := this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, this.nodeManager.MaxRecentCount)
 	for _, id := range nodes {
-		fmt.Println(id.NodeId.String())
+		fmt.Println(hex.EncodeToString(id.NodeId.Bytes()))
 	}
 }

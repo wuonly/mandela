@@ -2,6 +2,7 @@ package service
 
 import (
 	// "code.google.com/p/goprotobuf/proto"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/prestonTao/mandela/message"
@@ -52,13 +53,13 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		//查找除了刚发过来的节点并且包括自己，的临近结点
 		targetNode := store.Get(findNode.WantId, true, msg.Name)
 		//查找的就是自己，可这个节点已经下线
-		if targetNode.NodeId.String() == store.GetRootId() {
+		if hex.EncodeToString(targetNode.NodeId.Bytes()) == store.GetRootId() {
 			//这里要想个办法解决下
 			fmt.Println("想办法解决下这个问题")
 			return
 		}
 		//转发粗去
-		this.sendMsg(targetNode.NodeId.String(), &msg.Date, c)
+		this.sendMsg(hex.EncodeToString(targetNode.NodeId.Bytes()), &msg.Date, c)
 		return
 	}
 
@@ -85,7 +86,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		//查找除了被代理的节点并且包括自己，的临近结点
 		targetNode := store.Get(findNode.WantId, true, findNode.ProxyId)
 		//要查找的节点就是自己，则发送给自己的代理节点
-		if targetNode.NodeId.String() == store.GetRootId() {
+		if hex.EncodeToString(targetNode.NodeId.Bytes()) == store.GetRootId() {
 			// fmt.Println("自己的代理节点发出的查找请求查找到临近结点：", targetNode.NodeId.String())
 			rspMsg := message.FindNode{
 				NodeId:  findNode.NodeId,
@@ -110,7 +111,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			ProxyId: findNode.ProxyId,
 		}
 		resultBytes, _ := json.Marshal(&rspMsg)
-		this.sendMsg(targetNode.NodeId.String(), &resultBytes, c)
+		this.sendMsg(hex.EncodeToString(targetNode.NodeId.Bytes()), &resultBytes, c)
 		return
 	}
 
@@ -119,7 +120,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	//--------------------------------------------
 	if findNode.WantId == "left" || findNode.WantId == "right" {
 		//不是代理查找
-		nodeIdInt, _ := new(big.Int).SetString(findNode.NodeId, 10)
+		nodeIdInt, _ := new(big.Int).SetString(findNode.NodeId, nodeStore.IdStrBit)
 		var nodes []*nodeStore.Node
 		//查找左邻居节点
 		if findNode.WantId == "left" {
@@ -140,7 +141,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			rspMsg := message.FindNode{
 				NodeId:  findNode.NodeId,
 				WantId:  findNode.WantId,
-				FindId:  nodeOne.NodeId.String(),
+				FindId:  hex.EncodeToString(nodeOne.NodeId.Bytes()),
 				IsProxy: findNode.IsProxy,
 				ProxyId: findNode.ProxyId,
 				Addr:    nodeOne.Addr,
@@ -157,7 +158,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	//查找除了客户端节点并且包括自己的临近结点
 	targetNode := store.Get(findNode.WantId, true, msg.Name)
 	//要查找的节点就是自己
-	if targetNode.NodeId.String() == store.GetRootId() {
+	if hex.EncodeToString(targetNode.NodeId.Bytes()) == store.GetRootId() {
 		rspMsg := message.FindNode{
 			NodeId:  findNode.NodeId,
 			WantId:  findNode.WantId,
@@ -174,7 +175,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		return
 	}
 	//要找的不是自己，则转发出去
-	this.sendMsg(targetNode.NodeId.String(), &msg.Date, c)
+	this.sendMsg(hex.EncodeToString(targetNode.NodeId.Bytes()), &msg.Date, c)
 }
 
 func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controller) {
@@ -191,7 +192,7 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 
 //自己保存这个节点，可以保存超级节点，也可以保存代理节点
 func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.NodeManager, c engine.Controller) {
-	shouldNodeInt, _ := new(big.Int).SetString(findNode.FindId, 10)
+	shouldNodeInt, _ := new(big.Int).SetString(findNode.FindId, nodeStore.IdStrBit)
 	newNode := &nodeStore.Node{
 		NodeId:  shouldNodeInt,
 		IsSuper: findNode.IsSuper,
@@ -215,7 +216,7 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 			if session, ok := c.GetSession(replace); ok {
 				session.Close()
 				delNode := new(nodeStore.Node)
-				delNode.NodeId, _ = new(big.Int).SetString(replace, 10)
+				delNode.NodeId, _ = new(big.Int).SetString(replace, nodeStore.IdStrBit)
 				store.DelNode(delNode)
 			}
 		}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/prestonTao/mandela/message"
@@ -13,10 +14,18 @@ type Message struct {
 
 func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 	messageRecv := new(message.Message)
-	json.Unmarshal(msg.Date, messageRecv)
+	fmt.Println(msg.Date)
+
+	err := json.Unmarshal(msg.Date, messageRecv)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(messageRecv)
 	// proto.Unmarshal(msg.Date, messageRecv)
 
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
+	fmt.Println("== 1", store.GetRootId())
+	fmt.Println("== 2", messageRecv.TargetId)
 	if store.GetRootId() == messageRecv.TargetId {
 		fmt.Println(string(messageRecv.Content))
 	} else {
@@ -24,7 +33,7 @@ func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 		if targetNode == nil {
 			return
 		}
-		session, ok := c.GetSession(targetNode.NodeId.String())
+		session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
 		if !ok {
 			return
 		}
