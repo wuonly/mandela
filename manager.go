@@ -17,6 +17,10 @@ import (
 	"strings"
 )
 
+var (
+	Listen_port = 9981
+)
+
 type Manager struct {
 	IsRoot        bool //是否是第一个节点
 	nodeManager   *nodeStore.NodeManager
@@ -49,16 +53,17 @@ func (this *Manager) Run() error {
 		//随机产生一个nodeid
 		this.rootId = nodeStore.RandNodeId()
 	}
-	fmt.Println("---本客户端随机id为：", hex.EncodeToString(this.rootId.Bytes()))
+	fmt.Println("本机id为：", hex.EncodeToString(this.rootId.Bytes()))
 	//---------------------------------------------------------------
 	//   启动消息服务器
 	//---------------------------------------------------------------
 	// this.initMsgEngine(this.rootId.String())
 	this.hostIp = GetLocalIntenetIp()
-	l, err := net.ListenPacket("udp", this.hostIp+":")
+tag:
+	l, err := net.ListenPacket("udp", this.hostIp+":"+strconv.Itoa(Listen_port))
 	if err != nil {
-		fmt.Println("获取端口失败")
-		return err
+		Listen_port = Listen_port + 1
+		goto tag
 	}
 	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
 	this.HostPort = int32(hostPort)

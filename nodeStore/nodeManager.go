@@ -98,7 +98,6 @@ func (this *NodeManager) DelNode(node *Node) {
 //@outId          排除一个节点
 //@return         查找到的节点id，可能为空
 func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Node {
-	fmt.Println("++", nodeId)
 	nodeIdInt, b := new(big.Int).SetString(nodeId, IdStrBit)
 	if !b {
 		fmt.Println("节点id格式不正确，应该为十进制字符串")
@@ -136,7 +135,6 @@ func (this *NodeManager) GetLeftNode(id big.Int, count int) []*Node {
 	}
 	temp := make([]*Node, 0)
 	for _, id := range ids {
-		// fmt.Println("left:", id.String())
 		temp = append(temp, this.nodes[hex.EncodeToString(id.Bytes())])
 	}
 	return temp
@@ -152,7 +150,6 @@ func (this *NodeManager) GetRightNode(id big.Int, count int) []*Node {
 	}
 	temp := make([]*Node, 0)
 	for _, id := range ids {
-		// fmt.Println("right:", id.String())
 		temp = append(temp, this.nodes[hex.EncodeToString(id.Bytes())])
 	}
 	return temp
@@ -170,7 +167,6 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 		2.计算两个节点是否在同一个网络
 		3.若在同一个网络，计算谁的值最小
 	*/
-	fmt.Println("--", nodeId)
 	nodeIdInt, b := new(big.Int).SetString(nodeId, IdStrBit)
 	if !b {
 		fmt.Println("节点id格式不正确，应该为十进制字符串")

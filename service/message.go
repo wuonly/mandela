@@ -12,20 +12,17 @@ import (
 type Message struct {
 }
 
+/*
+	接收消息并显示或转发
+*/
 func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 	messageRecv := new(message.Message)
-	fmt.Println(msg.Date)
-
 	err := json.Unmarshal(msg.Date, messageRecv)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(messageRecv)
-	// proto.Unmarshal(msg.Date, messageRecv)
 
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	fmt.Println("== 1", store.GetRootId())
-	fmt.Println("== 2", messageRecv.TargetId)
 	if store.GetRootId() == messageRecv.TargetId {
 		fmt.Println(string(messageRecv.Content))
 	} else {
