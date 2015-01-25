@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"github.com/prestonTao/mandela"
+	m "github.com/prestonTao/mandela"
 	"os"
 	"strings"
 )
@@ -18,7 +18,7 @@ func main() {
 // }
 
 func StartUP() {
-	m := mandela.Manager{}
+	// m := mandela.Manager{}
 	m.IsRoot = true
 
 	//---------------------------------------

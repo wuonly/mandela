@@ -3,7 +3,7 @@ package mandela
 import (
 	"bytes"
 	"encoding/binary"
-	engine "github.com/prestonTao/mandela/net"
+	engineE "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 	"io"
 	"net"
@@ -41,7 +41,7 @@ name：连接名称
 //发送
 //@name                 本机服务器的名称
 //@return  remoteName   对方服务器的名称
-func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (remoteName string, err error) {
+func (this *Auth) SendKey(conn net.Conn, session engineE.Session, name string) (remoteName string, err error) {
 	//第一次连接，向对方发送自己的名称
 	lenght := int32(len(name))
 	buf := bytes.NewBuffer([]byte{})

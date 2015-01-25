@@ -55,3 +55,20 @@ func GetLocalIntenetIp() string {
 	ip := strings.Split(conn.LocalAddr().String(), ":")[0]
 	return ip
 }
+
+/*
+	是全球唯一ip
+*/
+func IsOnlyIp(ip string) bool {
+	ips := strings.Split(ip, ".")
+	if ips[0] == "127" && ips[1] == "0" && ips[2] == "0" && ips[3] == "1" {
+		return false
+	}
+	if ips[0] == "192" && ips[1] == "168" {
+		return false
+	}
+	if ips[0] == "10" {
+		return false
+	}
+	return true
+}

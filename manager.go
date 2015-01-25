@@ -14,15 +14,17 @@ import (
 	"math/big"
 	"net"
 	"strconv"
-	"strings"
 )
 
 var (
-	Sys_LocalAddress         = ""    //本地地址
-	Sys_GlobalUnicastAddress = ""    //公网地址
-	Sys_LocalPort            = 9981  //本地监听端口
-	Sys_MappingPort          = 9981  //映射到路由器的端口
 	Sys_IsSuperPeer          = false //是超级节点
+	Sys_GlobalUnicastAddress = ""    //公网地址
+
+	Sys_LocalIP     = ""   //本地ip地址
+	Sys_LocalPort   = 9981 //本地监听端口
+	Sys_ExternalIP  = ""   //
+	Sys_MappingPort = 9981 //映射到路由器的端口
+
 )
 
 /*
@@ -30,11 +32,25 @@ var (
 	是否支持upnp协议，添加一个端口映射
 */
 func init() {
-	hostIp := GetLocalIntenetIp()
-	ip := net.ParseIP(hostIp)
-	//本地地址是公网单播地址
-	if ip.IsGlobalUnicast() {
+
+	Sys_LocalIP := GetLocalIntenetIp()
+	/*
+		获得一个可用的端口
+	*/
+	for i := 0; i < 1000; i++ {
+		_, err := net.ListenPacket("udp", Sys_LocalIP+":"+strconv.Itoa(Sys_LocalPort))
+		if err != nil {
+			Sys_LocalPort = Sys_LocalPort + 1
+		} else {
+			break
+		}
+	}
+	fmt.Println("监听一个本地地址：", Sys_LocalIP, ":", Sys_LocalPort)
+	//本地地址是全球唯一公网地址
+	if IsOnlyIp(Sys_LocalIP) {
 		Sys_IsSuperPeer = true
+		Sys_GlobalUnicastAddress = Sys_LocalIP
+		fmt.Println("本机ip是全球唯一公网地址")
 		return
 	}
 	mapping := new(upnp.Upnp)
@@ -43,18 +59,20 @@ func init() {
 		fmt.Println(err.Error())
 		return
 	} else {
-		Sys_GlobalUnicastAddress = mapping.GetewayOutsideIP
+		Sys_ExternalIP = mapping.GetewayOutsideIP
 	}
-	if err := mapping.AddPortMapping(Sys_LocalPort, Sys_MappingPort, "TCP"); err == nil {
-		Sys_IsSuperPeer = true
-		fmt.Println("端口映射成功")
-		return
-	} else {
-		fmt.Println("端口映射失败")
+	for i := 0; i < 1000; i++ {
+		if err := mapping.AddPortMapping(Sys_LocalPort, Sys_MappingPort, "TCP"); err == nil {
+			Sys_IsSuperPeer = true
+			fmt.Println("映射到公网地址：", Sys_ExternalIP, ":", Sys_MappingPort)
+			return
+		}
+		Sys_MappingPort = Sys_MappingPort + 1
 	}
+	fmt.Println("端口映射失败")
 }
 
-type Manager struct {
+var (
 	IsRoot        bool //是否是第一个节点
 	nodeManager   *nodeStore.NodeManager
 	superNodeIp   string
@@ -63,9 +81,12 @@ type Manager struct {
 	HostPort      int32
 	rootId        *big.Int
 	privateKey    *rsa.PrivateKey
-	upnp          *upnp.Upnp
 	engine        *msgE.Engine
 	auth          *msgE.Auth
+)
+
+func NewPeer() {
+
 }
 
 //-------------------------------------------------------
@@ -78,43 +99,32 @@ type Manager struct {
 // 4.注册节点id
 //   处理查找节点的请求
 //-------------------------------------------------------
-func (this *Manager) Run() error {
-	//是新节点
-	if Init_NewPeer {
+func Run() error {
 
-	}
-
-	if this.IsRoot {
+	if IsRoot {
 		//随机产生一个nodeid
-		this.rootId = nodeStore.RandNodeId()
+		rootId = nodeStore.RandNodeId()
 	} else {
 		//随机产生一个nodeid
-		this.rootId = nodeStore.RandNodeId()
+		rootId = nodeStore.RandNodeId()
 	}
-	fmt.Println("本机id为：", hex.EncodeToString(this.rootId.Bytes()))
+	fmt.Println("本机id为：", hex.EncodeToString(rootId.Bytes()))
 	//---------------------------------------------------------------
 	//   启动消息服务器
 	//---------------------------------------------------------------
-	// this.initMsgEngine(this.rootId.String())
-	this.hostIp = GetLocalIntenetIp()
-tag:
-	l, err := net.ListenPacket("udp", this.hostIp+":"+strconv.Itoa(Listen_port))
-	if err != nil {
-		Listen_port = Listen_port + 1
-		goto tag
-	}
-	hostPort, _ := strconv.Atoi(strings.Split(l.LocalAddr().String(), ":")[1])
-	this.HostPort = int32(hostPort)
+	// initMsgEngine(rootId.String())
+	hostIp = Sys_LocalIP
+	HostPort = int32(Sys_LocalPort)
 
-	this.engine = msgE.NewEngine(hex.EncodeToString(this.rootId.Bytes()))
+	engine = msgE.NewEngine(hex.EncodeToString(rootId.Bytes()))
 	//注册所有的消息
-	this.registerMsg()
+	registerMsg()
 	//---------------------------------------------------------------
 	//  end
 	//---------------------------------------------------------------
-	// var err error
+	var err error
 	//生成密钥
-	this.privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
 	if err != nil {
 		fmt.Println("生成密钥错误", err.Error())
 		return nil
@@ -123,15 +133,15 @@ tag:
 	//---------------------------------------------------------------
 	//  启动分布式哈希表
 	//---------------------------------------------------------------
-	// this.initPeerNode()
+	// initPeerNode()
 	node := &nodeStore.Node{
-		NodeId:  this.rootId,
+		NodeId:  rootId,
 		IsSuper: true, //是超级节点
-		Addr:    this.hostIp,
-		TcpPort: this.HostPort,
+		Addr:    hostIp,
+		TcpPort: HostPort,
 		UdpPort: 0,
 	}
-	this.nodeManager = nodeStore.NewNodeManager(node)
+	nodeManager = nodeStore.NewNodeManager(node)
 	//---------------------------------------------------------------
 	//  end
 	//---------------------------------------------------------------
@@ -139,51 +149,51 @@ tag:
 	//  设置关闭连接回调函数后监听
 	//---------------------------------------------------------------
 	auth := new(Auth)
-	auth.nodeManager = this.nodeManager
-	this.engine.SetAuth(auth)
-	this.engine.SetCloseCallback(this.closeConnCallback)
-	this.engine.Listen(this.hostIp, this.HostPort)
-	this.engine.GetController().SetAttribute("nodeStore", this.nodeManager)
+	auth.nodeManager = nodeManager
+	engine.SetAuth(auth)
+	engine.SetCloseCallback(closeConnCallback)
+	engine.Listen(hostIp, HostPort)
+	engine.GetController().SetAttribute("nodeStore", nodeManager)
 	//---------------------------------------------------------------
 	//  end
 	//---------------------------------------------------------------
-	if this.IsRoot {
+	if IsRoot {
 		//自己连接自己
-		// this.engine.AddClientConn(this.rootId.String(), this.hostIp, this.HostPort, false)
+		// engine.AddClientConn(rootId.String(), hostIp, HostPort, false)
 	} else {
 		//连接到超级节点
 		host, portStr, _ := net.SplitHostPort(Sys_superNodeEntry[0])
-		// hotsAndPost := strings.Split(this.nodeStoreManager.superNodeEntry[0], ":")
+		// hotsAndPost := strings.Split(nodeStoreManager.superNodeEntry[0], ":")
 		port, err := strconv.Atoi(portStr)
 		if err != nil {
 			return err
 		}
-		this.nodeManager.SuperName = this.engine.AddClientConn(host, int32(port), false)
+		nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
 		//给目标机器发送自己的名片
-		this.introduceSelf()
+		introduceSelf()
 	}
 	//这里启动存储系统
-	// this.cache = cache.NewMencache()
-	// this.engine.GetController().SetAttribute("cache", this.cache)
-	go this.read()
+	// cache = cache.NewMencache()
+	// engine.GetController().SetAttribute("cache", cache)
+	go read()
 	return nil
 }
 
 //连接超级节点后，向超级节点介绍自己
 //第一次连接超级节点，用代理方式查找离自己最近的节点
-func (this *Manager) introduceSelf() {
-	session, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
+func introduceSelf() {
+	session, _ := engine.GetController().GetSession(nodeManager.SuperName)
 
 	//用代理方式查找最近的超级节点
 	nodeMsg := msg.FindNode{
 		NodeId:  session.GetName(),
-		WantId:  this.nodeManager.GetRootId(),
+		WantId:  nodeManager.GetRootId(),
 		IsProxy: true,
-		ProxyId: this.nodeManager.GetRootId(),
+		ProxyId: nodeManager.GetRootId(),
 		IsSuper: true,
-		Addr:    this.nodeManager.Root.Addr,
-		TcpPort: this.nodeManager.Root.TcpPort,
-		UdpPort: this.nodeManager.Root.UdpPort,
+		Addr:    nodeManager.Root.Addr,
+		TcpPort: nodeManager.Root.TcpPort,
+		UdpPort: nodeManager.Root.UdpPort,
 	}
 	// resultBytes, _ := proto.Marshal(&nodeMsg)
 	resultBytes, _ := json.Marshal(nodeMsg)
@@ -192,38 +202,38 @@ func (this *Manager) introduceSelf() {
 }
 
 //一个连接断开后的回调方法
-func (this *Manager) closeConnCallback(name string) {
+func closeConnCallback(name string) {
 	fmt.Println("客户端离线：", name)
-	if name == this.nodeManager.SuperName {
+	if name == nodeManager.SuperName {
 		return
 	}
 	delNode := new(nodeStore.Node)
 	delNode.NodeId, _ = new(big.Int).SetString(name, nodeStore.IdStrBit)
-	this.nodeManager.DelNode(delNode)
+	nodeManager.DelNode(delNode)
 }
 
 //处理查找节点的请求
 //本节点定期查询已知节点是否在线，更新节点信息
-func (this *Manager) read() {
+func read() {
 	for {
-		node := <-this.nodeManager.OutFindNode
-		session, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
+		node := <-nodeManager.OutFindNode
+		session, _ := engine.GetController().GetSession(nodeManager.SuperName)
 
 		findNodeOne := &msg.FindNode{
-			NodeId:  this.nodeManager.GetRootId(),
+			NodeId:  nodeManager.GetRootId(),
 			IsProxy: false,
-			ProxyId: this.nodeManager.GetRootId(),
+			ProxyId: nodeManager.GetRootId(),
 		}
 		//普通节点只需要定时查找最近的超级节点
-		if !this.nodeManager.Root.IsSuper {
-			if hex.EncodeToString(node.NodeId.Bytes()) == this.nodeManager.GetRootId() {
+		if !nodeManager.Root.IsSuper {
+			if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
 				findNodeOne.WantId = hex.EncodeToString(node.NodeId.Bytes())
 				findNodeOne.IsSuper = true
-				findNodeOne.Addr = this.nodeManager.Root.Addr
-				findNodeOne.TcpPort = this.nodeManager.Root.TcpPort
-				findNodeOne.UdpPort = this.nodeManager.Root.UdpPort
+				findNodeOne.Addr = nodeManager.Root.Addr
+				findNodeOne.TcpPort = nodeManager.Root.TcpPort
+				findNodeOne.UdpPort = nodeManager.Root.UdpPort
 
 				// resultBytes, _ := proto.Marshal(findNodeOne)
 				resultBytes, _ := json.Marshal(findNodeOne)
@@ -234,15 +244,15 @@ func (this *Manager) read() {
 		//--------------------------------------------
 		//    查找邻居节点，只有超级节点才需要查找
 		//--------------------------------------------
-		if hex.EncodeToString(node.NodeId.Bytes()) == this.nodeManager.GetRootId() {
+		if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
 			//先发送左邻居节点查找请求
 			findNodeOne.WantId = "left"
-			id := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, 1)
+			id := nodeManager.GetLeftNode(*nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
 			findNodeBytes, _ := json.Marshal(findNodeOne)
-			clientConn, ok := this.engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
+			clientConn, ok := engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
 			if !ok {
 				continue
 			}
@@ -252,12 +262,12 @@ func (this *Manager) read() {
 			}
 			//发送右邻居节点查找请求
 			findNodeOne.WantId = "right"
-			id = this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, 1)
+			id = nodeManager.GetRightNode(*nodeManager.Root.NodeId, 1)
 			if id == nil {
 				continue
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
-			clientConn, ok = this.engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
+			clientConn, ok = engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
 			if !ok {
 				continue
 			}
@@ -271,17 +281,17 @@ func (this *Manager) read() {
 		//    查找普通节点，只有超级节点才需要查找
 		//--------------------------------------------
 		//这里临时加上去
-		if this.nodeManager.Root.IsSuper {
+		if nodeManager.Root.IsSuper {
 			continue
 		}
 		findNodeOne.WantId = hex.EncodeToString(node.NodeId.Bytes())
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
-		remote := this.nodeManager.Get(hex.EncodeToString(node.NodeId.Bytes()), false, "")
+		remote := nodeManager.Get(hex.EncodeToString(node.NodeId.Bytes()), false, "")
 		if remote == nil {
 			continue
 		}
-		session, _ = this.engine.GetController().GetSession(hex.EncodeToString(remote.NodeId.Bytes()))
+		session, _ = engine.GetController().GetSession(hex.EncodeToString(remote.NodeId.Bytes()))
 		if session == nil {
 			continue
 		}
@@ -294,19 +304,19 @@ func (this *Manager) read() {
 }
 
 //保存一个键值对
-func (this *Manager) SaveData(key, value string) {
-	clientConn, _ := this.engine.GetController().GetSession(this.nodeManager.SuperName)
+func SaveData(key, value string) {
+	clientConn, _ := engine.GetController().GetSession(nodeManager.SuperName)
 	data := []byte(key + "!" + value)
 	clientConn.Send(msg.SaveKeyValueReqNum, &data)
 }
 
 //给所有客户端发送消息
-func (this *Manager) SendMsgForAll(message string) {
+func SendMsgForAll(message string) {
 	messageSend := msg.Message{
 		Content: []byte(message),
 	}
-	for idOne, _ := range this.nodeManager.GetAllNodes() {
-		if clientConn, ok := this.engine.GetController().GetSession(idOne); ok {
+	for idOne, _ := range nodeManager.GetAllNodes() {
+		if clientConn, ok := engine.GetController().GetSession(idOne); ok {
 			messageSend.TargetId = idOne
 			data, _ := json.Marshal(messageSend)
 			clientConn.Send(msg.SendMessage, &data)
@@ -315,18 +325,18 @@ func (this *Manager) SendMsgForAll(message string) {
 }
 
 //给某个人发送消息
-func (this *Manager) SendMsgForOne(target, message string) {
-	if this.nodeManager.GetRootId() == target {
+func SendMsgForOne(target, message string) {
+	if nodeManager.GetRootId() == target {
 		//发送给自己的
 		fmt.Println(message)
 		return
 	}
-	targetNode := this.nodeManager.Get(target, true, "")
+	targetNode := nodeManager.Get(target, true, "")
 	if targetNode == nil {
 		fmt.Println("本节点未连入网络")
 		return
 	}
-	session, ok := this.engine.GetController().GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
+	session, ok := engine.GetController().GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
 	if !ok {
 		return
 	}
@@ -345,26 +355,26 @@ func (this *Manager) SendMsgForOne(target, message string) {
 }
 
 //注册一个域名帐号
-func (this *Manager) CreateAccount(account string) {
+func CreateAccount(account string) {
 	// id := GetHashKey(account)
 }
 
-func (this *Manager) See() {
-	allNodes := this.nodeManager.GetAllNodes()
+func See() {
+	allNodes := nodeManager.GetAllNodes()
 	for key, _ := range allNodes {
 		fmt.Println(key)
 	}
 }
 
-func (this *Manager) SeeLeftNode() {
-	nodes := this.nodeManager.GetLeftNode(*this.nodeManager.Root.NodeId, this.nodeManager.MaxRecentCount)
+func SeeLeftNode() {
+	nodes := nodeManager.GetLeftNode(*nodeManager.Root.NodeId, nodeManager.MaxRecentCount)
 	for _, id := range nodes {
 		fmt.Println(hex.EncodeToString(id.NodeId.Bytes()))
 	}
 }
 
-func (this *Manager) SeeRightNode() {
-	nodes := this.nodeManager.GetRightNode(*this.nodeManager.Root.NodeId, this.nodeManager.MaxRecentCount)
+func SeeRightNode() {
+	nodes := nodeManager.GetRightNode(*nodeManager.Root.NodeId, nodeManager.MaxRecentCount)
 	for _, id := range nodes {
 		fmt.Println(hex.EncodeToString(id.NodeId.Bytes()))
 	}
