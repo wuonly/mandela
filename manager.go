@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	Sys_IsSuperPeer          = false //是超级节点
-	Sys_GlobalUnicastAddress = ""    //公网地址
+	Init_IsSuperPeer          = false //是超级节点
+	Init_GlobalUnicastAddress = ""    //公网地址
 
-	Sys_LocalIP     = ""   //本地ip地址
-	Sys_LocalPort   = 9981 //本地监听端口
-	Sys_ExternalIP  = ""   //
-	Sys_MappingPort = 9981 //映射到路由器的端口
+	Init_LocalIP     = ""   //本地ip地址
+	Init_LocalPort   = 9981 //本地监听端口
+	Init_ExternalIP  = ""   //
+	Init_MappingPort = 9981 //映射到路由器的端口
 
 )
 
@@ -33,23 +33,23 @@ var (
 */
 func init() {
 
-	Sys_LocalIP := GetLocalIntenetIp()
+	Init_LocalIP := GetLocalIntenetIp()
 	/*
 		获得一个可用的端口
 	*/
 	for i := 0; i < 1000; i++ {
-		_, err := net.ListenPacket("udp", Sys_LocalIP+":"+strconv.Itoa(Sys_LocalPort))
+		_, err := net.ListenPacket("udp", Init_LocalIP+":"+strconv.Itoa(Init_LocalPort))
 		if err != nil {
-			Sys_LocalPort = Sys_LocalPort + 1
+			Init_LocalPort = Init_LocalPort + 1
 		} else {
 			break
 		}
 	}
-	fmt.Println("监听一个本地地址：", Sys_LocalIP, ":", Sys_LocalPort)
+	fmt.Println("监听一个本地地址：", Init_LocalIP, ":", Init_LocalPort)
 	//本地地址是全球唯一公网地址
-	if IsOnlyIp(Sys_LocalIP) {
-		Sys_IsSuperPeer = true
-		Sys_GlobalUnicastAddress = Sys_LocalIP
+	if IsOnlyIp(Init_LocalIP) {
+		Init_IsSuperPeer = true
+		Init_GlobalUnicastAddress = Init_LocalIP
 		fmt.Println("本机ip是全球唯一公网地址")
 		return
 	}
@@ -59,15 +59,15 @@ func init() {
 		fmt.Println(err.Error())
 		return
 	} else {
-		Sys_ExternalIP = mapping.GetewayOutsideIP
+		Init_ExternalIP = mapping.GetewayOutsideIP
 	}
 	for i := 0; i < 1000; i++ {
-		if err := mapping.AddPortMapping(Sys_LocalPort, Sys_MappingPort, "TCP"); err == nil {
-			Sys_IsSuperPeer = true
-			fmt.Println("映射到公网地址：", Sys_ExternalIP, ":", Sys_MappingPort)
+		if err := mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
+			Init_IsSuperPeer = true
+			fmt.Println("映射到公网地址：", Init_ExternalIP, ":", Init_MappingPort)
 			return
 		}
-		Sys_MappingPort = Sys_MappingPort + 1
+		Init_MappingPort = Init_MappingPort + 1
 	}
 	fmt.Println("端口映射失败")
 }
@@ -85,8 +85,95 @@ var (
 	auth          *msgE.Auth
 )
 
-func NewPeer() {
+/*
+	根据网络环境启动程序
+*/
+func StartUp() {
+	//最新的节点
+	if Init_NewPeer {
+		StartNewPeer()
+		return
+	}
+	//是超级节点
+	if Init_IsSuperPeer {
 
+	}
+}
+
+/*
+	启动新的节点
+*/
+func StartNewPeer() {
+
+}
+
+/*
+	启动超级节点
+*/
+func StartSuperPeer() {
+
+}
+
+/*
+	启动弱节点
+*/
+func StartWeak() {
+
+}
+
+/*
+	启动根节点
+*/
+func StartRootPeer() {
+	//随机产生一个nodeid
+	rootId = nodeStore.RandNodeId()
+	fmt.Println("本机id为：", hex.EncodeToString(rootId.Bytes()))
+	//---------------------------------------------------------------
+	//   启动消息服务器
+	//---------------------------------------------------------------
+	HostPort = int32(Init_LocalPort)
+
+	engine = msgE.NewEngine(hex.EncodeToString(rootId.Bytes()))
+	//注册所有的消息
+	registerMsg()
+	//---------------------------------------------------------------
+	//  end
+	//---------------------------------------------------------------
+	var err error
+	//生成密钥
+	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		fmt.Println("生成密钥错误", err.Error())
+		return
+	}
+
+	//---------------------------------------------------------------
+	//  启动分布式哈希表
+	//---------------------------------------------------------------
+	node := &nodeStore.Node{
+		NodeId:  rootId,
+		IsSuper: true, //是超级节点
+		Addr:    Init_LocalIP,
+		TcpPort: HostPort,
+		UdpPort: 0,
+	}
+	nodeManager = nodeStore.NewNodeManager(node)
+	//---------------------------------------------------------------
+	//  end
+	//---------------------------------------------------------------
+	//---------------------------------------------------------------
+	//  设置关闭连接回调函数后监听
+	//---------------------------------------------------------------
+	auth := new(Auth)
+	auth.nodeManager = nodeManager
+	engine.SetAuth(auth)
+	engine.SetCloseCallback(closeConnCallback)
+	engine.Listen(Init_LocalIP, HostPort)
+	engine.GetController().SetAttribute("nodeStore", nodeManager)
+	//---------------------------------------------------------------
+	//  end
+	//---------------------------------------------------------------
+	go read()
 }
 
 //-------------------------------------------------------
@@ -113,8 +200,8 @@ func Run() error {
 	//   启动消息服务器
 	//---------------------------------------------------------------
 	// initMsgEngine(rootId.String())
-	hostIp = Sys_LocalIP
-	HostPort = int32(Sys_LocalPort)
+	hostIp = Init_LocalIP
+	HostPort = int32(Init_LocalPort)
 
 	engine = msgE.NewEngine(hex.EncodeToString(rootId.Bytes()))
 	//注册所有的消息
