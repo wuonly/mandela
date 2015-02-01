@@ -89,3 +89,17 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	conn.Write(buf.Bytes())
 	return
 }
+
+/*
+
+*/
+// type NewPeerAuth struct {
+// }
+
+// func (this *Auth) SendKey(conn net.Conn, session engineE.Session, name string) (remoteName string, err error) {
+
+// }
+
+// func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err error) {
+
+// }

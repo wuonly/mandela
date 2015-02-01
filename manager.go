@@ -31,8 +31,7 @@ var (
 	判断自己是否有公网ip地址
 	是否支持upnp协议，添加一个端口映射
 */
-func init() {
-
+func portMapping() {
 	Init_LocalIP := GetLocalIntenetIp()
 	/*
 		获得一个可用的端口
@@ -59,7 +58,7 @@ func init() {
 		fmt.Println(err.Error())
 		return
 	} else {
-		Init_ExternalIP = mapping.GetewayOutsideIP
+		Init_ExternalIP = mapping.GatewayOutsideIP
 	}
 	for i := 0; i < 1000; i++ {
 		if err := mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
@@ -90,7 +89,7 @@ var (
 */
 func StartUp() {
 	//最新的节点
-	if Init_NewPeer {
+	if Init_HaveId {
 		StartNewPeer()
 		return
 	}
@@ -125,55 +124,6 @@ func StartWeak() {
 	启动根节点
 */
 func StartRootPeer() {
-	//随机产生一个nodeid
-	rootId = nodeStore.RandNodeId()
-	fmt.Println("本机id为：", hex.EncodeToString(rootId.Bytes()))
-	//---------------------------------------------------------------
-	//   启动消息服务器
-	//---------------------------------------------------------------
-	HostPort = int32(Init_LocalPort)
-
-	engine = msgE.NewEngine(hex.EncodeToString(rootId.Bytes()))
-	//注册所有的消息
-	registerMsg()
-	//---------------------------------------------------------------
-	//  end
-	//---------------------------------------------------------------
-	var err error
-	//生成密钥
-	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-	if err != nil {
-		fmt.Println("生成密钥错误", err.Error())
-		return
-	}
-
-	//---------------------------------------------------------------
-	//  启动分布式哈希表
-	//---------------------------------------------------------------
-	node := &nodeStore.Node{
-		NodeId:  rootId,
-		IsSuper: true, //是超级节点
-		Addr:    Init_LocalIP,
-		TcpPort: HostPort,
-		UdpPort: 0,
-	}
-	nodeManager = nodeStore.NewNodeManager(node)
-	//---------------------------------------------------------------
-	//  end
-	//---------------------------------------------------------------
-	//---------------------------------------------------------------
-	//  设置关闭连接回调函数后监听
-	//---------------------------------------------------------------
-	auth := new(Auth)
-	auth.nodeManager = nodeManager
-	engine.SetAuth(auth)
-	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(Init_LocalIP, HostPort)
-	engine.GetController().SetAttribute("nodeStore", nodeManager)
-	//---------------------------------------------------------------
-	//  end
-	//---------------------------------------------------------------
-	go read()
 }
 
 //-------------------------------------------------------
@@ -187,7 +137,7 @@ func StartRootPeer() {
 //   处理查找节点的请求
 //-------------------------------------------------------
 func Run() error {
-
+	portMapping()
 	if IsRoot {
 		//随机产生一个nodeid
 		rootId = nodeStore.RandNodeId()
