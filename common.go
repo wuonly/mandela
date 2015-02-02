@@ -2,14 +2,11 @@ package mandela
 
 import (
 	"crypto/sha256"
-	// "encoding/hex"
 	"fmt"
 	"log"
 	"math/big"
-	// "math/rand"
 	"net"
 	"strings"
-	// "time"
 )
 
 //通过一个域名和用户名得到节点的id
@@ -70,5 +67,18 @@ func IsOnlyIp(ip string) bool {
 	if ips[0] == "10" {
 		return false
 	}
+	return true
+}
+
+/*
+	检查一个地址的计算机是否在线
+	@return idOnline    是否在线
+*/
+func CheckOnline(addr string) (isOnline bool) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return false
+	}
+	conn.Close()
 	return true
 }

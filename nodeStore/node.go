@@ -49,6 +49,9 @@ func (this *IdInfo) GetBigIntId() *big.Int {
 	return bigInt
 }
 
+/*
+	解析一个idInfo
+*/
 func (this *IdInfo) Parse(code []byte) (err error) {
 	err = json.Unmarshal(code, this)
 	return
