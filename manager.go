@@ -11,7 +11,6 @@ import (
 	msgE "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 	"github.com/prestonTao/upnp"
-	"math/big"
 	"net"
 	"strconv"
 )
@@ -76,12 +75,12 @@ var (
 	nodeManager   *nodeStore.NodeManager
 	superNodeIp   string
 	superNodePort int
-	hostIp        string
-	HostPort      int32
-	rootId        *big.Int
-	privateKey    *rsa.PrivateKey
-	engine        *msgE.Engine
-	auth          *msgE.Auth
+	// Init_LocalIP  string
+	// Init_LocalPort   int32
+	// rootId     *big.Int
+	privateKey *rsa.PrivateKey
+	engine     *msgE.Engine
+	auth       *msgE.Auth
 )
 
 /*
@@ -140,20 +139,23 @@ func Run() error {
 	portMapping()
 	if IsRoot {
 		//随机产生一个nodeid
-		rootId = nodeStore.RandNodeId()
+		// rootId = nodeStore.RandNodeId()
+		Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", Str_zaro)
 	} else {
 		//随机产生一个nodeid
-		rootId = nodeStore.RandNodeId()
+		// rootId = nodeStore.RandNodeId()
+		randId := nodeStore.RandNodeId()
+		Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", hex.EncodeToString(randId.Bytes()))
 	}
-	fmt.Println("本机id为：", hex.EncodeToString(rootId.Bytes()))
+	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	//---------------------------------------------------------------
 	//   启动消息服务器
 	//---------------------------------------------------------------
 	// initMsgEngine(rootId.String())
-	hostIp = Init_LocalIP
-	HostPort = int32(Init_LocalPort)
+	// Init_LocalIP = Init_LocalIP
+	// Init_LocalPort = int32(Init_LocalPort)
 
-	engine = msgE.NewEngine(hex.EncodeToString(rootId.Bytes()))
+	engine = msgE.NewEngine(Init_IdInfo.GetId())
 	//注册所有的消息
 	registerMsg()
 	//---------------------------------------------------------------
@@ -172,10 +174,11 @@ func Run() error {
 	//---------------------------------------------------------------
 	// initPeerNode()
 	node := &nodeStore.Node{
-		NodeId:  rootId,
+		// NodeId:  rootId,
+		IdInfo:  Init_IdInfo,
 		IsSuper: true, //是超级节点
-		Addr:    hostIp,
-		TcpPort: HostPort,
+		Addr:    Init_LocalIP,
+		TcpPort: int32(Init_LocalPort),
 		UdpPort: 0,
 	}
 	nodeManager = nodeStore.NewNodeManager(node)
@@ -189,14 +192,14 @@ func Run() error {
 	auth.nodeManager = nodeManager
 	engine.SetAuth(auth)
 	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(hostIp, HostPort)
+	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
 	engine.GetController().SetAttribute("nodeStore", nodeManager)
 	//---------------------------------------------------------------
 	//  end
 	//---------------------------------------------------------------
 	if IsRoot {
 		//自己连接自己
-		// engine.AddClientConn(rootId.String(), hostIp, HostPort, false)
+		// engine.AddClientConn(rootId.String(), Init_LocalIP, Init_LocalPort, false)
 	} else {
 		//连接到超级节点
 		host, portStr, _ := net.SplitHostPort(Sys_superNodeEntry[0])
@@ -244,8 +247,11 @@ func closeConnCallback(name string) {
 	if name == nodeManager.SuperName {
 		return
 	}
-	delNode := new(nodeStore.Node)
-	delNode.NodeId, _ = new(big.Int).SetString(name, nodeStore.IdStrBit)
+	// delNode := new(nodeStore.Node)
+	// delNode.NodeId, _ = new(big.Int).SetString(name, nodeStore.IdStrBit)
+	delNode := &nodeStore.Node{
+		IdInfo: nodeStore.IdInfo{Id: name},
+	}
 	nodeManager.DelNode(delNode)
 }
 
@@ -263,10 +269,11 @@ func read() {
 		}
 		//普通节点只需要定时查找最近的超级节点
 		if !nodeManager.Root.IsSuper {
-			if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
+			// if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
+			if node.IdInfo.GetId() == nodeManager.GetRootId() {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
-				findNodeOne.WantId = hex.EncodeToString(node.NodeId.Bytes())
+				findNodeOne.WantId = node.IdInfo.GetId()
 				findNodeOne.IsSuper = true
 				findNodeOne.Addr = nodeManager.Root.Addr
 				findNodeOne.TcpPort = nodeManager.Root.TcpPort
@@ -281,15 +288,15 @@ func read() {
 		//--------------------------------------------
 		//    查找邻居节点，只有超级节点才需要查找
 		//--------------------------------------------
-		if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
+		if node.IdInfo.GetId() == nodeManager.GetRootId() {
 			//先发送左邻居节点查找请求
 			findNodeOne.WantId = "left"
-			id := nodeManager.GetLeftNode(*nodeManager.Root.NodeId, 1)
+			id := nodeManager.GetLeftNode(*nodeManager.Root.IdInfo.GetBigIntId(), 1)
 			if id == nil {
 				continue
 			}
 			findNodeBytes, _ := json.Marshal(findNodeOne)
-			clientConn, ok := engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
+			clientConn, ok := engine.GetController().GetSession(id[0].IdInfo.GetId())
 			if !ok {
 				continue
 			}
@@ -299,12 +306,12 @@ func read() {
 			}
 			//发送右邻居节点查找请求
 			findNodeOne.WantId = "right"
-			id = nodeManager.GetRightNode(*nodeManager.Root.NodeId, 1)
+			id = nodeManager.GetRightNode(*nodeManager.Root.IdInfo.GetBigIntId(), 1)
 			if id == nil {
 				continue
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
-			clientConn, ok = engine.GetController().GetSession(hex.EncodeToString(id[0].NodeId.Bytes()))
+			clientConn, ok = engine.GetController().GetSession(id[0].IdInfo.GetId())
 			if !ok {
 				continue
 			}
@@ -321,14 +328,14 @@ func read() {
 		if nodeManager.Root.IsSuper {
 			continue
 		}
-		findNodeOne.WantId = hex.EncodeToString(node.NodeId.Bytes())
+		findNodeOne.WantId = node.IdInfo.GetId()
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
-		remote := nodeManager.Get(hex.EncodeToString(node.NodeId.Bytes()), false, "")
+		remote := nodeManager.Get(node.IdInfo.GetId(), false, "")
 		if remote == nil {
 			continue
 		}
-		session, _ = engine.GetController().GetSession(hex.EncodeToString(remote.NodeId.Bytes()))
+		session, _ = engine.GetController().GetSession(remote.IdInfo.GetId())
 		if session == nil {
 			continue
 		}
@@ -373,7 +380,7 @@ func SendMsgForOne(target, message string) {
 		fmt.Println("本节点未连入网络")
 		return
 	}
-	session, ok := engine.GetController().GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
+	session, ok := engine.GetController().GetSession(targetNode.IdInfo.GetId())
 	if !ok {
 		return
 	}
@@ -404,15 +411,15 @@ func See() {
 }
 
 func SeeLeftNode() {
-	nodes := nodeManager.GetLeftNode(*nodeManager.Root.NodeId, nodeManager.MaxRecentCount)
+	nodes := nodeManager.GetLeftNode(*nodeManager.Root.IdInfo.GetBigIntId(), nodeManager.MaxRecentCount)
 	for _, id := range nodes {
-		fmt.Println(hex.EncodeToString(id.NodeId.Bytes()))
+		fmt.Println(id.IdInfo.GetId())
 	}
 }
 
 func SeeRightNode() {
-	nodes := nodeManager.GetRightNode(*nodeManager.Root.NodeId, nodeManager.MaxRecentCount)
+	nodes := nodeManager.GetRightNode(*nodeManager.Root.IdInfo.GetBigIntId(), nodeManager.MaxRecentCount)
 	for _, id := range nodes {
-		fmt.Println(hex.EncodeToString(id.NodeId.Bytes()))
+		fmt.Println(id.IdInfo.GetId())
 	}
 }

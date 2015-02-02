@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/prestonTao/mandela/message"
@@ -30,7 +29,8 @@ func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 		if targetNode == nil {
 			return
 		}
-		session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
+		// session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
+		session, ok := c.GetSession(targetNode.IdInfo.GetId())
 		if !ok {
 			return
 		}

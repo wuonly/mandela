@@ -103,3 +103,44 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 // func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err error) {
 
 // }
+
+/*
+	连接超级节点，得到一个id
+	@ addr   超级节点ip地址
+*/
+// func GetId(addr string) (idInfo *IdInfo, err error) {
+
+// 	idInfo, err = NewIdInfo("", "", "", zaro)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		err = errors.New("生成id错误")
+// 		return
+// 	}
+
+// 	conn, err := net.Dial("tcp", addr)
+// 	if err != nil {
+// 		err = errors.New("连接超级节点失败")
+// 		return
+// 	}
+
+// 	//第一次连接，向对方发送自己的名称
+// 	lenght := int32(len(name))
+// 	buf := bytes.NewBuffer([]byte{})
+// 	binary.Write(buf, binary.BigEndian, lenght)
+// 	buf.Write([]byte(name))
+// 	conn.Write(buf.Bytes())
+
+// 	//对方服务器验证成功后发送给自己的名称
+// 	lenghtByte := make([]byte, 4)
+// 	io.ReadFull(conn, lenghtByte)
+// 	nameLenght := binary.BigEndian.Uint32(lenghtByte)
+// 	nameByte := make([]byte, nameLenght)
+// 	n, e := conn.Read(nameByte)
+// 	if e != nil {
+// 		err = e
+// 		return
+// 	}
+// 	//得到对方名称
+// 	remoteName = string(nameByte[:n])
+
+// }

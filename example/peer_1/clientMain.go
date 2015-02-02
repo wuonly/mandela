@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"github.com/prestonTao/mandela"
+	m "github.com/prestonTao/mandela"
 	"os"
 	"strconv"
 	"strings"
@@ -22,7 +22,7 @@ func main() {
 func StartUP() {
 	count := 1
 
-	m := mandela.Manager{}
+	// m := mandela.Manager{}
 	m.Run()
 	running := true
 	reader := bufio.NewReader(os.Stdin)

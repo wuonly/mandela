@@ -34,10 +34,10 @@ func (this *NodeManager) Run() {
 	go this.recv()
 	for {
 		for _, idOne := range this.getNodeNetworkNum() {
-			this.OutFindNode <- &Node{NodeId: idOne}
+			this.OutFindNode <- &Node{IdInfo: IdInfo{Id: hex.EncodeToString(idOne.Bytes())}}
 		}
 		//向网络中查找自己
-		this.OutFindNode <- &Node{NodeId: this.Root.NodeId}
+		this.OutFindNode <- &Node{IdInfo: IdInfo{Id: this.Root.IdInfo.GetId()}}
 		time.Sleep(SpacingInterval)
 	}
 }
@@ -58,20 +58,24 @@ func (this *NodeManager) recv() {
 //不保存本节点
 func (this *NodeManager) AddNode(node *Node) {
 	//是本身节点不添加
-	if node.NodeId.Cmp(this.Root.NodeId) == 0 {
-		// this.nodes[this.root.NodeId.String()] = this.root
+	if node.IdInfo.GetId() == this.Root.IdInfo.GetId() {
 		return
 	}
+	// if node.NodeId.Cmp(this.Root.NodeId) == 0 {
+	// 	// this.nodes[this.root.NodeId.String()] = this.root
+	// 	return
+	// }
 
 	node.LastContactTimestamp = time.Now()
-	this.nodes[hex.EncodeToString(node.NodeId.Bytes())] = node
-	this.consistentHash.Add(node.NodeId)
+	// this.nodes[hex.EncodeToString(node.NodeId.Bytes())] = node
+	this.nodes[node.IdInfo.GetId()] = node
+	this.consistentHash.Add(node.IdInfo.GetBigIntId())
 	// this.recentNode.Add(node.NodeId)
 }
 
 //添加一个被代理的节点
 func (this *NodeManager) AddProxyNode(node *Node) {
-	this.Proxys[hex.EncodeToString(node.NodeId.Bytes())] = node
+	this.Proxys[node.IdInfo.GetId()] = node
 }
 
 //得到一个被代理的节点
@@ -87,9 +91,9 @@ func (this *NodeManager) DelProxyNode(id string) {
 
 //删除一个节点
 func (this *NodeManager) DelNode(node *Node) {
-	this.consistentHash.Del(node.NodeId)
+	this.consistentHash.Del(node.IdInfo.GetBigIntId())
 	// this.recentNode.Del(node.NodeId)
-	delete(this.nodes, hex.EncodeToString(node.NodeId.Bytes()))
+	delete(this.nodes, node.IdInfo.GetId())
 }
 
 //根据节点id得到一个节点的信息，id为十进制字符串
@@ -106,13 +110,13 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 
 	consistentHash := NewHash()
 	if includeSelf {
-		consistentHash.Add(this.Root.NodeId)
+		consistentHash.Add(this.Root.IdInfo.GetBigIntId())
 	}
 	for key, value := range this.GetAllNodes() {
 		if outId != "" && key == outId {
 			continue
 		}
-		consistentHash.Add(value.NodeId)
+		consistentHash.Add(value.IdInfo.GetBigIntId())
 	}
 	targetId := consistentHash.Get(nodeIdInt)
 
@@ -177,7 +181,7 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 	}
 	consHash := NewHash()
 	for _, value := range this.GetAllNodes() {
-		consHash.Add(value.NodeId)
+		consHash.Add(value.IdInfo.GetBigIntId())
 	}
 	targetId := consHash.Get(nodeIdInt)
 	consHash = NewHash()
@@ -192,12 +196,12 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 		case -1:
 			// return false, ""
 		case 1:
-			for _, idOne := range this.consistentHash.GetLeftLow(this.Root.NodeId, this.MaxRecentCount) {
+			for _, idOne := range this.consistentHash.GetLeftLow(this.Root.IdInfo.GetBigIntId(), this.MaxRecentCount) {
 				if idOne.Cmp(targetId) == 0 {
 					return true, ""
 				}
 			}
-			for _, idOne := range this.consistentHash.GetRightLow(this.Root.NodeId, this.MaxRecentCount) {
+			for _, idOne := range this.consistentHash.GetRightLow(this.Root.IdInfo.GetBigIntId(), this.MaxRecentCount) {
 				if idOne.Cmp(targetId) == 0 {
 					return true, ""
 				}
@@ -205,15 +209,15 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 			return true, hex.EncodeToString(targetId.Bytes())
 		}
 		//判断是否是左边最近的临近节点
-		id := this.consistentHash.GetLeftLow(this.Root.NodeId, 1)[0]
-		distanceA := new(big.Int).Xor(id, this.Root.NodeId)
-		distanceB := new(big.Int).Xor(nodeIdInt, this.Root.NodeId)
+		id := this.consistentHash.GetLeftLow(this.Root.IdInfo.GetBigIntId(), 1)[0]
+		distanceA := new(big.Int).Xor(id, this.Root.IdInfo.GetBigIntId())
+		distanceB := new(big.Int).Xor(nodeIdInt, this.Root.IdInfo.GetBigIntId())
 		if distanceA.Cmp(distanceB) == 1 {
 			return true, hex.EncodeToString(id.Bytes())
 		}
 		//判断是否是右边最近的临近节点
-		id = this.consistentHash.GetRightLow(this.Root.NodeId, 1)[0]
-		distanceA = new(big.Int).Xor(id, this.Root.NodeId)
+		id = this.consistentHash.GetRightLow(this.Root.IdInfo.GetBigIntId(), 1)[0]
+		distanceA = new(big.Int).Xor(id, this.Root.IdInfo.GetBigIntId())
 		if distanceA.Cmp(distanceB) == 1 {
 			return true, hex.EncodeToString(id.Bytes())
 		}
@@ -226,7 +230,8 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 
 //得到本节点id十六进制字符串
 func (this *NodeManager) GetRootId() string {
-	return hex.EncodeToString(this.Root.NodeId.Bytes())
+	return this.Root.IdInfo.GetId()
+	// return hex.EncodeToString(this.Root.NodeId.Bytes())
 }
 
 //得到每个节点网络的网络号，不包括本节点
@@ -237,7 +242,7 @@ func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
 		//---------------------------------
 		//将后面的i位置零
 		//---------------------------------
-		startInt := new(big.Int).Lsh(new(big.Int).Rsh(this.Root.NodeId, uint(i)), uint(i))
+		startInt := new(big.Int).Lsh(new(big.Int).Rsh(this.Root.IdInfo.GetBigIntId(), uint(i)), uint(i))
 		//---------------------------------
 		//最后一位取反
 		//---------------------------------
