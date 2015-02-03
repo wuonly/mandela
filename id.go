@@ -18,6 +18,13 @@ var Init_HaveId = true
 var Init_IdInfo nodeStore.IdInfo
 
 func init() {
+	loadIdInfo()
+}
+
+/*
+	加载本地的idInfo
+*/
+func loadIdInfo() {
 	data, err := ioutil.ReadFile(Path_Id)
 	if err != nil {
 		Init_HaveId = true

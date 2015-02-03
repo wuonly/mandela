@@ -63,6 +63,9 @@ func CreateAccount(account string) {
 	// id := GetHashKey(account)
 }
 
+/*
+	查看本地保存的所有节点id
+*/
 func See() {
 	allNodes := nodeManager.GetAllNodes()
 	for key, _ := range allNodes {
@@ -70,6 +73,9 @@ func See() {
 	}
 }
 
+/*
+	查看本地保存的节点中，小于本节点id的所有节点
+*/
 func SeeLeftNode() {
 	nodes := nodeManager.GetLeftNode(*nodeManager.Root.IdInfo.GetBigIntId(), nodeManager.MaxRecentCount)
 	for _, id := range nodes {
@@ -77,9 +83,19 @@ func SeeLeftNode() {
 	}
 }
 
+/*
+	查看本地保存的节点中，大于本节点id的所有节点
+*/
 func SeeRightNode() {
 	nodes := nodeManager.GetRightNode(*nodeManager.Root.IdInfo.GetBigIntId(), nodeManager.MaxRecentCount)
 	for _, id := range nodes {
 		fmt.Println(id.IdInfo.GetId())
 	}
+}
+
+/*
+	创建一个id
+*/
+func CreateIdInfo() {
+
 }
