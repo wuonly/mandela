@@ -23,6 +23,9 @@ type NodeManager struct {
 func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	findNode := new(message.FindNode)
 	json.Unmarshal(msg.Date, findNode)
+
+	findNodeIdInfo := new(nodeStore.IdInfo)
+	json.Unmarshal([]byte(findNode.NodeId), findNodeIdInfo)
 	// proto.Unmarshal(msg.Date, findNode)
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 	//--------------------------------------------
@@ -30,14 +33,14 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	//--------------------------------------------
 	if findNode.FindId != "" {
 		//普通节点收到自己发出的代理查找请求
-		if findNode.IsProxy && (findNode.ProxyId == store.GetRootId()) {
+		if findNode.IsProxy && (findNode.ProxyId == store.GetRootIdInfoString()) {
 			fmt.Println("普通节点收到自己发出的代理查找请求")
 			//自己保存这个节点
 			this.saveNode(findNode, store, c)
 			return
 		}
 		//是自己发出的非代理查找请求
-		if findNode.NodeId == store.GetRootId() {
+		if findNode.NodeId == store.GetRootIdInfoString() {
 			//是自己的代理节点发的请求
 			if findNode.IsProxy {
 				this.sendMsg(findNode.ProxyId, &msg.Date, c)
@@ -50,16 +53,16 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		}
 		//不是自己发出的查找请求转发粗去
 		//查找除了刚发过来的节点并且包括自己，的临近结点
-		targetNode := store.Get(findNode.WantId, true, msg.Name)
+		targetNode := store.Get(findNode.WantId, true, nodeStore.ParseId(msg.Name))
 		//查找的就是自己，但这个节点已经下线
 		// if hex.EncodeToString(targetNode.NodeId.Bytes()) == store.GetRootId() {
-		if targetNode.IdInfo.GetId() == store.GetRootId() {
+		if targetNode.IdInfo.GetId() == nodeStore.ParseId(store.GetRootIdInfoString()) {
 			//这里要想个办法解决下
 			fmt.Println("想办法解决下这个问题")
 			return
 		}
 		//转发粗去
-		this.sendMsg(targetNode.IdInfo.GetId(), &msg.Date, c)
+		this.sendMsg(string(targetNode.IdInfo.Build()), &msg.Date, c)
 		return
 	}
 
@@ -84,14 +87,14 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			this.saveNode(&newNode, store, c)
 		}
 		//查找除了被代理的节点并且包括自己，的临近结点
-		targetNode := store.Get(findNode.WantId, true, findNode.ProxyId)
+		targetNode := store.Get(findNode.WantId, true, nodeStore.ParseId(findNode.ProxyId))
 		//要查找的节点就是自己，则发送给自己的代理节点
-		if targetNode.IdInfo.GetId() == store.GetRootId() {
+		if targetNode.IdInfo.GetId() == nodeStore.ParseId(store.GetRootIdInfoString()) {
 			// fmt.Println("自己的代理节点发出的查找请求查找到临近结点：", targetNode.NodeId.String())
 			rspMsg := message.FindNode{
 				NodeId:  findNode.NodeId,
 				WantId:  findNode.WantId,
-				FindId:  store.GetRootId(),
+				FindId:  store.GetRootIdInfoString(),
 				IsProxy: findNode.IsProxy,
 				ProxyId: findNode.ProxyId,
 				Addr:    store.Root.Addr,
@@ -105,13 +108,13 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		}
 		//转发代理查找请求
 		rspMsg := message.FindNode{
-			NodeId:  store.GetRootId(),
+			NodeId:  store.GetRootIdInfoString(),
 			WantId:  findNode.WantId,
 			IsProxy: findNode.IsProxy,
 			ProxyId: findNode.ProxyId,
 		}
 		resultBytes, _ := json.Marshal(&rspMsg)
-		this.sendMsg(targetNode.IdInfo.GetId(), &resultBytes, c)
+		this.sendMsg(string(targetNode.IdInfo.Build()), &resultBytes, c)
 		return
 	}
 
@@ -120,7 +123,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	//--------------------------------------------
 	if findNode.WantId == "left" || findNode.WantId == "right" {
 		//不是代理查找
-		nodeIdInt, _ := new(big.Int).SetString(findNode.NodeId, nodeStore.IdStrBit)
+		nodeIdInt, _ := new(big.Int).SetString(nodeStore.ParseId(findNode.NodeId), nodeStore.IdStrBit)
 		var nodes []*nodeStore.Node
 		//查找左邻居节点
 		if findNode.WantId == "left" {
@@ -141,7 +144,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			rspMsg := message.FindNode{
 				NodeId:  findNode.NodeId,
 				WantId:  findNode.WantId,
-				FindId:  nodeOne.IdInfo.GetId(),
+				FindId:  string(nodeOne.IdInfo.Build()),
 				IsProxy: findNode.IsProxy,
 				ProxyId: findNode.ProxyId,
 				Addr:    nodeOne.Addr,
@@ -156,13 +159,13 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	}
 
 	//查找除了客户端节点并且包括自己的临近结点
-	targetNode := store.Get(findNode.WantId, true, msg.Name)
+	targetNode := store.Get(findNode.WantId, true, nodeStore.ParseId(msg.Name))
 	//要查找的节点就是自己
-	if targetNode.IdInfo.GetId() == store.GetRootId() {
+	if targetNode.IdInfo.GetId() == nodeStore.ParseId(store.GetRootIdInfoString()) {
 		rspMsg := message.FindNode{
 			NodeId:  findNode.NodeId,
 			WantId:  findNode.WantId,
-			FindId:  store.GetRootId(),
+			FindId:  store.GetRootIdInfoString(),
 			IsProxy: findNode.IsProxy,
 			ProxyId: findNode.ProxyId,
 			Addr:    store.Root.Addr,
@@ -175,7 +178,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		return
 	}
 	//要找的不是自己，则转发出去
-	this.sendMsg(targetNode.IdInfo.GetId(), &msg.Date, c)
+	this.sendMsg(string(targetNode.IdInfo.Build()), &msg.Date, c)
 }
 
 func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controller) {
@@ -192,16 +195,19 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 
 //自己保存这个节点，可以保存超级节点，也可以保存代理节点
 func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.NodeManager, c engine.Controller) {
+	findNodeIdInfo := new(nodeStore.IdInfo)
+	json.Unmarshal([]byte(findNode.FindId), findNodeIdInfo)
+	// nodeStore.Parse(findNode.FindId)
 	// shouldNodeInt, _ := new(big.Int).SetString(findNode.FindId, nodeStore.IdStrBit)
 	newNode := &nodeStore.Node{
-		IdInfo:  nodeStore.IdInfo{Id: findNode.FindId},
+		IdInfo:  *findNodeIdInfo,
 		IsSuper: findNode.IsSuper,
 		Addr:    findNode.Addr,
 		TcpPort: findNode.TcpPort,
 		UdpPort: findNode.UdpPort,
 	}
 	//是否需要这个节点
-	if isNeed, replace := store.CheckNeedNode(findNode.FindId); isNeed {
+	if isNeed, replace := store.CheckNeedNode(findNodeIdInfo.GetId()); isNeed {
 		store.AddNode(newNode)
 		//把替换的节点连接删除
 		if replace != "" {
@@ -209,7 +215,7 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 			if session, ok := c.GetNet().GetSession(store.SuperName); ok {
 				if replace == session.GetName() {
 					session.Close()
-					session, _ := c.GetNet().AddClientConn(newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
+					session, _ := c.GetNet().AddClientConn(newNode.Addr, store.GetRootIdInfoString(), newNode.TcpPort, false)
 					store.SuperName = session.GetName()
 				}
 			}
@@ -217,13 +223,15 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 				session.Close()
 				// delNode := new(nodeStore.Node)
 				// delNode.NodeId, _ = new(big.Int).SetString(replace, nodeStore.IdStrBit)
-				delNode := &nodeStore.Node{IdInfo: nodeStore.IdInfo{Id: replace}}
-				store.DelNode(delNode)
+				// delNode := &nodeStore.Node{IdInfo: nodeStore.IdInfo{Id: replace}}
+				store.DelNode(replace)
 			}
 		}
 		if store.Root.IsSuper {
-			fmt.Println("接收请求:", findNode.FindId, "要替换", replace)
-			c.GetNet().AddClientConn(newNode.Addr, store.GetRootId(), newNode.TcpPort, false)
+			if replace != "" {
+				fmt.Println("接收请求:", findNode.FindId, "要替换", replace)
+			}
+			c.GetNet().AddClientConn(newNode.Addr, store.GetRootIdInfoString(), newNode.TcpPort, false)
 		}
 	}
 }

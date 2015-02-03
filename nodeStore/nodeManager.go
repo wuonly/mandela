@@ -12,14 +12,14 @@ type NodeManager struct {
 	lock           *sync.Mutex      //锁
 	Root           *Node            //
 	isNew          bool             //是否是新节点
-	nodes          map[string]*Node //十进制字符串为键
+	nodes          map[string]*Node //id符串为键
 	consistentHash *ConsistentHash  //一致性hash表
 	InNodes        chan *Node       //需要更新的节点
-	OutFindNode    chan *Node       //需要查询是否在线的节点
+	OutFindNode    chan string      //需要查询是否在线的节点
 	Groups         *NodeGroup       //组
 	NodeIdLevel    uint             //节点id长度
 	MaxRecentCount int              //最多存放多少个邻居节点
-	Proxys         map[string]*Node //被代理的节点，十进制字符串为键
+	Proxys         map[string]*Node //被代理的节点，id字符串为键
 	SuperName      string           //超级节点名称
 	// OutRecentNode  chan *Node       //需要查询相邻节点
 	// recentNode     *RecentNode      //
@@ -34,10 +34,10 @@ func (this *NodeManager) Run() {
 	go this.recv()
 	for {
 		for _, idOne := range this.getNodeNetworkNum() {
-			this.OutFindNode <- &Node{IdInfo: IdInfo{Id: hex.EncodeToString(idOne.Bytes())}}
+			this.OutFindNode <- hex.EncodeToString(idOne.Bytes())
 		}
 		//向网络中查找自己
-		this.OutFindNode <- &Node{IdInfo: IdInfo{Id: this.Root.IdInfo.GetId()}}
+		this.OutFindNode <- this.Root.IdInfo.GetId()
 		time.Sleep(SpacingInterval)
 	}
 }
@@ -90,10 +90,11 @@ func (this *NodeManager) DelProxyNode(id string) {
 }
 
 //删除一个节点
-func (this *NodeManager) DelNode(node *Node) {
-	this.consistentHash.Del(node.IdInfo.GetBigIntId())
+func (this *NodeManager) DelNode(idStr string) {
+	idBitInt, _ := new(big.Int).SetString(idStr, IdStrBit)
+	this.consistentHash.Del(idBitInt)
 	// this.recentNode.Del(node.NodeId)
-	delete(this.nodes, node.IdInfo.GetId())
+	delete(this.nodes, idStr)
 }
 
 //根据节点id得到一个节点的信息，id为十进制字符串
@@ -123,7 +124,7 @@ func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Nod
 	if targetId == nil {
 		return nil
 	}
-	if hex.EncodeToString(targetId.Bytes()) == this.GetRootId() {
+	if hex.EncodeToString(targetId.Bytes()) == ParseId(this.GetRootIdInfoString()) {
 		return this.Root
 	}
 	return this.nodes[hex.EncodeToString(targetId.Bytes())]
@@ -228,11 +229,18 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 	}
 }
 
-//得到本节点id十六进制字符串
-func (this *NodeManager) GetRootId() string {
-	return this.Root.IdInfo.GetId()
-	// return hex.EncodeToString(this.Root.NodeId.Bytes())
+/*
+	得到IdInfo字符串
+*/
+func (this *NodeManager) GetRootIdInfoString() string {
+	return string(this.Root.IdInfo.Build())
 }
+
+//得到本节点id十六进制字符串
+// func (this *NodeManager) GetRootId() string {
+// 	return this.Root.IdInfo.GetId()
+// 	// return hex.EncodeToString(this.Root.NodeId.Bytes())
+// }
 
 //得到每个节点网络的网络号，不包括本节点
 func (this *NodeManager) getNodeNetworkNum() map[string]*big.Int {
@@ -259,7 +267,7 @@ func NewNodeManager(node *Node) *NodeManager {
 		Root:           node,
 		consistentHash: new(ConsistentHash),
 		nodes:          make(map[string]*Node, 0),
-		OutFindNode:    make(chan *Node, 1000),
+		OutFindNode:    make(chan string, 1000),
 		InNodes:        make(chan *Node, 1000),
 		Groups:         NewNodeGroup(),
 		NodeIdLevel:    NodeIdLevel,

@@ -87,6 +87,15 @@ func CheckIdInfo(idInfo IdInfo) bool {
 	return true
 }
 
+/*
+	得到id
+*/
+func ParseId(idInfoStr string) (id string) {
+	idInfo := IdInfo{}
+	idInfo.Parse([]byte(idInfoStr))
+	return idInfo.Id
+}
+
 //userName      用户名，最大长度100
 //email         email，最大长度100
 //local         地址，最大长度100

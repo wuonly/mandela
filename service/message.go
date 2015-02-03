@@ -22,7 +22,7 @@ func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 	}
 
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	if store.GetRootId() == messageRecv.TargetId {
+	if nodeStore.ParseId(store.GetRootIdInfoString()) == messageRecv.TargetId {
 		fmt.Println(string(messageRecv.Content))
 	} else {
 		targetNode := store.Get(messageRecv.TargetId, true, "")
@@ -30,7 +30,7 @@ func (this *Message) RecvMsg(c engine.Controller, msg engine.GetPacket) {
 			return
 		}
 		// session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
-		session, ok := c.GetSession(targetNode.IdInfo.GetId())
+		session, ok := c.GetSession(string(targetNode.IdInfo.Build()))
 		if !ok {
 			return
 		}

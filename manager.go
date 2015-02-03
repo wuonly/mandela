@@ -155,7 +155,7 @@ func Run() error {
 	// Init_LocalIP = Init_LocalIP
 	// Init_LocalPort = int32(Init_LocalPort)
 
-	engine = msgE.NewEngine(Init_IdInfo.GetId())
+	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
 	//注册所有的消息
 	registerMsg()
 	//---------------------------------------------------------------
@@ -227,9 +227,9 @@ func introduceSelf() {
 	//用代理方式查找最近的超级节点
 	nodeMsg := msg.FindNode{
 		NodeId:  session.GetName(),
-		WantId:  nodeManager.GetRootId(),
+		WantId:  nodeStore.ParseId(nodeManager.GetRootIdInfoString()),
 		IsProxy: true,
-		ProxyId: nodeManager.GetRootId(),
+		ProxyId: nodeManager.GetRootIdInfoString(),
 		IsSuper: true,
 		Addr:    nodeManager.Root.Addr,
 		TcpPort: nodeManager.Root.TcpPort,
@@ -249,31 +249,31 @@ func closeConnCallback(name string) {
 	}
 	// delNode := new(nodeStore.Node)
 	// delNode.NodeId, _ = new(big.Int).SetString(name, nodeStore.IdStrBit)
-	delNode := &nodeStore.Node{
-		IdInfo: nodeStore.IdInfo{Id: name},
-	}
-	nodeManager.DelNode(delNode)
+	// delNode := &nodeStore.Node{
+	// 	IdInfo: nodeStore.IdInfo{Id: name},
+	// }
+	nodeManager.DelNode(nodeStore.ParseId(name))
 }
 
 //处理查找节点的请求
 //本节点定期查询已知节点是否在线，更新节点信息
 func read() {
 	for {
-		node := <-nodeManager.OutFindNode
+		nodeIdStr := <-nodeManager.OutFindNode
 		session, _ := engine.GetController().GetSession(nodeManager.SuperName)
 
 		findNodeOne := &msg.FindNode{
-			NodeId:  nodeManager.GetRootId(),
+			NodeId:  nodeManager.GetRootIdInfoString(),
 			IsProxy: false,
-			ProxyId: nodeManager.GetRootId(),
+			ProxyId: nodeManager.GetRootIdInfoString(),
 		}
 		//普通节点只需要定时查找最近的超级节点
 		if !nodeManager.Root.IsSuper {
 			// if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
-			if node.IdInfo.GetId() == nodeManager.GetRootId() {
+			if nodeIdStr == nodeStore.ParseId(nodeManager.GetRootIdInfoString()) {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
-				findNodeOne.WantId = node.IdInfo.GetId()
+				findNodeOne.WantId = nodeIdStr
 				findNodeOne.IsSuper = true
 				findNodeOne.Addr = nodeManager.Root.Addr
 				findNodeOne.TcpPort = nodeManager.Root.TcpPort
@@ -288,7 +288,7 @@ func read() {
 		//--------------------------------------------
 		//    查找邻居节点，只有超级节点才需要查找
 		//--------------------------------------------
-		if node.IdInfo.GetId() == nodeManager.GetRootId() {
+		if nodeIdStr == nodeStore.ParseId(nodeManager.GetRootIdInfoString()) {
 			//先发送左邻居节点查找请求
 			findNodeOne.WantId = "left"
 			id := nodeManager.GetLeftNode(*nodeManager.Root.IdInfo.GetBigIntId(), 1)
@@ -296,7 +296,7 @@ func read() {
 				continue
 			}
 			findNodeBytes, _ := json.Marshal(findNodeOne)
-			clientConn, ok := engine.GetController().GetSession(id[0].IdInfo.GetId())
+			clientConn, ok := engine.GetController().GetSession(string(id[0].IdInfo.Build()))
 			if !ok {
 				continue
 			}
@@ -311,7 +311,7 @@ func read() {
 				continue
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
-			clientConn, ok = engine.GetController().GetSession(id[0].IdInfo.GetId())
+			clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
 			if !ok {
 				continue
 			}
@@ -328,18 +328,17 @@ func read() {
 		if nodeManager.Root.IsSuper {
 			continue
 		}
-		findNodeOne.WantId = node.IdInfo.GetId()
+		findNodeOne.WantId = nodeIdStr
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
-		remote := nodeManager.Get(node.IdInfo.GetId(), false, "")
+		remote := nodeManager.Get(nodeIdStr, false, "")
 		if remote == nil {
 			continue
 		}
-		session, _ = engine.GetController().GetSession(remote.IdInfo.GetId())
+		session, _ = engine.GetController().GetSession(string(remote.IdInfo.Build()))
 		if session == nil {
 			continue
 		}
-
 		err := session.Send(msg.FindNodeNum, &findNodeBytes)
 		if err != nil {
 			fmt.Println("manager发送数据出错：", err.Error())
@@ -359,8 +358,8 @@ func SendMsgForAll(message string) {
 	messageSend := msg.Message{
 		Content: []byte(message),
 	}
-	for idOne, _ := range nodeManager.GetAllNodes() {
-		if clientConn, ok := engine.GetController().GetSession(idOne); ok {
+	for idOne, nodeOne := range nodeManager.GetAllNodes() {
+		if clientConn, ok := engine.GetController().GetSession(string(nodeOne.IdInfo.Build())); ok {
 			messageSend.TargetId = idOne
 			data, _ := json.Marshal(messageSend)
 			clientConn.Send(msg.SendMessage, &data)
@@ -370,17 +369,17 @@ func SendMsgForAll(message string) {
 
 //给某个人发送消息
 func SendMsgForOne(target, message string) {
-	if nodeManager.GetRootId() == target {
+	if nodeStore.ParseId(nodeManager.GetRootIdInfoString()) == target {
 		//发送给自己的
 		fmt.Println(message)
 		return
 	}
 	targetNode := nodeManager.Get(target, true, "")
 	if targetNode == nil {
-		fmt.Println("本节点未连入网络")
+		fmt.Println("本机未连入mandela网络")
 		return
 	}
-	session, ok := engine.GetController().GetSession(targetNode.IdInfo.GetId())
+	session, ok := engine.GetController().GetSession(string(targetNode.IdInfo.Build()))
 	if !ok {
 		return
 	}
