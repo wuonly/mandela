@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	engineE "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 	"io"
@@ -111,64 +110,5 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	binary.Write(buf, binary.BigEndian, nameLenght)
 	buf.Write([]byte(name))
 	conn.Write(buf.Bytes())
-	return
-}
-
-/*
-
-*/
-// type NewPeerAuth struct {
-// }
-
-// func (this *Auth) SendKey(conn net.Conn, session engineE.Session, name string) (remoteName string, err error) {
-
-// }
-
-// func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err error) {
-
-// }
-
-/*
-	连接超级节点，得到一个id
-	@ addr   超级节点ip地址
-*/
-func GetId(addr string) (idInfo *nodeStore.IdInfo, err error) {
-	idInfo = &nodeStore.IdInfo{
-		Id:       Str_zaro,
-		UserName: "nimei",
-		Email:    "qqqqq@qq.com",
-		Local:    "djfkafjkls",
-	}
-
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		err = errors.New("连接超级节点失败")
-		return
-	}
-
-	/*
-		向对方发送自己的名称
-	*/
-	lenght := int32(len(idInfo.Build()))
-	buf := bytes.NewBuffer([]byte{})
-	binary.Write(buf, binary.BigEndian, lenght)
-	buf.Write(idInfo.Build())
-	conn.Write(buf.Bytes())
-
-	/*
-		对方服务器创建好id后，发送给自己
-	*/
-	lenghtByte := make([]byte, 4)
-	io.ReadFull(conn, lenghtByte)
-	nameLenght := binary.BigEndian.Uint32(lenghtByte)
-	nameByte := make([]byte, nameLenght)
-	n, e := conn.Read(nameByte)
-	if e != nil {
-		err = e
-		return
-	}
-	//得到对方生成的名称
-	idInfo = new(nodeStore.IdInfo)
-	json.Unmarshal(nameByte[:n], idInfo)
 	return
 }

@@ -26,7 +26,7 @@ func StartUP() {
 	//---------------------------------------
 	// m.Init_LocalPort = 9990
 
-	m.Run()
+	m.StartRootPeer()
 	running := true
 	reader := bufio.NewReader(os.Stdin)
 

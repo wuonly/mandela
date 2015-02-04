@@ -3,6 +3,8 @@ package mandela
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math/rand"
+	"os"
 	"time"
 )
 
@@ -11,8 +13,11 @@ const (
 	Path_SuperPeerAddress = "conf/nodeEntry.json"
 )
 
+//超级节点地址最大数量
+var Sys_config_entryCount = 1000
+
 //本地保存的超级节点地址列表
-var Sys_superNodeEntry []string = []string{}
+var Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
 
 //清理本地保存的超级节点地址间隔时间
 var Sys_cleanAddressTicker = time.Minute * 1
@@ -22,6 +27,13 @@ var Sys_StopCleanSuperPeerEntry = make(chan bool)
 
 func init() {
 	loadSuperPeerEntry()
+	LoopCheckAddr()
+	go func() {
+		//获得一个心跳
+		for range time.NewTicker(Sys_cleanAddressTicker).C {
+			LoopCheckAddr()
+		}
+	}()
 }
 
 /*
@@ -32,43 +44,71 @@ func loadSuperPeerEntry() {
 	if err != nil {
 		return
 	}
-	if err = json.Unmarshal(fileBytes, &Sys_superNodeEntry); err != nil {
+	var tempSuperPeerEntry map[string]string
+	if err = json.Unmarshal(fileBytes, &tempSuperPeerEntry); err != nil {
 		return
 	}
-	go LoopCheckAddr()
+	for key, _ := range tempSuperPeerEntry {
+		addAddr(key)
+	}
 }
 
 /*
 	关闭并重启读取并解析本地的超级节点列表文件程序
 */
-func reloadSuperPeerEntry() {
-	Sys_StopCleanSuperPeerEntry <- true
-	loadSuperPeerEntry()
+// func reloadSuperPeerEntry() {
+// 	Sys_StopCleanSuperPeerEntry <- true
+// 	loadSuperPeerEntry()
+// }
+
+/*
+	定时检查地址是否可用
+*/
+func LoopCheckAddr() {
+	/*
+		先获得一个拷贝
+	*/
+	oldSuperPeerEntry := make(map[string]string)
+	for key, value := range Sys_superNodeEntry {
+		oldSuperPeerEntry[key] = value
+	}
+	/*
+		一个地址一个地址判断是否可用
+	*/
+	for key, _ := range oldSuperPeerEntry {
+		if CheckOnline(key) {
+			addAddr(key)
+		} else {
+			delete(Sys_superNodeEntry, key)
+		}
+	}
 }
 
 /*
-	隔时检查地址是否可用
+	添加一个地址
 */
-func LoopCheckAddr() {
-	//获得一个心跳
-	ticker := time.NewTicker(Sys_cleanAddressTicker)
-	select {
-	case <-Sys_StopCleanSuperPeerEntry: //关闭
-		return
-	case <-ticker.C:
-		isChange := false
-		tempAddrEntry := []string{}
-		for _, addrOne := range Sys_superNodeEntry {
-			if CheckOnline(addrOne) {
-				tempAddrEntry = append(tempAddrEntry, addrOne)
-			} else {
-				isChange = true
-			}
+func addAddr(addr string) {
+	Sys_superNodeEntry[addr] = ""
+}
+
+/*
+	随机得到一个超级节点地址
+	@return  addr  随机获得的地址
+*/
+func getSuperAddrOne() (addr string) {
+	timens := int64(time.Now().Nanosecond())
+	rand.Seed(timens)
+	// 随机取[0-1000)
+	r := rand.Intn(len(Sys_superNodeEntry))
+	count := 0
+	for key, _ := range Sys_superNodeEntry {
+		addr = key
+		if count == r {
+			return key
 		}
-		if isChange {
-			Sys_superNodeEntry = tempAddrEntry
-		}
+		count = count + 1
 	}
+	return
 }
 
 /*
@@ -76,5 +116,8 @@ func LoopCheckAddr() {
 	@path  保存到本地的磁盘路径
 */
 func saveSuperPeerEntry(path string) {
-
+	fileBytes, _ := json.Marshal(Sys_superNodeEntry)
+	file, _ := os.Create(path)
+	file.Write(fileBytes)
+	file.Close()
 }
