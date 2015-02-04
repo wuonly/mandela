@@ -110,14 +110,16 @@ func NewIdInfo(userName, email, local, superNodeId string) (idInfo IdInfo, err e
 	// 	return
 	// }
 
+	createTime := time.Now().Format("2006-01-02 15:04:05.999999999")
+
 	hash := sha256.New()
-	hash.Write([]byte(userName + "#" + email + "#" + local + "#" + superNodeId))
+	hash.Write([]byte(userName + "#" + email + "#" + local + "#" + superNodeId + "#" + createTime))
 	md := hash.Sum(nil)
 	mdStr := hex.EncodeToString(md)
 
 	idInfo = IdInfo{
 		Id:          mdStr,
-		CreateTime:  time.Now().Format("2006-01-02 15:04:05.999999999"),
+		CreateTime:  createTime,
 		UserName:    userName,
 		Email:       email,
 		Local:       local,

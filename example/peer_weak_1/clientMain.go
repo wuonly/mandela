@@ -20,6 +20,9 @@ func main() {
 // }
 
 func StartUP() {
+	m.Mode_dev = true
+	m.StartUp()
+
 	count := 1
 
 	m := mandela.Manager{}

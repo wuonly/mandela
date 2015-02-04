@@ -20,6 +20,8 @@ func main() {
 func StartUP() {
 	// m := mandela.Manager{}
 	m.IsRoot = true
+	m.Mode_dev = true
+	m.StartUp()
 
 	//---------------------------------------
 	//  手动设置端口

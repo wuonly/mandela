@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/prestonTao/mandela/nodeStore"
 	"io"
 	"io/ioutil"
@@ -13,13 +14,13 @@ import (
 )
 
 const (
-	Path_Id  = "conf/id.json"
+	Path_Id  = "conf/idinfo.json"
 	Str_zaro = "0000000000000000000000000000000000000000000000000000000000000000"
 )
 
 //节点是否是新节点，
 //新节点需要连接超级节点，然后超级节点给她生成id
-var Init_HaveId = true
+var Init_HaveId = false
 
 var Init_IdInfo nodeStore.IdInfo
 
@@ -34,15 +35,17 @@ func loadIdInfo() {
 	data, err := ioutil.ReadFile(Path_Id)
 	//本地没有idinfo文件
 	if err != nil {
-		Init_HaveId = true
+		fmt.Println("读取id.json文件出错")
+		Init_HaveId = false
 		return
 	}
-	err = json.Unmarshal(data, Init_IdInfo)
+	err = json.Unmarshal(data, &Init_IdInfo)
 	if err != nil {
-		Init_HaveId = true
+		fmt.Println("解析id.json文件错误")
+		Init_HaveId = false
 		return
 	}
-	Init_HaveId = false
+	Init_HaveId = true
 }
 
 /*
@@ -97,5 +100,6 @@ func GetId(addr string) (idInfo *nodeStore.IdInfo, err error) {
 	//得到对方生成的名称
 	idInfo = new(nodeStore.IdInfo)
 	json.Unmarshal(nameByte[:n], idInfo)
+	conn.Close()
 	return
 }

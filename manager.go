@@ -1,7 +1,6 @@
 package mandela
 
 import (
-	// "code.google.com/p/goprotobuf/proto"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/hex"
@@ -24,6 +23,7 @@ var (
 	Init_ExternalIP  = ""   //
 	Init_MappingPort = 9981 //映射到路由器的端口
 
+	Mode_dev = false //是否是开发者模式
 )
 
 /*
@@ -75,12 +75,9 @@ var (
 	nodeManager   *nodeStore.NodeManager
 	superNodeIp   string
 	superNodePort int
-	// Init_LocalIP  string
-	// Init_LocalPort   int32
-	// rootId     *big.Int
-	privateKey *rsa.PrivateKey
-	engine     *msgE.Engine
-	auth       *msgE.Auth
+	privateKey    *rsa.PrivateKey
+	engine        *msgE.Engine
+	auth          *msgE.Auth
 )
 
 /*
@@ -89,10 +86,12 @@ var (
 func StartUp() {
 	//尝试端口映射
 	portMapping()
+	fmt.Println("+++++++++", Init_HaveId)
 	//没有idinfo的新节点
-	if Init_HaveId {
+	if !Init_HaveId {
 		//连接网络并得到一个idinfo
 		idInfo, err := GetId(getSuperAddrOne())
+		fmt.Println("========", idInfo)
 		if err == nil {
 			Init_IdInfo = *idInfo
 			saveIdInfo(Path_Id)
@@ -100,6 +99,9 @@ func StartUp() {
 			fmt.Println("从网络中获得idinfo失败")
 			return
 		}
+	}
+	if Mode_dev {
+		return
 	}
 	//是超级节点
 	if Init_IsSuperPeer {
@@ -113,9 +115,6 @@ func StartUp() {
 	启动超级节点
 */
 func StartSuperPeer() {
-	portMapping()
-	randId := nodeStore.RandNodeId()
-	Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", hex.EncodeToString(randId.Bytes()))
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -180,7 +179,6 @@ func StartWeak() {
 	启动根节点
 */
 func StartRootPeer() {
-	portMapping()
 	Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", Str_zaro)
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
@@ -199,7 +197,6 @@ func StartRootPeer() {
 		fmt.Println("生成密钥错误", err.Error())
 		return
 	}
-
 	/*
 		启动分布式哈希表
 	*/
