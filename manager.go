@@ -58,6 +58,7 @@ func portMapping() {
 		return
 	} else {
 		Init_ExternalIP = mapping.GatewayOutsideIP
+		Init_GlobalUnicastAddress = Init_ExternalIP
 	}
 	for i := 0; i < 1000; i++ {
 		if err := mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
@@ -138,7 +139,7 @@ func StartSuperPeer() {
 	*/
 	node := &nodeStore.Node{
 		IdInfo:  Init_IdInfo,
-		IsSuper: true, //是超级节点
+		IsSuper: Init_IsSuperPeer, //是超级节点
 		Addr:    Init_LocalIP,
 		TcpPort: int32(Init_LocalPort),
 		UdpPort: 0,
@@ -198,7 +199,7 @@ func StartWeak() {
 	*/
 	node := &nodeStore.Node{
 		IdInfo:  Init_IdInfo,
-		IsSuper: true, //是超级节点
+		IsSuper: Init_IsSuperPeer, //是超级节点
 		Addr:    Init_LocalIP,
 		TcpPort: int32(Init_LocalPort),
 		UdpPort: 0,
@@ -258,7 +259,7 @@ func StartRootPeer() {
 	*/
 	node := &nodeStore.Node{
 		IdInfo:  Init_IdInfo,
-		IsSuper: true, //是超级节点
+		IsSuper: Init_IsSuperPeer, //是超级节点
 		Addr:    Init_LocalIP,
 		TcpPort: int32(Init_LocalPort),
 		UdpPort: 0,
@@ -375,14 +376,13 @@ func Run() error {
 //第一次连接超级节点，用代理方式查找离自己最近的节点
 func introduceSelf() {
 	session, _ := engine.GetController().GetSession(nodeManager.SuperName)
-
 	//用代理方式查找最近的超级节点
 	nodeMsg := msg.FindNode{
 		NodeId:  session.GetName(),
 		WantId:  nodeStore.ParseId(nodeManager.GetRootIdInfoString()),
 		IsProxy: true,
 		ProxyId: nodeManager.GetRootIdInfoString(),
-		IsSuper: true,
+		IsSuper: Init_IsSuperPeer,
 		Addr:    nodeManager.Root.Addr,
 		TcpPort: nodeManager.Root.TcpPort,
 		UdpPort: nodeManager.Root.UdpPort,
@@ -422,7 +422,7 @@ func read() {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
 				findNodeOne.WantId = nodeIdStr
-				findNodeOne.IsSuper = true
+				findNodeOne.IsSuper = nodeManager.Root.IsSuper
 				findNodeOne.Addr = nodeManager.Root.Addr
 				findNodeOne.TcpPort = nodeManager.Root.TcpPort
 				findNodeOne.UdpPort = nodeManager.Root.UdpPort
@@ -473,7 +473,8 @@ func read() {
 		//    查找普通节点，只有超级节点才需要查找
 		//--------------------------------------------
 		//这里临时加上去
-		if nodeManager.Root.IsSuper {
+		//去掉后有性能问题
+		if Mode_dev {
 			continue
 		}
 		findNodeOne.WantId = nodeIdStr

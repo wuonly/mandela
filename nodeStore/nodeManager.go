@@ -27,14 +27,20 @@ type NodeManager struct {
 	// SelectTime     time.Duration    `5 * 60`      //查询时间，单位为秒
 }
 
-//定期检查所有节点状态
-//一个小时查询所有应该有的节点
-//5分钟清理一次已经不在线的节点
+/*
+	定期检查所有节点状态
+	一个小时查询所有应该有的节点
+	5分钟清理一次已经不在线的节点
+*/
 func (this *NodeManager) Run() {
 	go this.recv()
 	for {
 		for _, idOne := range this.getNodeNetworkNum() {
-			this.OutFindNode <- hex.EncodeToString(idOne.Bytes())
+			if idOne.Cmp(big.NewInt(0)) == 0 {
+				this.OutFindNode <- "0"
+			} else {
+				this.OutFindNode <- hex.EncodeToString(idOne.Bytes())
+			}
 		}
 		//向网络中查找自己
 		this.OutFindNode <- this.Root.IdInfo.GetId()
@@ -42,7 +48,9 @@ func (this *NodeManager) Run() {
 	}
 }
 
-//需要更新的节点
+/*
+	需要更新的节点
+*/
 func (this *NodeManager) recv() {
 	for node := range this.InNodes {
 		this.AddNode(node)
@@ -54,23 +62,18 @@ func (this *NodeManager) recv() {
 
 // }
 
-//添加一个节点
-//不保存本节点
+/*
+	添加一个节点
+	不保存本节点
+*/
 func (this *NodeManager) AddNode(node *Node) {
 	//是本身节点不添加
 	if node.IdInfo.GetId() == this.Root.IdInfo.GetId() {
 		return
 	}
-	// if node.NodeId.Cmp(this.Root.NodeId) == 0 {
-	// 	// this.nodes[this.root.NodeId.String()] = this.root
-	// 	return
-	// }
-
 	node.LastContactTimestamp = time.Now()
-	// this.nodes[hex.EncodeToString(node.NodeId.Bytes())] = node
 	this.nodes[node.IdInfo.GetId()] = node
 	this.consistentHash.Add(node.IdInfo.GetBigIntId())
-	// this.recentNode.Add(node.NodeId)
 }
 
 //添加一个被代理的节点
@@ -97,15 +100,18 @@ func (this *NodeManager) DelNode(idStr string) {
 	delete(this.nodes, idStr)
 }
 
-//根据节点id得到一个节点的信息，id为十进制字符串
-//@nodeId         要查找的节点
-//@includeSelf    是否包括自己
-//@outId          排除一个节点
-//@return         查找到的节点id，可能为空
+/*
+	根据节点id得到一个节点的信息，id为十进制字符串
+	@nodeId         要查找的节点
+	@includeSelf    是否包括自己
+	@outId          排除一个节点
+	@return         查找到的节点id，可能为空
+*/
 func (this *NodeManager) Get(nodeId string, includeSelf bool, outId string) *Node {
 	nodeIdInt, b := new(big.Int).SetString(nodeId, IdStrBit)
 	if !b {
-		fmt.Println("节点id格式不正确，应该为十进制字符串")
+		fmt.Println("节点id格式不正确，应该为十六进制字符串:")
+		fmt.Println(nodeId)
 		return nil
 	}
 
@@ -174,7 +180,8 @@ func (this *NodeManager) CheckNeedNode(nodeId string) (isNeed bool, replace stri
 	*/
 	nodeIdInt, b := new(big.Int).SetString(nodeId, IdStrBit)
 	if !b {
-		fmt.Println("节点id格式不正确，应该为十进制字符串")
+		fmt.Println("节点id格式不正确，应该为十六进制字符串:")
+		fmt.Println(nodeId)
 		return
 	}
 	if len(this.GetAllNodes()) == 0 {
