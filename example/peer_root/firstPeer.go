@@ -4,6 +4,7 @@ import (
 	"bufio"
 	m "github.com/prestonTao/mandela"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -29,6 +30,8 @@ func StartUP() {
 	// m.Init_LocalPort = 9990
 
 	m.StartRootPeer()
+
+	count := 1
 	running := true
 	reader := bufio.NewReader(os.Stdin)
 
@@ -43,6 +46,13 @@ func StartUP() {
 		case "info":
 
 		case "send":
+			if len(commands) == 1 {
+				m.SendMsgForAll("hello " + strconv.Itoa(count))
+				count += 1
+			}
+			if len(commands) == 3 {
+				m.SendMsgForOne(commands[1], commands[2])
+			}
 		case "see":
 			if len(commands) == 1 {
 				m.See()

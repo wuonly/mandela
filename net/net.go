@@ -102,28 +102,17 @@ func (this *Net) CloseClient(name string) bool {
 	return false
 }
 
-//@serverName   给客户端发送的自己的名字
+/*
+	连接一个服务器
+	@serverName   给客户端发送的自己的名字
+*/
 func (this *Net) AddClientConn(ip, serverName string, port int32, powerful bool) (Session, error) {
-	// this.lock.Lock()
-	// defer this.lock.Unlock()
-	//-------------------
-	//保证把原有的队列里的数据取出才能替换
-	//-------------------
-	// this.session++
-
-	// session, ok := this.GetSession(name)
-	// if ok {
-	// 	return session, nil
-	// }
-
 	clientConn := &Client{
 		serverName: serverName,
-		// outData:    make(chan *[]byte, 2000),
 		inPack:     this.Recv,
 		net:        this,
 		isPowerful: powerful,
 	}
-	// clientConn.name = name
 	clientConn.attrbutes = make(map[string]interface{})
 	remoteName, err := clientConn.Connect(ip, port)
 	if err == nil {

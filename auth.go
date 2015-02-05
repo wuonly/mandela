@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	engineE "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 	"io"
@@ -82,8 +83,7 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 		err = e
 		return
 	}
-	//得到对方名称
-	remoteName = string(nameByte[:n])
+
 	/*
 		开始验证对方客户端名称
 	*/
@@ -98,13 +98,16 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 		binary.Write(buf, binary.BigEndian, nameLenght)
 		buf.Write(clientIdInfo.Build())
 		conn.Write(buf.Bytes())
-		remoteName = string(clientIdInfo.Build())
+		// remoteName = string(clientIdInfo.Build())
+		err = errors.New("给新节点分配一个idinfo")
 		return
 	}
 
 	/*
 		验证成功后，向对方发送自己的名称
 	*/
+	//得到对方名称
+	remoteName = string(nameByte[:n])
 	nameLenght := int32(len(name))
 	buf := bytes.NewBuffer([]byte{})
 	binary.Write(buf, binary.BigEndian, nameLenght)

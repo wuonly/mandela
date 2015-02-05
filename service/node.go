@@ -34,7 +34,6 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	if findNode.FindId != "" {
 		//普通节点收到自己发出的代理查找请求
 		if findNode.IsProxy && (findNode.ProxyId == store.GetRootIdInfoString()) {
-			fmt.Println("普通节点收到自己发出的代理查找请求")
 			//自己保存这个节点
 			this.saveNode(findNode, store, c)
 			return
@@ -228,10 +227,13 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 			}
 		}
 		if store.Root.IsSuper {
-			if replace != "" {
-				fmt.Println("接收请求:", findNode.FindId, "要替换", replace)
+			//检查这个session是否存在
+			if _, ok := c.GetNet().GetSession(string(newNode.IdInfo.Build())); !ok {
+				_, err := c.GetNet().AddClientConn(newNode.Addr, store.GetRootIdInfoString(), newNode.TcpPort, false)
+				if err != nil {
+					fmt.Println("连接客户端出错")
+				}
 			}
-			c.GetNet().AddClientConn(newNode.Addr, store.GetRootIdInfoString(), newNode.TcpPort, false)
 		}
 	}
 }

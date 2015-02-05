@@ -31,7 +31,7 @@ var (
 	是否支持upnp协议，添加一个端口映射
 */
 func portMapping() {
-	Init_LocalIP := GetLocalIntenetIp()
+	Init_LocalIP = GetLocalIntenetIp()
 	/*
 		获得一个可用的端口
 	*/
@@ -86,12 +86,10 @@ var (
 func StartUp() {
 	//尝试端口映射
 	portMapping()
-	fmt.Println("+++++++++", Init_HaveId)
 	//没有idinfo的新节点
 	if !Init_HaveId {
 		//连接网络并得到一个idinfo
 		idInfo, err := GetId(getSuperAddrOne())
-		fmt.Println("========", idInfo)
 		if err == nil {
 			Init_IdInfo = *idInfo
 			saveIdInfo(Path_Id)
@@ -115,6 +113,9 @@ func StartUp() {
 	启动超级节点
 */
 func StartSuperPeer() {
+	if Mode_dev {
+		Init_IsSuperPeer = true
+	}
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -172,14 +173,69 @@ func StartSuperPeer() {
 	启动弱节点
 */
 func StartWeak() {
+	if Mode_dev {
+		Init_IsSuperPeer = false
+	}
+	fmt.Println("本机id为：", Init_IdInfo.GetId())
+	/*
+		启动消息服务器
+	*/
+	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
+	//注册所有的消息
+	registerMsg()
+	/*
+		生成密钥文件
+	*/
+	var err error
+	//生成密钥
+	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		fmt.Println("生成密钥错误", err.Error())
+		return
+	}
+	/*
+		启动分布式哈希表
+	*/
+	node := &nodeStore.Node{
+		IdInfo:  Init_IdInfo,
+		IsSuper: true, //是超级节点
+		Addr:    Init_LocalIP,
+		TcpPort: int32(Init_LocalPort),
+		UdpPort: 0,
+	}
+	nodeManager = nodeStore.NewNodeManager(node)
+	/*
+		设置关闭连接回调函数后监听
+	*/
+	auth := new(Auth)
+	auth.nodeManager = nodeManager
+	engine.SetAuth(auth)
+	engine.SetCloseCallback(closeConnCallback)
+	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
+	engine.GetController().SetAttribute("nodeStore", nodeManager)
 
+	/*
+		连接到超级节点
+	*/
+	host, portStr, _ := net.SplitHostPort(getSuperAddrOne())
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return
+	}
+	nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
+	//给目标机器发送自己的名片
+	introduceSelf()
+
+	go read()
 }
 
 /*
 	启动根节点
 */
 func StartRootPeer() {
-	Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", Str_zaro)
+	if Mode_dev {
+		Init_IsSuperPeer = true
+	}
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -331,6 +387,7 @@ func introduceSelf() {
 		TcpPort: nodeManager.Root.TcpPort,
 		UdpPort: nodeManager.Root.UdpPort,
 	}
+
 	// resultBytes, _ := proto.Marshal(&nodeMsg)
 	resultBytes, _ := json.Marshal(nodeMsg)
 
@@ -343,11 +400,6 @@ func closeConnCallback(name string) {
 	if name == nodeManager.SuperName {
 		return
 	}
-	// delNode := new(nodeStore.Node)
-	// delNode.NodeId, _ = new(big.Int).SetString(name, nodeStore.IdStrBit)
-	// delNode := &nodeStore.Node{
-	// 	IdInfo: nodeStore.IdInfo{Id: name},
-	// }
 	nodeManager.DelNode(nodeStore.ParseId(name))
 }
 
