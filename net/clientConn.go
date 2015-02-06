@@ -159,6 +159,7 @@ func (this *Client) Send(msgID uint32, data *[]byte) (err error) {
 //客户端关闭时,退出recv,send
 func (this *Client) Close() {
 	this.isClose = true
+	this.Send(CloseConn, &zaro_bytes)
 }
 func NewClient(name, ip string, port int32) *Client {
 	client := new(Client)

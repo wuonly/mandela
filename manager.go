@@ -123,7 +123,7 @@ func StartSuperPeer() {
 	*/
 	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
 	//注册所有的消息
-	registerMsg()
+	// registerMsg()
 	/*
 		生成密钥文件
 	*/
@@ -183,7 +183,7 @@ func StartWeakPeer() {
 	*/
 	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
 	//注册所有的消息
-	registerMsg()
+	// registerMsg()
 	/*
 		生成密钥文件
 	*/
@@ -243,7 +243,7 @@ func StartRootPeer() {
 	*/
 	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
 	//注册所有的消息
-	registerMsg()
+	// registerMsg()
 	/*
 		生成密钥文件
 	*/
@@ -310,7 +310,7 @@ func Run() error {
 
 	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
 	//注册所有的消息
-	registerMsg()
+	// registerMsg()
 	//---------------------------------------------------------------
 	//  end
 	//---------------------------------------------------------------

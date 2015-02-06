@@ -24,7 +24,7 @@ type Engine struct {
 	auth        Auth
 	interceptor *InterceptorProvider
 	onceRead    *sync.Once
-	router      *RouterStore
+	// router      *RouterStore
 }
 
 //注册一个普通消息
@@ -33,7 +33,7 @@ func (this *Engine) RegisterMsg(msgId int32, handler MsgHandler) {
 		fmt.Println("该消息不能注册，消息编号0-100被系统占用。")
 		return
 	}
-	this.router.AddRouter(msgId, handler)
+	AddRouter(msgId, handler)
 }
 
 func (this *Engine) Listen(ip string, port int32) {
@@ -114,7 +114,7 @@ func (this *Engine) read() {
 
 //负责将接收到的消息转换为结构体
 func (this *Engine) handler(msg *GetPacket) {
-	handler := this.router.GetHandler(msg.MsgID)
+	handler := GetHandler(msg.MsgID)
 	if handler == nil {
 		fmt.Println("该消息未注册，消息编号：", msg.MsgID)
 		return
@@ -156,6 +156,6 @@ func NewEngine(name string) *Engine {
 	engine.interceptor = NewInterceptor()
 	engine.onceRead = new(sync.Once)
 	engine.net = NewNet(name)
-	engine.router = NewRouter()
+	// engine.router = router
 	return engine
 }

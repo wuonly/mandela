@@ -5,7 +5,7 @@ import (
 	"github.com/prestonTao/mandela/service"
 )
 
-func registerMsg() {
+func init() {
 	//注册节点查找服务
 	nodeManager := new(service.NodeManager)
 	engine.RegisterMsg(message.FindNodeNum, nodeManager.FindNode)

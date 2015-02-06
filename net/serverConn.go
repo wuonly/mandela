@@ -91,4 +91,5 @@ func (this *ServerConn) Send(msgID uint32, data *[]byte) (err error) {
 func (this *ServerConn) Close() {
 	// fmt.Println("调用关闭连接方法")
 	this.isClose = true
+	this.Send(CloseConn, &zaro_bytes)
 }
