@@ -173,7 +173,7 @@ func StartSuperPeer() {
 /*
 	启动弱节点
 */
-func StartWeak() {
+func StartWeakPeer() {
 	if Mode_dev {
 		Init_IsSuperPeer = false
 	}

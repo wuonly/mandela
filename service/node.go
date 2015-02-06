@@ -35,6 +35,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		//普通节点收到自己发出的代理查找请求
 		if findNode.IsProxy && (findNode.ProxyId == store.GetRootIdInfoString()) {
 			//自己保存这个节点
+			fmt.Println("自己获得的超级节点:", findNode.FindId)
 			this.saveNode(findNode, store, c)
 			return
 		}
@@ -194,6 +195,19 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 
 //自己保存这个节点，可以保存超级节点，也可以保存代理节点
 func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.NodeManager, c engine.Controller) {
+	//自己不是超级节点
+	if !store.Root.IsSuper {
+		//查找到的节点和自己的超级节点不一样，则连接新的超级节点
+		if store.SuperName != findNode.FindId {
+			if session, ok := c.GetNet().GetSession(store.SuperName); ok {
+				session.Close()
+			}
+			session, _ := c.GetNet().AddClientConn(findNode.Addr, store.GetRootIdInfoString(), findNode.TcpPort, false)
+			store.SuperName = session.GetName()
+		}
+		return
+	}
+
 	findNodeIdInfo := new(nodeStore.IdInfo)
 	json.Unmarshal([]byte(findNode.FindId), findNodeIdInfo)
 	// nodeStore.Parse(findNode.FindId)
@@ -205,6 +219,7 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 		TcpPort: findNode.TcpPort,
 		UdpPort: findNode.UdpPort,
 	}
+
 	//是否需要这个节点
 	if isNeed, replace := store.CheckNeedNode(findNodeIdInfo.GetId()); isNeed {
 		store.AddNode(newNode)
