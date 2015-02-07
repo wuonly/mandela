@@ -26,6 +26,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 
 	findNodeIdInfo := new(nodeStore.IdInfo)
 	json.Unmarshal([]byte(findNode.NodeId), findNodeIdInfo)
+
 	// proto.Unmarshal(msg.Date, findNode)
 	store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 	//--------------------------------------------
@@ -86,7 +87,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			}
 			this.saveNode(&newNode, store, c)
 		}
-		//查找除了被代理的节点并且包括自己，的临近结点
+		//查找超级节点并且包括自己，的临近结点
 		targetNode := store.Get(findNode.WantId, true, nodeStore.ParseId(findNode.ProxyId))
 		//要查找的节点就是自己，则发送给自己的代理节点
 		if targetNode.IdInfo.GetId() == nodeStore.ParseId(store.GetRootIdInfoString()) {
@@ -104,6 +105,31 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			}
 			resultBytes, _ := json.Marshal(&rspMsg)
 			this.sendMsg(msg.Name, &resultBytes, c)
+			//是自己的代理节点
+			if !findNode.IsSuper {
+				fmt.Println("添加一个代理节点")
+				// newNode := message.FindNode{
+				// 	NodeId:  findNode.ProxyId,
+				// 	WantId:  findNode.WantId,
+				// 	FindId:  findNode.ProxyId,
+				// 	IsProxy: findNode.IsProxy,
+				// 	ProxyId: findNode.ProxyId,
+				// 	Addr:    findNode.Addr,
+				// 	IsSuper: findNode.IsSuper,
+				// 	TcpPort: findNode.TcpPort,
+				// 	UdpPort: findNode.UdpPort,
+				// }
+				findNodeIdInfo := new(nodeStore.IdInfo)
+				json.Unmarshal([]byte(findNode.ProxyId), findNodeIdInfo)
+				newNode := &nodeStore.Node{
+					IdInfo:  *findNodeIdInfo,
+					IsSuper: findNode.IsSuper,
+					Addr:    findNode.Addr,
+					TcpPort: findNode.TcpPort,
+					UdpPort: findNode.UdpPort,
+				}
+				store.AddProxyNode(newNode)
+			}
 			return
 		}
 		//转发代理查找请求
@@ -193,7 +219,7 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 	}
 }
 
-//自己保存这个节点，可以保存超级节点，也可以保存代理节点
+//自己保存这个节点，只能保存超级节点
 func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.NodeManager, c engine.Controller) {
 	//自己不是超级节点
 	if !store.Root.IsSuper {

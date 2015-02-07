@@ -409,16 +409,19 @@ func read() {
 	for {
 		nodeIdStr := <-nodeManager.OutFindNode
 		session, _ := engine.GetController().GetSession(nodeManager.SuperName)
-
 		findNodeOne := &msg.FindNode{
 			NodeId:  nodeManager.GetRootIdInfoString(),
 			IsProxy: false,
 			ProxyId: nodeManager.GetRootIdInfoString(),
 		}
-		//普通节点只需要定时查找最近的超级节点
-		if !nodeManager.Root.IsSuper {
-			// if hex.EncodeToString(node.NodeId.Bytes()) == nodeManager.GetRootId() {
-			if nodeIdStr == nodeStore.ParseId(nodeManager.GetRootIdInfoString()) {
+		/*
+			当查找id等于自己的时候：
+			超级节点：查找邻居节点
+			普通节点：查找离自己最近的超级节点，查找邻居节点做备用超级节点
+		*/
+		if nodeIdStr == nodeStore.ParseId(nodeManager.GetRootIdInfoString()) {
+			//普通节点查找最近的超级节点
+			if !nodeManager.Root.IsSuper {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
 				findNodeOne.WantId = nodeIdStr
@@ -427,16 +430,11 @@ func read() {
 				findNodeOne.TcpPort = nodeManager.Root.TcpPort
 				findNodeOne.UdpPort = nodeManager.Root.UdpPort
 
-				// resultBytes, _ := proto.Marshal(findNodeOne)
 				resultBytes, _ := json.Marshal(findNodeOne)
 				session.Send(msg.FindNodeNum, &resultBytes)
+				continue
 			}
-			continue
-		}
-		//--------------------------------------------
-		//    查找邻居节点，只有超级节点才需要查找
-		//--------------------------------------------
-		if nodeIdStr == nodeStore.ParseId(nodeManager.GetRootIdInfoString()) {
+
 			//先发送左邻居节点查找请求
 			findNodeOne.WantId = "left"
 			id := nodeManager.GetLeftNode(*nodeManager.Root.IdInfo.GetBigIntId(), 1)
@@ -469,6 +467,7 @@ func read() {
 			}
 			continue
 		}
+
 		//--------------------------------------------
 		//    查找普通节点，只有超级节点才需要查找
 		//--------------------------------------------

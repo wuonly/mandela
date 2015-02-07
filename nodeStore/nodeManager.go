@@ -62,20 +62,6 @@ func (this *NodeManager) recv() {
 
 // }
 
-/*
-	添加一个节点
-	不保存本节点
-*/
-func (this *NodeManager) AddNode(node *Node) {
-	//是本身节点不添加
-	if node.IdInfo.GetId() == this.Root.IdInfo.GetId() {
-		return
-	}
-	node.LastContactTimestamp = time.Now()
-	this.nodes[node.IdInfo.GetId()] = node
-	this.consistentHash.Add(node.IdInfo.GetBigIntId())
-}
-
 //添加一个被代理的节点
 func (this *NodeManager) AddProxyNode(node *Node) {
 	this.Proxys[node.IdInfo.GetId()] = node
@@ -92,12 +78,29 @@ func (this *NodeManager) DelProxyNode(id string) {
 	delete(this.Proxys, id)
 }
 
-//删除一个节点
+/*
+	添加一个节点
+	不保存本节点
+*/
+func (this *NodeManager) AddNode(node *Node) {
+	//是本身节点不添加
+	if node.IdInfo.GetId() == this.Root.IdInfo.GetId() {
+		return
+	}
+	node.LastContactTimestamp = time.Now()
+	this.nodes[node.IdInfo.GetId()] = node
+	this.consistentHash.Add(node.IdInfo.GetBigIntId())
+}
+
+/*
+	删除一个节点
+*/
 func (this *NodeManager) DelNode(idStr string) {
 	idBitInt, _ := new(big.Int).SetString(idStr, IdStrBit)
 	this.consistentHash.Del(idBitInt)
 	// this.recentNode.Del(node.NodeId)
 	delete(this.nodes, idStr)
+	delete(this.Proxys, idStr)
 }
 
 /*
