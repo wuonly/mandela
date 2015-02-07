@@ -107,28 +107,19 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			this.sendMsg(msg.Name, &resultBytes, c)
 			//是自己的代理节点
 			if !findNode.IsSuper {
-				fmt.Println("添加一个代理节点")
-				// newNode := message.FindNode{
-				// 	NodeId:  findNode.ProxyId,
-				// 	WantId:  findNode.WantId,
-				// 	FindId:  findNode.ProxyId,
-				// 	IsProxy: findNode.IsProxy,
-				// 	ProxyId: findNode.ProxyId,
-				// 	Addr:    findNode.Addr,
-				// 	IsSuper: findNode.IsSuper,
-				// 	TcpPort: findNode.TcpPort,
-				// 	UdpPort: findNode.UdpPort,
-				// }
-				findNodeIdInfo := new(nodeStore.IdInfo)
-				json.Unmarshal([]byte(findNode.ProxyId), findNodeIdInfo)
-				newNode := &nodeStore.Node{
-					IdInfo:  *findNodeIdInfo,
-					IsSuper: findNode.IsSuper,
-					Addr:    findNode.Addr,
-					TcpPort: findNode.TcpPort,
-					UdpPort: findNode.UdpPort,
+				if _, ok := c.GetSession(findNode.ProxyId); ok {
+					fmt.Println("添加一个代理节点")
+					findNodeIdInfo := new(nodeStore.IdInfo)
+					json.Unmarshal([]byte(findNode.ProxyId), findNodeIdInfo)
+					newNode := &nodeStore.Node{
+						IdInfo:  *findNodeIdInfo,
+						IsSuper: findNode.IsSuper,
+						Addr:    findNode.Addr,
+						TcpPort: findNode.TcpPort,
+						UdpPort: findNode.UdpPort,
+					}
+					store.AddProxyNode(newNode)
 				}
-				store.AddProxyNode(newNode)
 			}
 			return
 		}

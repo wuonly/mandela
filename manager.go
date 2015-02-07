@@ -413,6 +413,7 @@ func read() {
 			NodeId:  nodeManager.GetRootIdInfoString(),
 			IsProxy: false,
 			ProxyId: nodeManager.GetRootIdInfoString(),
+			WantId:  nodeIdStr,
 		}
 		/*
 			当查找id等于自己的时候：
@@ -424,7 +425,7 @@ func read() {
 			if !nodeManager.Root.IsSuper {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
-				findNodeOne.WantId = nodeIdStr
+				// findNodeOne.WantId = nodeIdStr
 				findNodeOne.IsSuper = nodeManager.Root.IsSuper
 				findNodeOne.Addr = nodeManager.Root.Addr
 				findNodeOne.TcpPort = nodeManager.Root.TcpPort
@@ -467,6 +468,10 @@ func read() {
 			}
 			continue
 		}
+		//自己不是超级节点，就不需要保存逻辑节点
+		// if !nodeManager.Root.IsSuper {
+		// 	continue
+		// }
 
 		//--------------------------------------------
 		//    查找普通节点，只有超级节点才需要查找
@@ -476,7 +481,7 @@ func read() {
 		if Mode_dev {
 			continue
 		}
-		findNodeOne.WantId = nodeIdStr
+
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
 		remote := nodeManager.Get(nodeIdStr, false, "")
