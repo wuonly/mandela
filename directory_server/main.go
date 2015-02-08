@@ -6,17 +6,30 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"strings"
-	// "time"
+	"time"
+)
+
+const (
+	//超级节点地址列表文件地址
+	Path_SuperPeerAddress = "node_entry.json"
 )
 
 //保存文件配置
 var config map[string]string
 
-//保存超级节点ip地址和端口
-var nodeEntry []string
+//超级节点地址最大数量
+var Sys_config_entryCount = 10000
+
+//本地保存的超级节点地址列表
+var Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
+
+//清理本地保存的超级节点地址间隔时间
+var Sys_cleanAddressTicker = time.Minute * 1
 
 /*
 	解析config.json文件
@@ -36,18 +49,19 @@ func init() {
 	/*
 		解析node_entry.json文件
 	*/
-	data, err = ioutil.ReadFile("node_entry.json")
-	if err != nil {
-		panic("read node_entry.json file error: " + err.Error())
-	}
-	if err = json.Unmarshal(data, &nodeEntry); err != nil {
-		panic("marshal node_entry.json file error: " + err.Error())
-	}
+	loadSuperPeerEntry()
+	LoopCheckAddr()
+	go func() {
+		//获得一个心跳
+		for range time.NewTicker(Sys_cleanAddressTicker).C {
+			LoopCheckAddr()
+		}
+	}()
 }
 
 func main() {
 	server := new(Server)
-	server.Run()
+	go server.start()
 
 	running := true
 	reader := bufio.NewReader(os.Stdin)
@@ -56,9 +70,9 @@ func main() {
 		commands := strings.Split(string(data), " ")
 		switch commands[0] {
 		case "help":
-			fmt.Println(`       ------------------------------
-       stop    关闭目录服务器
-       ------------------------------`)
+			fmt.Println("       ------------------------------")
+			fmt.Println("       stop    关闭目录服务器")
+			fmt.Println("       ------------------------------")
 		case "stop":
 			running = false
 		case "info":
@@ -68,12 +82,101 @@ func main() {
 	}
 }
 
-type Server struct{}
-
-func (this *Server) Run() {
-	go this.start()
-	go this.hold()
+/*
+	读取并解析本地的超级节点列表文件
+*/
+func loadSuperPeerEntry() {
+	fileBytes, err := ioutil.ReadFile(Path_SuperPeerAddress)
+	if err != nil {
+		return
+	}
+	var tempSuperPeerEntry map[string]string
+	if err = json.Unmarshal(fileBytes, &tempSuperPeerEntry); err != nil {
+		return
+	}
+	for key, _ := range tempSuperPeerEntry {
+		addSuperPeerAddr(key)
+	}
 }
+
+/*
+	定时检查地址是否可用
+*/
+func LoopCheckAddr() {
+	/*
+		先获得一个拷贝
+	*/
+	oldSuperPeerEntry := make(map[string]string)
+	for key, value := range Sys_superNodeEntry {
+		if key == "mandela.io:9981" {
+			continue
+		}
+		oldSuperPeerEntry[key] = value
+	}
+	/*
+		一个地址一个地址判断是否可用
+	*/
+	for key, _ := range oldSuperPeerEntry {
+		if CheckOnline(key) {
+			addSuperPeerAddr(key)
+		} else {
+			delete(Sys_superNodeEntry, key)
+		}
+	}
+}
+
+/*
+	添加一个地址
+*/
+func addSuperPeerAddr(addr string) {
+	Sys_superNodeEntry[addr] = ""
+}
+
+/*
+	随机得到一个超级节点地址
+	@return  addr  随机获得的地址
+*/
+func getSuperAddrOne() (addr string) {
+	timens := int64(time.Now().Nanosecond())
+	rand.Seed(timens)
+	// 随机取[0-1000)
+	r := rand.Intn(len(Sys_superNodeEntry))
+	count := 0
+	for key, _ := range Sys_superNodeEntry {
+		addr = key
+		if count == r {
+			return key
+		}
+		count = count + 1
+	}
+	return
+}
+
+/*
+	保存超级节点地址列表到本地配置文件
+	@path  保存到本地的磁盘路径
+*/
+func saveSuperPeerEntry(path string) {
+	fileBytes, _ := json.Marshal(Sys_superNodeEntry)
+	file, _ := os.Create(path)
+	file.Write(fileBytes)
+	file.Close()
+}
+
+/*
+	检查一个地址的计算机是否在线
+	@return idOnline    是否在线
+*/
+func CheckOnline(addr string) (isOnline bool) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
+type Server struct{}
 
 func (this *Server) start() {
 	http.HandleFunc("/", this.entry)
@@ -85,19 +188,12 @@ func (this *Server) start() {
 		panic("server error: " + err.Error())
 	}
 }
-func (this *Server) hold() {
-	// for range time.NewTicker(time.Hour).C {
-	// 	for _, node := range nodeEntry {
-
-	// 	}
-	// }
-}
 
 /*
 	返回超级节点地址列表
 */
 func (this *Server) entry(w http.ResponseWriter, r *http.Request) {
-	str, _ := json.Marshal(nodeEntry)
+	str, _ := json.Marshal(Sys_superNodeEntry)
 	io.WriteString(w, string(str))
 }
 
@@ -107,5 +203,5 @@ func (this *Server) entry(w http.ResponseWriter, r *http.Request) {
 func (this *Server) addNode(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	address := r.FormValue("address")
-	nodeEntry = append(nodeEntry, address)
+	addSuperPeerAddr(address)
 }

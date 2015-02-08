@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	Init_IsSuperPeer          = false //是超级节点
-	Init_GlobalUnicastAddress = ""    //公网地址
+	Init_IsSuperPeer               = false //是超级节点
+	Init_GlobalUnicastAddress      = ""    //公网地址
+	Init_GlobalUnicastAddress_port = 9981  //
 
 	Init_LocalIP     = ""   //本地ip地址
 	Init_LocalPort   = 9981 //本地监听端口
@@ -48,6 +49,7 @@ func portMapping() {
 	if IsOnlyIp(Init_LocalIP) {
 		Init_IsSuperPeer = true
 		Init_GlobalUnicastAddress = Init_LocalIP
+		Init_GlobalUnicastAddress_port = Init_LocalPort
 		fmt.Println("本机ip是全球唯一公网地址")
 		return
 	}
@@ -63,6 +65,7 @@ func portMapping() {
 	for i := 0; i < 1000; i++ {
 		if err := mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
 			Init_IsSuperPeer = true
+			Init_GlobalUnicastAddress_port = Init_MappingPort
 			fmt.Println("映射到公网地址：", Init_ExternalIP, ":", Init_MappingPort)
 			return
 		}
@@ -140,9 +143,13 @@ func StartSuperPeer() {
 	node := &nodeStore.Node{
 		IdInfo:  Init_IdInfo,
 		IsSuper: Init_IsSuperPeer, //是超级节点
-		Addr:    Init_LocalIP,
-		TcpPort: int32(Init_LocalPort),
+		Addr:    Init_GlobalUnicastAddress,
+		TcpPort: int32(Init_GlobalUnicastAddress_port),
 		UdpPort: 0,
+	}
+	if Mode_dev {
+		node.Addr = Init_LocalIP
+		node.TcpPort = int32(Init_LocalPort)
 	}
 	nodeManager = nodeStore.NewNodeManager(node)
 	/*
@@ -260,9 +267,13 @@ func StartRootPeer() {
 	node := &nodeStore.Node{
 		IdInfo:  Init_IdInfo,
 		IsSuper: Init_IsSuperPeer, //是超级节点
-		Addr:    Init_LocalIP,
-		TcpPort: int32(Init_LocalPort),
+		Addr:    Init_GlobalUnicastAddress,
+		TcpPort: int32(Init_GlobalUnicastAddress_port),
 		UdpPort: 0,
+	}
+	if Mode_dev {
+		node.Addr = Init_LocalIP
+		node.TcpPort = int32(Init_LocalPort)
 	}
 	nodeManager = nodeStore.NewNodeManager(node)
 	/*

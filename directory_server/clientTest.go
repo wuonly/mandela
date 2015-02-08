@@ -13,7 +13,7 @@ func main() {
 
 func addNode() {
 	data := make(url.Values)
-	data["address"] = []string{"127.0.0.1:19981"}
+	data["address"] = []string{"127.0.0.1:9981"}
 
 	resp, _ := http.PostForm("http://127.0.0.1:19981/add", data)
 

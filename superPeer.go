@@ -70,6 +70,9 @@ func LoopCheckAddr() {
 	*/
 	oldSuperPeerEntry := make(map[string]string)
 	for key, value := range Sys_superNodeEntry {
+		if key == "mandela.io:9981" {
+			continue
+		}
 		oldSuperPeerEntry[key] = value
 	}
 	/*
