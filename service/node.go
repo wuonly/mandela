@@ -36,8 +36,10 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		//普通节点收到自己发出的代理查找请求
 		if findNode.IsProxy && (findNode.ProxyId == store.GetRootIdInfoString()) {
 			//自己保存这个节点
-			fmt.Println("自己获得的超级节点:", findNode.FindId)
 			this.saveNode(findNode, store, c)
+			if store.SuperName != findNode.FindId {
+				fmt.Println("自己获得的超级节点:", findNode.FindId)
+			}
 			return
 		}
 		//是自己发出的非代理查找请求
@@ -125,7 +127,8 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		}
 		//转发代理查找请求
 		rspMsg := message.FindNode{
-			NodeId:  store.GetRootIdInfoString(),
+			// NodeId:  store.GetRootIdInfoString(),
+			NodeId:  findNode.NodeId,
 			WantId:  findNode.WantId,
 			IsProxy: findNode.IsProxy,
 			ProxyId: findNode.ProxyId,
@@ -136,11 +139,11 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	}
 
 	//--------------------------------------------
-	//    查找邻居节点，只有超级节点才会找邻居节点
+	//    查找邻居节点
 	//--------------------------------------------
 	if findNode.WantId == "left" || findNode.WantId == "right" {
-		//不是代理查找
-		nodeIdInt, _ := new(big.Int).SetString(nodeStore.ParseId(findNode.NodeId), nodeStore.IdStrBit)
+		//需要查找的节点id
+		nodeIdInt, _ := new(big.Int).SetString(nodeStore.ParseId(findNode.ProxyId), nodeStore.IdStrBit)
 		var nodes []*nodeStore.Node
 		//查找左邻居节点
 		if findNode.WantId == "left" {
@@ -214,6 +217,12 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.NodeManager, c engine.Controller) {
 	//自己不是超级节点
 	if !store.Root.IsSuper {
+		//代理节点查找的备用超级节点
+		if findNode.WantId == "left" || findNode.WantId == "right" {
+			fmt.Println("添加备用节点：", nodeStore.ParseId(findNode.FindId))
+			// store.AddNode(node)
+			return
+		}
 		//查找到的节点和自己的超级节点不一样，则连接新的超级节点
 		if store.SuperName != findNode.FindId {
 			if session, ok := c.GetNet().GetSession(store.SuperName); ok {
@@ -252,9 +261,6 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 			}
 			if session, ok := c.GetSession(replace); ok {
 				session.Close()
-				// delNode := new(nodeStore.Node)
-				// delNode.NodeId, _ = new(big.Int).SetString(replace, nodeStore.IdStrBit)
-				// delNode := &nodeStore.Node{IdInfo: nodeStore.IdInfo{Id: replace}}
 				store.DelNode(replace)
 			}
 		}

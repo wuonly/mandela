@@ -433,7 +433,7 @@ func read() {
 
 				resultBytes, _ := json.Marshal(findNodeOne)
 				session.Send(msg.FindNodeNum, &resultBytes)
-				continue
+				// continue
 			}
 
 			//先发送左邻居节点查找请求

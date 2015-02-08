@@ -26,7 +26,7 @@ func StartUP() {
 	count := 1
 
 	// m := mandela.Manager{}
-	m.StartWeakPeer()
+	m.StartSuperPeer()
 	running := true
 	reader := bufio.NewReader(os.Stdin)
 

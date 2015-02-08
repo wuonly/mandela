@@ -49,7 +49,7 @@ func loadSuperPeerEntry() {
 		return
 	}
 	for key, _ := range tempSuperPeerEntry {
-		addAddr(key)
+		addSuperPeerAddr(key)
 	}
 }
 
@@ -77,7 +77,7 @@ func LoopCheckAddr() {
 	*/
 	for key, _ := range oldSuperPeerEntry {
 		if CheckOnline(key) {
-			addAddr(key)
+			addSuperPeerAddr(key)
 		} else {
 			delete(Sys_superNodeEntry, key)
 		}
@@ -87,7 +87,7 @@ func LoopCheckAddr() {
 /*
 	添加一个地址
 */
-func addAddr(addr string) {
+func addSuperPeerAddr(addr string) {
 	Sys_superNodeEntry[addr] = ""
 }
 
