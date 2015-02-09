@@ -24,9 +24,9 @@ var Init_HaveId = false
 
 var Init_IdInfo nodeStore.IdInfo
 
-func init() {
-	loadIdInfo()
-}
+// func init() {
+// 	loadIdInfo()
+// }
 
 /*
 	加载本地的idInfo

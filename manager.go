@@ -88,6 +88,8 @@ var (
 	根据网络环境启动程序
 */
 func StartUp() {
+	loadIdInfo()
+	startLoadSuperPeer()
 	//尝试端口映射
 	portMapping()
 	//没有idinfo的新节点
@@ -96,7 +98,9 @@ func StartUp() {
 		idInfo, err := GetId(getSuperAddrOne())
 		if err == nil {
 			Init_IdInfo = *idInfo
-			saveIdInfo(Path_Id)
+			if !Mode_dev {
+				saveIdInfo(Path_Id)
+			}
 		} else {
 			fmt.Println("从网络中获得idinfo失败")
 			return

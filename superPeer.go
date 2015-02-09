@@ -11,6 +11,7 @@ import (
 const (
 	//超级节点地址列表文件地址
 	Path_SuperPeerAddress = "conf/nodeEntry.json"
+	Path_SuperPeerdomain  = "mandela.io"
 )
 
 //超级节点地址最大数量
@@ -25,7 +26,10 @@ var Sys_cleanAddressTicker = time.Minute * 1
 //需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
 var Sys_StopCleanSuperPeerEntry = make(chan bool)
 
-func init() {
+/*
+	开始加载超级节点地址
+*/
+func startLoadSuperPeer() {
 	loadSuperPeerEntry()
 	LoopCheckAddr()
 	go func() {
@@ -51,6 +55,7 @@ func loadSuperPeerEntry() {
 	for key, _ := range tempSuperPeerEntry {
 		addSuperPeerAddr(key)
 	}
+	addSuperPeerAddr(Path_SuperPeerdomain)
 }
 
 /*
@@ -70,9 +75,6 @@ func LoopCheckAddr() {
 	*/
 	oldSuperPeerEntry := make(map[string]string)
 	for key, value := range Sys_superNodeEntry {
-		if key == "mandela.io:9981" {
-			continue
-		}
 		oldSuperPeerEntry[key] = value
 	}
 	/*
@@ -91,6 +93,9 @@ func LoopCheckAddr() {
 	添加一个地址
 */
 func addSuperPeerAddr(addr string) {
+	if Mode_dev && addr == "mandela.io:9981" {
+		return
+	}
 	Sys_superNodeEntry[addr] = ""
 }
 
