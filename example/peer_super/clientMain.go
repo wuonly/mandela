@@ -20,13 +20,13 @@ func main() {
 // }
 
 func StartUP() {
-	m.Mode_dev = true
-	m.StartUp()
+	// m.Mode_dev = true
+	m.StartUpAuto()
 
 	count := 1
 
 	// m := mandela.Manager{}
-	m.StartSuperPeer()
+	// m.StartSuperPeer()
 	running := true
 	reader := bufio.NewReader(os.Stdin)
 

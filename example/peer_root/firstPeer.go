@@ -22,14 +22,14 @@ func StartUP() {
 	// m := mandela.Manager{}
 	m.IsRoot = true
 	m.Mode_dev = true
-	m.StartUp()
+	m.StartUpAuto()
 
 	//---------------------------------------
 	//  手动设置端口
 	//---------------------------------------
 	// m.Init_LocalPort = 9990
 
-	m.StartRootPeer()
+	// m.StartRootPeer()
 
 	count := 1
 	running := true

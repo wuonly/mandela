@@ -87,11 +87,15 @@ var (
 /*
 	根据网络环境启动程序
 */
-func StartUp() {
+func StartUpAuto() {
 	loadIdInfo()
-	startLoadSuperPeer()
+	if !IsRoot {
+		startLoadSuperPeer()
+	}
+
 	//尝试端口映射
 	portMapping()
+
 	//没有idinfo的新节点
 	if !Init_HaveId {
 		//连接网络并得到一个idinfo
@@ -106,15 +110,85 @@ func StartUp() {
 			return
 		}
 	}
+	//是超级节点
+	var node *nodeStore.Node
+	if Init_IsSuperPeer || IsRoot {
+		node = &nodeStore.Node{
+			IdInfo:  Init_IdInfo,
+			IsSuper: Init_IsSuperPeer, //是超级节点
+			Addr:    Init_GlobalUnicastAddress,
+			TcpPort: int32(Init_GlobalUnicastAddress_port),
+			UdpPort: 0,
+		}
+		if Mode_dev {
+			node.Addr = Init_LocalIP
+			node.TcpPort = int32(Init_LocalPort)
+		}
+	} else {
+		node = &nodeStore.Node{
+			IdInfo:  Init_IdInfo,
+			IsSuper: Init_IsSuperPeer, //是超级节点
+			Addr:    Init_LocalIP,
+			TcpPort: int32(Init_LocalPort),
+			UdpPort: 0,
+		}
+	}
+	startUp(node)
+	if IsRoot {
+		startLoadSuperPeer()
+	}
+}
+
+func startUp(node *nodeStore.Node) {
 	if Mode_dev {
+		Init_IsSuperPeer = false
+	}
+	fmt.Println("本机id为：", Init_IdInfo.GetId())
+	/*
+		启动消息服务器
+	*/
+	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
+	//注册所有的消息
+	// registerMsg()
+	/*
+		生成密钥文件
+	*/
+	var err error
+	//生成密钥
+	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		fmt.Println("生成密钥错误", err.Error())
 		return
 	}
-	//是超级节点
-	if Init_IsSuperPeer {
+	/*
+		启动分布式哈希表
+	*/
+	nodeManager = nodeStore.NewNodeManager(node)
+	/*
+		设置关闭连接回调函数后监听
+	*/
+	auth := new(Auth)
+	auth.nodeManager = nodeManager
+	engine.SetAuth(auth)
+	engine.SetCloseCallback(closeConnCallback)
+	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
+	engine.GetController().SetAttribute("nodeStore", nodeManager)
 
-	} else {
-
+	if !IsRoot {
+		/*
+			连接到超级节点
+		*/
+		host, portStr, _ := net.SplitHostPort(getSuperAddrOne())
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			return
+		}
+		nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
+		//给目标机器发送自己的名片
+		introduceSelf()
 	}
+
+	go read()
 }
 
 /*
