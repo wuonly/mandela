@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net"
 	"strings"
+	"time"
 )
 
 //通过一个域名和用户名得到节点的id
@@ -75,7 +76,7 @@ func IsOnlyIp(ip string) bool {
 	@return idOnline    是否在线
 */
 func CheckOnline(addr string) (isOnline bool) {
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
 	if err != nil {
 		return false
 	}
