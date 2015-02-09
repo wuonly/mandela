@@ -50,7 +50,7 @@ func init() {
 		解析node_entry.json文件
 	*/
 	loadSuperPeerEntry()
-	LoopCheckAddr()
+	//LoopCheckAddr()
 	go func() {
 		//获得一个心跳
 		for range time.NewTicker(Sys_cleanAddressTicker).C {
