@@ -50,7 +50,6 @@ func init() {
 		解析node_entry.json文件
 	*/
 	loadSuperPeerEntry()
-	//LoopCheckAddr()
 	go func() {
 		//获得一个心跳
 		for range time.NewTicker(Sys_cleanAddressTicker).C {
@@ -168,7 +167,7 @@ func saveSuperPeerEntry(path string) {
 	@return idOnline    是否在线
 */
 func CheckOnline(addr string) (isOnline bool) {
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
 	if err != nil {
 		return false
 	}
