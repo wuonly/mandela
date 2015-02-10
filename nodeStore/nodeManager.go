@@ -34,18 +34,28 @@ type NodeManager struct {
 */
 func (this *NodeManager) Run() {
 	go this.recv()
-	for {
-		for _, idOne := range this.getNodeNetworkNum() {
-			if idOne.Cmp(big.NewInt(0)) == 0 {
-				this.OutFindNode <- "0"
-			} else {
-				this.OutFindNode <- hex.EncodeToString(idOne.Bytes())
-			}
+	go func() {
+		//查询自己节点和邻居节点
+		for {
+			//向网络中查找自己
+			this.OutFindNode <- this.Root.IdInfo.GetId()
+			time.Sleep(SpacingInterval)
 		}
-		//向网络中查找自己
-		this.OutFindNode <- this.Root.IdInfo.GetId()
-		time.Sleep(SpacingInterval)
-	}
+	}()
+	go func() {
+		//查询和自己相关的逻辑节点
+		for {
+			for _, idOne := range this.getNodeNetworkNum() {
+				if idOne.Cmp(big.NewInt(0)) == 0 {
+					this.OutFindNode <- "0"
+				} else {
+					this.OutFindNode <- hex.EncodeToString(idOne.Bytes())
+				}
+				time.Sleep(time.Second * 5)
+			}
+
+		}
+	}()
 }
 
 /*
@@ -285,6 +295,6 @@ func NewNodeManager(node *Node) *NodeManager {
 		Proxys:         make(map[string]*Node, 0),
 	}
 
-	go nodeManager.Run()
+	nodeManager.Run()
 	return nodeManager
 }

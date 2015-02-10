@@ -225,11 +225,12 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 		}
 		//查找到的节点和自己的超级节点不一样，则连接新的超级节点
 		if store.SuperName != findNode.FindId {
-			if session, ok := c.GetNet().GetSession(store.SuperName); ok {
-				session.Close()
-			}
+			oldSuperName := store.SuperName
 			session, _ := c.GetNet().AddClientConn(findNode.Addr, store.GetRootIdInfoString(), findNode.TcpPort, false)
 			store.SuperName = session.GetName()
+			if session, ok := c.GetNet().GetSession(oldSuperName); ok {
+				session.Close()
+			}
 		}
 		return
 	}
@@ -265,10 +266,15 @@ func (this *NodeManager) saveNode(findNode *message.FindNode, store *nodeStore.N
 			}
 		}
 		if store.Root.IsSuper {
+			//自己不会连接自己
+			if store.GetRootIdInfoString() == string(newNode.IdInfo.Build()) {
+				return
+			}
 			//检查这个session是否存在
 			if _, ok := c.GetNet().GetSession(string(newNode.IdInfo.Build())); !ok {
 				_, err := c.GetNet().AddClientConn(newNode.Addr, store.GetRootIdInfoString(), newNode.TcpPort, false)
 				if err != nil {
+					fmt.Println(newNode)
 					fmt.Println("连接客户端出错")
 				}
 			}
