@@ -3,30 +3,53 @@ package mandela
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/prestonTao/mandela/nodeStore"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"net"
 	"os"
 )
 
 const (
-	Path_Id  = "conf/idinfo.json"
-	Str_zaro = "0000000000000000000000000000000000000000000000000000000000000000"
+	Path_Id           = "conf/idinfo.json"
+	Str_zaro          = "0000000000000000000000000000000000000000000000000000000000000000" //字符串0
+	Str_maxNumber     = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //256位1的十六进制表示最大id
+	Str_halfNumber    = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //最大id的二分之一
+	Str_quarterNumber = "3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //最大id的四分之一
 )
 
-//节点是否是新节点，
-//新节点需要连接超级节点，然后超级节点给她生成id
-var Init_HaveId = false
+var (
+	//节点是否是新节点，
+	//新节点需要连接超级节点，然后超级节点给她生成id
+	Init_HaveId = false
 
-var Init_IdInfo nodeStore.IdInfo
+	Init_IdInfo nodeStore.IdInfo
 
-// func init() {
-// 	loadIdInfo()
-// }
+	Number_max     *big.Int //最大id数
+	Number_half    *big.Int //最大id的二分之一
+	Number_quarter *big.Int //最大id的四分之一
+)
+
+func init() {
+	var ok bool
+	Number_max, ok = new(big.Int).SetString(Str_maxNumber, 16)
+	if !ok {
+		panic("id string format error")
+	}
+	Number_half, ok = new(big.Int).SetString(Str_halfNumber, 16)
+	if !ok {
+		panic("id string format error")
+	}
+	Number_quarter, ok = new(big.Int).SetString(Str_quarterNumber, 16)
+	if !ok {
+		panic("id string format error")
+	}
+}
 
 /*
 	加载本地的idInfo
@@ -102,4 +125,73 @@ func GetId(addr string) (idInfo *nodeStore.IdInfo, err error) {
 	json.Unmarshal(nameByte[:n], idInfo)
 	conn.Close()
 	return
+}
+
+/*
+	得到保存数据的逻辑节点
+	@idStr  id十六进制字符串
+*/
+func GetLogicIds(idStr string) (logicIds []string, ok bool) {
+	ok = true
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+			ok = false
+		}
+	}()
+	logicIds = make([]string, 0)
+	var idInt *big.Int
+	idInt, ok = new(big.Int).SetString(idStr, nodeStore.IdStrBit)
+	if !ok {
+		return
+	}
+	//先获取5个逻辑id
+	//1
+	oppositeId := new(big.Int).Not(idInt)
+	//2
+	logicIds = append(logicIds, FormatIdUtil(oppositeId))
+	id_2 := new(big.Int).Add(oppositeId, Number_quarter)
+	if id_2.Cmp(Number_max) == 1 {
+		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(id_2, Number_max)))
+	} else {
+		logicIds = append(logicIds, FormatIdUtil(id_2))
+	}
+	//3
+	id_3 := new(big.Int).Add(oppositeId, Number_half)
+	if id_3.Cmp(Number_max) == 1 {
+		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(id_3, Number_max)))
+	} else {
+		logicIds = append(logicIds, FormatIdUtil(id_3))
+	}
+	//4
+	if oppositeId.Cmp(Number_quarter) == -1 {
+		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(Number_max, new(big.Int).Sub(Number_quarter, oppositeId))))
+	} else {
+		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(oppositeId, Number_quarter)))
+	}
+	//5
+	if oppositeId.Cmp(Number_half) == -1 {
+		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(Number_half, new(big.Int).Sub(Number_half, oppositeId))))
+	} else {
+		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(oppositeId, Number_half)))
+	}
+	return
+}
+
+/*
+	格式化id为十进制或十六进制字符串
+*/
+func FormatIdUtil(idInt *big.Int) string {
+	if idInt.Cmp(big.NewInt(0)) == 0 {
+		return "0"
+	}
+	if nodeStore.IdStrBit == 10 {
+		//十进制显示
+		return idInt.String()
+	} else if nodeStore.IdStrBit == 16 {
+		//十六进制显示
+		return hex.EncodeToString(idInt.Bytes())
+	} else {
+		panic("id string format error")
+	}
 }

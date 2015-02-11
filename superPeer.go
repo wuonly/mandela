@@ -5,31 +5,45 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 )
 
 const (
-	//超级节点地址列表文件地址
-	Path_SuperPeerAddress = "conf/nodeEntry.json"
-	Path_SuperPeerdomain  = "mandela.io"
+	Path_SuperPeerdomain = "mandela.io"
 )
 
-//超级节点地址最大数量
-var Sys_config_entryCount = 1000
+var (
+	//配置文件存放目录
+	Path_configDir = "conf"
+	//超级节点地址列表文件地址
+	Path_SuperPeerAddress = filepath.Join("conf", "nodeEntry.json")
 
-//本地保存的超级节点地址列表
-var Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
+	//超级节点地址最大数量
+	Sys_config_entryCount = 1000
+	//本地保存的超级节点地址列表
+	Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
+	//清理本地保存的超级节点地址间隔时间
+	Sys_cleanAddressTicker = time.Minute * 1
+	//需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
+	Sys_StopCleanSuperPeerEntry = make(chan bool)
+)
 
-//清理本地保存的超级节点地址间隔时间
-var Sys_cleanAddressTicker = time.Minute * 1
-
-//需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
-var Sys_StopCleanSuperPeerEntry = make(chan bool)
+func init() {
+	//判断文件夹是否存在
+	if _, err := os.Stat(Path_configDir); err != nil {
+		if os.IsNotExist(err) {
+			os.MkdirAll(Path_configDir, 0755)
+		}
+		panic(err.Error())
+	}
+}
 
 /*
 	开始加载超级节点地址
 */
 func startLoadSuperPeer() {
+	Sys_superNodeEntry[Path_SuperPeerdomain] = ""
 	loadSuperPeerEntry()
 	LoopCheckAddr()
 	go func() {
