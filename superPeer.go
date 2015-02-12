@@ -107,9 +107,6 @@ func LoopCheckAddr() {
 	添加一个地址
 */
 func addSuperPeerAddr(addr string) {
-	if Mode_dev && addr == "mandela.io:9981" {
-		return
-	}
 	Sys_superNodeEntry[addr] = ""
 }
 
