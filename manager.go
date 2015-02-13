@@ -27,7 +27,7 @@ var (
 	Init_ExternalIP  = ""   //
 	Init_MappingPort = 9981 //映射到路由器的端口
 
-	Mode_dev = false //是否是开发者模式
+	// Mode_dev = false //是否是开发者模式
 )
 
 /*
@@ -105,9 +105,7 @@ func StartUpAuto() {
 		idInfo, err := GetId(getSuperAddrOne())
 		if err == nil {
 			Init_IdInfo = *idInfo
-			if !Mode_dev {
-				saveIdInfo(Path_Id)
-			}
+			// saveIdInfo(Path_Id)
 		} else {
 			fmt.Println("从网络中获得idinfo失败")
 			return
@@ -122,10 +120,6 @@ func StartUpAuto() {
 			Addr:    Init_GlobalUnicastAddress,
 			TcpPort: int32(Init_GlobalUnicastAddress_port),
 			UdpPort: 0,
-		}
-		if Mode_dev {
-			node.Addr = Init_LocalIP
-			node.TcpPort = int32(Init_LocalPort)
 		}
 	} else {
 		node = &nodeStore.Node{
@@ -143,9 +137,6 @@ func StartUpAuto() {
 }
 
 func startUp(node *nodeStore.Node) {
-	if Mode_dev {
-		Init_IsSuperPeer = false
-	}
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -210,9 +201,6 @@ func shutdownCallback() {
 	启动超级节点
 */
 func StartSuperPeer() {
-	if Mode_dev {
-		Init_IsSuperPeer = true
-	}
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -239,10 +227,6 @@ func StartSuperPeer() {
 		Addr:    Init_GlobalUnicastAddress,
 		TcpPort: int32(Init_GlobalUnicastAddress_port),
 		UdpPort: 0,
-	}
-	if Mode_dev {
-		node.Addr = Init_LocalIP
-		node.TcpPort = int32(Init_LocalPort)
 	}
 	nodeManager = nodeStore.NewNodeManager(node)
 	/*
@@ -274,9 +258,6 @@ func StartSuperPeer() {
 	启动弱节点
 */
 func StartWeakPeer() {
-	if Mode_dev {
-		Init_IsSuperPeer = false
-	}
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -334,9 +315,6 @@ func StartWeakPeer() {
 	启动根节点
 */
 func StartRootPeer() {
-	if Mode_dev {
-		Init_IsSuperPeer = true
-	}
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
@@ -363,10 +341,6 @@ func StartRootPeer() {
 		Addr:    Init_GlobalUnicastAddress,
 		TcpPort: int32(Init_GlobalUnicastAddress_port),
 		UdpPort: 0,
-	}
-	if Mode_dev {
-		node.Addr = Init_LocalIP
-		node.TcpPort = int32(Init_LocalPort)
 	}
 	nodeManager = nodeStore.NewNodeManager(node)
 	/*
@@ -582,9 +556,6 @@ func read() {
 		//--------------------------------------------
 		//这里临时加上去
 		//去掉后有性能问题
-		if Mode_dev {
-			continue
-		}
 
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
