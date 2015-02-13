@@ -11,6 +11,7 @@ import (
 	"github.com/prestonTao/mandela/nodeStore"
 	"github.com/prestonTao/upnp"
 	"net"
+	"os"
 	"strconv"
 )
 
@@ -18,6 +19,8 @@ var (
 	Init_IsSuperPeer               = false //是超级节点
 	Init_GlobalUnicastAddress      = ""    //公网地址
 	Init_GlobalUnicastAddress_port = 9981  //
+
+	Sys_mapping = new(upnp.Upnp) //端口映射程序
 
 	Init_LocalIP     = ""   //本地ip地址
 	Init_LocalPort   = 9981 //本地监听端口
@@ -53,17 +56,17 @@ func portMapping() {
 		fmt.Println("本机ip是全球唯一公网地址")
 		return
 	}
-	mapping := new(upnp.Upnp)
-	err := mapping.ExternalIPAddr()
+
+	err := Sys_mapping.ExternalIPAddr()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	} else {
-		Init_ExternalIP = mapping.GatewayOutsideIP
+		Init_ExternalIP = Sys_mapping.GatewayOutsideIP
 		Init_GlobalUnicastAddress = Init_ExternalIP
 	}
 	for i := 0; i < 1000; i++ {
-		if err := mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
+		if err := Sys_mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
 			Init_IsSuperPeer = true
 			Init_GlobalUnicastAddress_port = Init_MappingPort
 			fmt.Println("映射到公网地址：", Init_ExternalIP, ":", Init_MappingPort)
@@ -189,6 +192,18 @@ func startUp(node *nodeStore.Node) {
 	}
 
 	go read()
+	go shutdownCallback()
+}
+
+/*
+	关闭服务器回调函数
+*/
+func shutdownCallback() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
+	<-c
+	// fmt.Println("Got signal:", s)
+	Sys_mapping.Reclaim()
 }
 
 /*
