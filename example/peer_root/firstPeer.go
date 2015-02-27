@@ -21,7 +21,7 @@ func main() {
 func StartUP() {
 	// m := mandela.Manager{}
 	m.IsRoot = true
-	m.Mode_dev = true
+	// m.Mode_dev = true
 	m.StartUpAuto()
 
 	//---------------------------------------
