@@ -184,7 +184,7 @@ func startUp(node *nodeStore.Node) {
 	}
 
 	go read()
-	go shutdownCallback()
+	// go shutdownCallback()
 }
 
 /*
@@ -194,8 +194,9 @@ func shutdownCallback() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 	<-c
-	// fmt.Println("Got signal:", s)
+	fmt.Println("开始回收端口")
 	Sys_mapping.Reclaim()
+	fmt.Println("回收端口完成")
 }
 
 /*
