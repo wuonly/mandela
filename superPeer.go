@@ -13,17 +13,21 @@ package mandela
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-const (
-	//官方地址
+var (
+	//官方节点地址
 	// Path_SuperPeerdomain = "mandela.io:9981"
 	Path_SuperPeerdomain = "mandela.io:9981"
+	//官方目录服务器地址
+	Path_DirectotyServerAddr = []string{"mandela.io:19981"}
 )
 
 var (
@@ -58,13 +62,26 @@ func init() {
 func startLoadSuperPeer() {
 	Sys_superNodeEntry[Path_SuperPeerdomain] = ""
 	loadSuperPeerEntry()
-	LoopCheckAddr()
+	CheckAddr()
 	go func() {
 		//获得一个心跳
 		for range time.NewTicker(Sys_cleanAddressTicker).C {
-			LoopCheckAddr()
+			CheckAddr()
 		}
 	}()
+}
+
+/*
+	从目录服务器获取超级节点地址
+	@ ds   目录服务器地址列表
+*/
+func pullSuperPeerAddrForDS(ds []string) {
+	for _, addrOne := range ds {
+		resp, _ := http.Get("http://" + addrOne)
+		body, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println("返回结果：", string(body))
+		parseSuperPeerEntry(body)
+	}
 }
 
 /*
@@ -75,8 +92,15 @@ func loadSuperPeerEntry() {
 	if err != nil {
 		return
 	}
+	parseSuperPeerEntry(fileBytes)
+}
+
+/*
+	解析超级节点地址列表
+*/
+func parseSuperPeerEntry(fileBytes []byte) {
 	var tempSuperPeerEntry map[string]string
-	if err = json.Unmarshal(fileBytes, &tempSuperPeerEntry); err != nil {
+	if err := json.Unmarshal(fileBytes, &tempSuperPeerEntry); err != nil {
 		return
 	}
 	for key, _ := range tempSuperPeerEntry {
@@ -94,9 +118,9 @@ func loadSuperPeerEntry() {
 // }
 
 /*
-	定时检查地址是否可用
+	检查地址是否可用
 */
-func LoopCheckAddr() {
+func CheckAddr() {
 	/*
 		先获得一个拷贝
 	*/
@@ -105,7 +129,7 @@ func LoopCheckAddr() {
 		oldSuperPeerEntry[key] = value
 	}
 	/*
-		一个地址一个地址判断是否可用
+		一个地址一个地址的判断是否可用
 	*/
 	for key, _ := range oldSuperPeerEntry {
 		if CheckOnline(key) {
