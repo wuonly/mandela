@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
+	// "strconv"
 	"strings"
 )
 
@@ -19,6 +19,7 @@ func StartCommandWindow() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 
+	//启动mandela程序
 	StartUpAuto()
 
 	running := true
@@ -32,10 +33,12 @@ func StartCommandWindow() {
 			//Ctrl + c 退出程序
 			fmt.Println("Ctrl + c 退出程序")
 			running = false
+			shutdownCallback()
 		case <-stopChan:
 			//stop 命令退出程序
 			fmt.Println("stop 命令退出程序")
 			running = false
+			shutdownCallback()
 		}
 	}
 }
@@ -82,12 +85,9 @@ func SelectAllPeer(domain string) {
 /*
 	给节点发送消息
 */
-var count = 0
-
 func SendMsgAll(commands []string) {
 	if len(commands) == 1 {
-		SendMsgForAll("hello " + strconv.Itoa(count))
-		count += 1
+		SendMsgForAll("hello")
 	}
 	if len(commands) == 3 {
 		SendMsgForOne(commands[1], commands[2])

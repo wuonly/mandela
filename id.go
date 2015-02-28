@@ -1,3 +1,7 @@
+/*
+	加载本地配置文件中的idinfo
+		1.读取并解析本地idinfo配置文件。
+*/
 package mandela
 
 import (
@@ -13,17 +17,18 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"path/filepath"
 )
 
 const (
-	Path_Id           = "conf/idinfo.json"
 	Str_zaro          = "0000000000000000000000000000000000000000000000000000000000000000" //字符串0
-	Str_maxNumber     = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //256位1的十六进制表示最大id
+	Str_maxNumber     = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //256位的最大数十六进制表示id
 	Str_halfNumber    = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //最大id的二分之一
 	Str_quarterNumber = "3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //最大id的四分之一
 )
 
 var (
+	Path_Id = filepath.Join(Path_configDir, "idinfo.json")
 	//节点是否是新节点，
 	//新节点需要连接超级节点，然后超级节点给她生成id
 	Init_HaveId = false

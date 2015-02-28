@@ -3,7 +3,6 @@ package mandela
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	msg "github.com/prestonTao/mandela/message"
@@ -11,8 +10,6 @@ import (
 	"github.com/prestonTao/mandela/nodeStore"
 	"github.com/prestonTao/upnp"
 	"net"
-	"os"
-	"os/signal"
 	"strconv"
 )
 
@@ -33,9 +30,10 @@ var (
 
 /*
 	判断自己是否有公网ip地址
-	是否支持upnp协议，添加一个端口映射
+	若支持upnp协议，则添加一个端口映射
 */
 func portMapping() {
+	//得到本地ip地址
 	Init_LocalIP = GetLocalIntenetIp()
 	/*
 		获得一个可用的端口
@@ -54,10 +52,10 @@ func portMapping() {
 		Init_IsSuperPeer = true
 		Init_GlobalUnicastAddress = Init_LocalIP
 		Init_GlobalUnicastAddress_port = Init_LocalPort
-		fmt.Println("本机ip是全球唯一公网地址")
+		fmt.Println("本机ip是公网全球唯一地址")
 		return
 	}
-
+	//获得网关公网地址
 	err := Sys_mapping.ExternalIPAddr()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -96,10 +94,8 @@ func StartUpAuto() {
 	if !IsRoot {
 		startLoadSuperPeer()
 	}
-
 	//尝试端口映射
 	portMapping()
-
 	//没有idinfo的新节点
 	if !Init_HaveId {
 		//连接网络并得到一个idinfo
@@ -117,7 +113,7 @@ func StartUpAuto() {
 	if Init_IsSuperPeer || IsRoot {
 		node = &nodeStore.Node{
 			IdInfo:  Init_IdInfo,
-			IsSuper: Init_IsSuperPeer, //是超级节点
+			IsSuper: Init_IsSuperPeer, //是否是超级节点
 			Addr:    Init_GlobalUnicastAddress,
 			TcpPort: int32(Init_GlobalUnicastAddress_port),
 			UdpPort: 0,
@@ -125,7 +121,7 @@ func StartUpAuto() {
 	} else {
 		node = &nodeStore.Node{
 			IdInfo:  Init_IdInfo,
-			IsSuper: Init_IsSuperPeer, //是超级节点
+			IsSuper: Init_IsSuperPeer, //是否是超级节点
 			Addr:    Init_LocalIP,
 			TcpPort: int32(Init_LocalPort),
 			UdpPort: 0,
@@ -133,6 +129,7 @@ func StartUpAuto() {
 	}
 	startUp(node)
 	if IsRoot {
+		// StartRootPeer()
 		startLoadSuperPeer()
 	}
 }
@@ -143,8 +140,6 @@ func startUp(node *nodeStore.Node) {
 		启动消息服务器
 	*/
 	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
-	//注册所有的消息
-	// registerMsg()
 	/*
 		生成密钥文件
 	*/
@@ -184,272 +179,14 @@ func startUp(node *nodeStore.Node) {
 	}
 
 	go read()
-	// go shutdownCallback()
 }
 
 /*
 	关闭服务器回调函数
 */
 func shutdownCallback() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
-	<-c
-	fmt.Println("开始回收端口")
+	//回收映射的端口
 	Sys_mapping.Reclaim()
-	fmt.Println("回收端口完成")
-}
-
-/*
-	启动超级节点
-*/
-func StartSuperPeer() {
-	fmt.Println("本机id为：", Init_IdInfo.GetId())
-	/*
-		启动消息服务器
-	*/
-	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
-	//注册所有的消息
-	// registerMsg()
-	/*
-		生成密钥文件
-	*/
-	var err error
-	//生成密钥
-	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-	if err != nil {
-		fmt.Println("生成密钥错误", err.Error())
-		return
-	}
-	/*
-		启动分布式哈希表
-	*/
-	node := &nodeStore.Node{
-		IdInfo:  Init_IdInfo,
-		IsSuper: Init_IsSuperPeer, //是超级节点
-		Addr:    Init_GlobalUnicastAddress,
-		TcpPort: int32(Init_GlobalUnicastAddress_port),
-		UdpPort: 0,
-	}
-	nodeManager = nodeStore.NewNodeManager(node)
-	/*
-		设置关闭连接回调函数后监听
-	*/
-	auth := new(Auth)
-	auth.nodeManager = nodeManager
-	engine.SetAuth(auth)
-	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	engine.GetController().SetAttribute("nodeStore", nodeManager)
-
-	/*
-		连接到超级节点
-	*/
-	host, portStr, _ := net.SplitHostPort(getSuperAddrOne())
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return
-	}
-	nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
-	//给目标机器发送自己的名片
-	introduceSelf()
-
-	go read()
-}
-
-/*
-	启动弱节点
-*/
-func StartWeakPeer() {
-	fmt.Println("本机id为：", Init_IdInfo.GetId())
-	/*
-		启动消息服务器
-	*/
-	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
-	//注册所有的消息
-	// registerMsg()
-	/*
-		生成密钥文件
-	*/
-	var err error
-	//生成密钥
-	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-	if err != nil {
-		fmt.Println("生成密钥错误", err.Error())
-		return
-	}
-	/*
-		启动分布式哈希表
-	*/
-	node := &nodeStore.Node{
-		IdInfo:  Init_IdInfo,
-		IsSuper: Init_IsSuperPeer, //是超级节点
-		Addr:    Init_LocalIP,
-		TcpPort: int32(Init_LocalPort),
-		UdpPort: 0,
-	}
-	nodeManager = nodeStore.NewNodeManager(node)
-	/*
-		设置关闭连接回调函数后监听
-	*/
-	auth := new(Auth)
-	auth.nodeManager = nodeManager
-	engine.SetAuth(auth)
-	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	engine.GetController().SetAttribute("nodeStore", nodeManager)
-
-	/*
-		连接到超级节点
-	*/
-	host, portStr, _ := net.SplitHostPort(getSuperAddrOne())
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return
-	}
-	nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
-	//给目标机器发送自己的名片
-	introduceSelf()
-
-	go read()
-}
-
-/*
-	启动根节点
-*/
-func StartRootPeer() {
-	fmt.Println("本机id为：", Init_IdInfo.GetId())
-	/*
-		启动消息服务器
-	*/
-	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
-	//注册所有的消息
-	// registerMsg()
-	/*
-		生成密钥文件
-	*/
-	var err error
-	//生成密钥
-	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-	if err != nil {
-		fmt.Println("生成密钥错误", err.Error())
-		return
-	}
-	/*
-		启动分布式哈希表
-	*/
-	node := &nodeStore.Node{
-		IdInfo:  Init_IdInfo,
-		IsSuper: Init_IsSuperPeer, //是超级节点
-		Addr:    Init_GlobalUnicastAddress,
-		TcpPort: int32(Init_GlobalUnicastAddress_port),
-		UdpPort: 0,
-	}
-	nodeManager = nodeStore.NewNodeManager(node)
-	/*
-		设置关闭连接回调函数后监听
-	*/
-	auth := new(Auth)
-	auth.nodeManager = nodeManager
-	engine.SetAuth(auth)
-	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	engine.GetController().SetAttribute("nodeStore", nodeManager)
-
-	go read()
-}
-
-//-------------------------------------------------------
-// 1.加载本地超级节点列表，
-//   启动消息服务器，
-//   连接超级节点发布服务器，得到超级节点的ip地址及端口
-//   加载本地密钥和节点id，或随机生成节点id
-// 3.连接超级节点
-//   使用upnp添加一个端口映射
-// 4.注册节点id
-//   处理查找节点的请求
-//-------------------------------------------------------
-func Run() error {
-	portMapping()
-	if IsRoot {
-		//随机产生一个nodeid
-		// rootId = nodeStore.RandNodeId()
-		Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", Str_zaro)
-	} else {
-		//随机产生一个nodeid
-		// rootId = nodeStore.RandNodeId()
-		randId := nodeStore.RandNodeId()
-		Init_IdInfo, _ = nodeStore.NewIdInfo("prestonTao", "taopopoo@126.com", "mandela", hex.EncodeToString(randId.Bytes()))
-	}
-	fmt.Println("本机id为：", Init_IdInfo.GetId())
-	//---------------------------------------------------------------
-	//   启动消息服务器
-	//---------------------------------------------------------------
-	// initMsgEngine(rootId.String())
-	// Init_LocalIP = Init_LocalIP
-	// Init_LocalPort = int32(Init_LocalPort)
-
-	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
-	//注册所有的消息
-	// registerMsg()
-	//---------------------------------------------------------------
-	//  end
-	//---------------------------------------------------------------
-	var err error
-	//生成密钥
-	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
-	if err != nil {
-		fmt.Println("生成密钥错误", err.Error())
-		return nil
-	}
-
-	//---------------------------------------------------------------
-	//  启动分布式哈希表
-	//---------------------------------------------------------------
-	// initPeerNode()
-	node := &nodeStore.Node{
-		// NodeId:  rootId,
-		IdInfo:  Init_IdInfo,
-		IsSuper: true, //是超级节点
-		Addr:    Init_LocalIP,
-		TcpPort: int32(Init_LocalPort),
-		UdpPort: 0,
-	}
-	nodeManager = nodeStore.NewNodeManager(node)
-	//---------------------------------------------------------------
-	//  end
-	//---------------------------------------------------------------
-	//---------------------------------------------------------------
-	//  设置关闭连接回调函数后监听
-	//---------------------------------------------------------------
-	auth := new(Auth)
-	auth.nodeManager = nodeManager
-	engine.SetAuth(auth)
-	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	engine.GetController().SetAttribute("nodeStore", nodeManager)
-	//---------------------------------------------------------------
-	//  end
-	//---------------------------------------------------------------
-	if IsRoot {
-		//自己连接自己
-		// engine.AddClientConn(rootId.String(), Init_LocalIP, Init_LocalPort, false)
-	} else {
-		//连接到超级节点
-		host, portStr, _ := net.SplitHostPort(getSuperAddrOne())
-		// hotsAndPost := strings.Split(nodeStoreManager.superNodeEntry[0], ":")
-		port, err := strconv.Atoi(portStr)
-		if err != nil {
-			return err
-		}
-		nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
-		//给目标机器发送自己的名片
-		introduceSelf()
-	}
-	//这里启动存储系统
-	// cache = cache.NewMencache()
-	// engine.GetController().SetAttribute("cache", cache)
-	go read()
-	return nil
 }
 
 //连接超级节点后，向超级节点介绍自己
@@ -488,7 +225,11 @@ func closeConnCallback(name string) {
 func read() {
 	for {
 		nodeIdStr := <-nodeManager.OutFindNode
-		session, _ := engine.GetController().GetSession(nodeManager.SuperName)
+		session, ok := engine.GetController().GetSession(nodeManager.SuperName)
+		//root节点刚启动就没有超级节点
+		if !ok {
+			continue
+		}
 		findNodeOne := &msg.FindNode{
 			NodeId:  nodeManager.GetRootIdInfoString(),
 			IsProxy: false,

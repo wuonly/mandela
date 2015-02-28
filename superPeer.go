@@ -1,3 +1,14 @@
+/*
+	获取超级节点地址方式：
+		1.本地配置文件方式获取
+		2.官方目录服务器获取
+
+	工作流程：
+		1.判断配置文件夹是否存在，不存在则创建空文件夹。
+		2.读取本地超级节点地址文件，添加配置中的地址。
+		3.添加官方地址。
+		4.启动心跳检查本地地址是否可用。
+*/
 package mandela
 
 import (
@@ -10,14 +21,16 @@ import (
 )
 
 const (
-	Path_SuperPeerdomain = "mandela.io"
+	//官方地址
+	// Path_SuperPeerdomain = "mandela.io:9981"
+	Path_SuperPeerdomain = "mandela.io:9981"
 )
 
 var (
 	//配置文件存放目录
 	Path_configDir = "conf"
 	//超级节点地址列表文件地址
-	Path_SuperPeerAddress = filepath.Join("conf", "nodeEntry.json")
+	Path_SuperPeerAddress = filepath.Join(Path_configDir, "nodeEntry.json")
 
 	//超级节点地址最大数量
 	Sys_config_entryCount = 1000

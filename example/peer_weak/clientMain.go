@@ -21,6 +21,7 @@ func main() {
 // }
 
 func StartUP() {
+	m.IsRoot = false
 	m.StartCommandWindow()
 
 	// // m.Mode_dev = true
