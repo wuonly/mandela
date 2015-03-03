@@ -45,24 +45,8 @@ name：连接名称
 //@return  remoteName   对方服务器的名称
 func (this *Auth) SendKey(conn net.Conn, session engineE.Session, name string) (remoteName string, err error) {
 	//第一次连接，向对方发送自己的名称
-	// lenght := int32(len(name))
-	// buf := bytes.NewBuffer([]byte{})
-	// binary.Write(buf, binary.BigEndian, lenght)
-	// buf.Write([]byte(name))
 	conn.Write(GetBytesForName(name))
-
-	//对方服务器验证成功后发送给自己的名称
-	// lenghtByte := make([]byte, 4)
-	// io.ReadFull(conn, lenghtByte)
-	// nameLenght := binary.BigEndian.Uint32(lenghtByte)
-	// nameByte := make([]byte, nameLenght)
-	// n, e := conn.Read(nameByte)
-	// if e != nil {
-	// 	err = e
-	// 	return
-	// }
 	// //得到对方名称
-	// remoteName = string(nameByte[:n])
 	remoteName, err = GetNameForConn(conn)
 	return
 }
@@ -77,17 +61,6 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	if remoteName, err = GetNameForConn(conn); err != nil {
 		return
 	}
-	// lenghtByte := make([]byte, 4)
-	// io.ReadFull(conn, lenghtByte)
-	// lenght := binary.BigEndian.Uint32(lenghtByte)
-	// nameByte := make([]byte, lenght)
-
-	// n, e := conn.Read(nameByte)
-	// if e != nil {
-	// 	err = e
-	// 	return
-	// }
-
 	/*
 		开始验证对方客户端名称
 	*/
@@ -100,12 +73,7 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 		*clientIdInfo, err = nodeStore.NewIdInfo(clientIdInfo.UserName, clientIdInfo.Email, clientIdInfo.Local, nodeStore.ParseId(name))
 		//给服务器发送生成的id
 		newName := string(clientIdInfo.Build())
-		// nameLenght := int32(len(clientIdInfo.Build()))
-		// buf := bytes.NewBuffer([]byte{})
-		// binary.Write(buf, binary.BigEndian, nameLenght)
-		// buf.Write(clientIdInfo.Build())
 		conn.Write(GetBytesForName(newName))
-		// remoteName = string(clientIdInfo.Build())
 		err = errors.New("给新节点分配一个idinfo")
 		return
 	}
@@ -114,11 +82,6 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 		验证成功后，向对方发送自己的名称
 	*/
 	//得到对方名称
-	// remoteName = string(nameByte[:n])
-	// nameLenght := int32(len(name))
-	// buf := bytes.NewBuffer([]byte{})
-	// binary.Write(buf, binary.BigEndian, nameLenght)
-	// buf.Write([]byte(name))
 	conn.Write(GetBytesForName(name))
 	return
 }
