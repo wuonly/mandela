@@ -1,11 +1,7 @@
 package net
 
 import (
-	// "mandela/peerNode/messageEngine/net"
-	// "bufio"
 	"fmt"
-	// "os"
-	// "strconv"
 	"sync"
 )
 
@@ -27,7 +23,9 @@ type Engine struct {
 	// router      *RouterStore
 }
 
-//注册一个普通消息
+/*
+	注册一个普通消息
+*/
 func (this *Engine) RegisterMsg(msgId int32, handler MsgHandler) {
 	if msgId <= 100 {
 		fmt.Println("该消息不能注册，消息编号0-100被系统占用。")
@@ -41,9 +39,11 @@ func (this *Engine) Listen(ip string, port int32) {
 	this.net.Listen(ip, port)
 }
 
-//添加一个连接，给这个连接取一个名字，连接名字可以在自定义权限验证方法里面修改
-//@powerful      是否是强连接
-//@return  name  对方的名称
+/*
+	添加一个连接，给这个连接取一个名字，连接名字可以在自定义权限验证方法里面修改
+	@powerful      是否是强连接
+	@return  name  对方的名称
+*/
 func (this *Engine) AddClientConn(ip string, port int32, powerful bool) (name string) {
 	this.run()
 	session, err := this.net.AddClientConn(ip, this.name, port, powerful)
@@ -124,14 +124,15 @@ func (this *Engine) handler(msg *GetPacket) {
 }
 
 func (this *Engine) handlerProcess(handler MsgHandler, msg *GetPacket) {
-	// defer func() {
-	// 	if err := recover(); err != nil {
-	// 		e, ok := err.(error)
-	// 		if ok {
-	// 			fmt.Println("消息处理中心", e.Error())
-	// 		}
-	// 	}
-	// }()
+	//消息处理模块报错将不会引起宕机
+	defer func() {
+		if err := recover(); err != nil {
+			e, ok := err.(error)
+			if ok {
+				fmt.Println("网络库：", e.Error())
+			}
+		}
+	}()
 	//消息处理前先通过拦截器
 	itps := this.interceptor.getInterceptors()
 	itpsLen := len(itps)

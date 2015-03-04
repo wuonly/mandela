@@ -3,7 +3,7 @@ package mandela
 import (
 	"encoding/json"
 	"fmt"
-	msg "github.com/prestonTao/mandela/message"
+	msg "github.com/prestonTao/mandela/message_center"
 	"github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 )
@@ -18,6 +18,7 @@ func SaveData(key, value string) {
 //给所有客户端发送消息
 func SendMsgForAll(message string) {
 	messageSend := msg.Message{
+		ProtoId: msg.MSGID_Text,
 		Content: []byte(message),
 	}
 	for idOne, nodeOne := range nodeManager.GetAllNodes() {
@@ -38,6 +39,7 @@ func SendMsgForOne(target, message string) {
 	}
 	messageSend := msg.Message{
 		TargetId: target,
+		ProtoId:  msg.MSGID_Text,
 		Content:  []byte(message),
 	}
 	sendBytes, _ := json.Marshal(&messageSend)

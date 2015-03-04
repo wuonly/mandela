@@ -25,9 +25,10 @@ import (
 var (
 	//官方节点地址
 	// Path_SuperPeerdomain = "mandela.io:9981"
-	Path_SuperPeerdomain = "mandela.io:9981"
+	Path_SuperPeerdomain = "192.168.6.30:9981"
 	//官方目录服务器地址
-	Path_DirectotyServerAddr = []string{"mandela.io:19981"}
+	// Path_DirectotyServerAddr = []string{"mandela.io:19981"}
+	Path_DirectotyServerAddr = []string{"127.0.0.1:19981"}
 )
 
 var (

@@ -17,6 +17,10 @@ import (
 const (
 	//超级节点地址列表文件地址
 	Path_SuperPeerAddress = "node_entry.json"
+
+	//官方节点地址
+	// Path_SuperPeerdomain = "mandela.io:9981"
+	Path_SuperPeerdomain = "192.168.6.30:9981"
 )
 
 //保存文件配置
@@ -107,7 +111,7 @@ func LoopCheckAddr() {
 	*/
 	oldSuperPeerEntry := make(map[string]string)
 	for key, value := range Sys_superNodeEntry {
-		if key == "mandela.io:9981" {
+		if key == Path_SuperPeerdomain {
 			continue
 		}
 		oldSuperPeerEntry[key] = value

@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	msg "github.com/prestonTao/mandela/message"
+	msg "github.com/prestonTao/mandela/message_center"
 	msgE "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 	"github.com/prestonTao/upnp"
