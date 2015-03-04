@@ -5,6 +5,10 @@ import (
 	engine "github.com/prestonTao/mandela/net"
 )
 
+func init() {
+	addRouter(MSGID_Text, showTextMsg)
+}
+
 /*
 	显示文本消息
 */
