@@ -7,11 +7,11 @@ package mandela
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/prestonTao/mandela/nodeStore"
+	"github.com/prestonTao/mandela/utils"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -154,49 +154,31 @@ func GetLogicIds(idStr string) (logicIds []string, ok bool) {
 	//1
 	oppositeId := new(big.Int).Not(idInt)
 	//2
-	logicIds = append(logicIds, FormatIdUtil(oppositeId))
+	logicIds = append(logicIds, utils.FormatIdUtil(oppositeId, nodeStore.IdStrBit))
 	id_2 := new(big.Int).Add(oppositeId, Number_quarter)
 	if id_2.Cmp(Number_max) == 1 {
-		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(id_2, Number_max)))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(id_2, Number_max), nodeStore.IdStrBit))
 	} else {
-		logicIds = append(logicIds, FormatIdUtil(id_2))
+		logicIds = append(logicIds, utils.FormatIdUtil(id_2, nodeStore.IdStrBit))
 	}
 	//3
 	id_3 := new(big.Int).Add(oppositeId, Number_half)
 	if id_3.Cmp(Number_max) == 1 {
-		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(id_3, Number_max)))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(id_3, Number_max), nodeStore.IdStrBit))
 	} else {
-		logicIds = append(logicIds, FormatIdUtil(id_3))
+		logicIds = append(logicIds, utils.FormatIdUtil(id_3, nodeStore.IdStrBit))
 	}
 	//4
 	if oppositeId.Cmp(Number_quarter) == -1 {
-		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(Number_max, new(big.Int).Sub(Number_quarter, oppositeId))))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(Number_max, new(big.Int).Sub(Number_quarter, oppositeId)), nodeStore.IdStrBit))
 	} else {
-		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(oppositeId, Number_quarter)))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(oppositeId, Number_quarter), nodeStore.IdStrBit))
 	}
 	//5
 	if oppositeId.Cmp(Number_half) == -1 {
-		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(Number_half, new(big.Int).Sub(Number_half, oppositeId))))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(Number_half, new(big.Int).Sub(Number_half, oppositeId)), nodeStore.IdStrBit))
 	} else {
-		logicIds = append(logicIds, FormatIdUtil(new(big.Int).Sub(oppositeId, Number_half)))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(oppositeId, Number_half), nodeStore.IdStrBit))
 	}
 	return
-}
-
-/*
-	格式化id为十进制或十六进制字符串
-*/
-func FormatIdUtil(idInt *big.Int) string {
-	if idInt.Cmp(big.NewInt(0)) == 0 {
-		return "0"
-	}
-	if nodeStore.IdStrBit == 10 {
-		//十进制显示
-		return idInt.String()
-	} else if nodeStore.IdStrBit == 16 {
-		//十六进制显示
-		return hex.EncodeToString(idInt.Bytes())
-	} else {
-		panic("id string format error")
-	}
 }

@@ -5,8 +5,12 @@ import (
 	engine "github.com/prestonTao/mandela/net"
 )
 
+func init() {
+	// addRouter(, handler)
+}
+
 type Domaim struct {
-	IdInfo string `id_info`
+	IdInfo string `json:"id_info"`
 }
 
 /*
