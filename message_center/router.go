@@ -58,19 +58,32 @@ func handlerProcess(c engine.Controller, packet engine.GetPacket, msg *Message) 
 //      1.消息超时机制
 //******************************************
 
-var timeoutMapping map[int]map[int]string //{ 消息协议id | 时间纳秒数 | 目标peer id字符串 }
+var timeoutMapping = make(map[int]map[int]map[string]Pipe) //{ 消息协议id | 时间纳秒数 | 目标peer id字符串 }
 var timeoutLock *sync.RWMutex = new(sync.RWMutex)
 
 /*
 	添加一个映射
 */
-func addTimeoutMapping(protoId, ticker int, id string) {
-	timeoutLock.Lock()
-	defer timeoutLock.Unlock()
-	if timeoutMapping == nil {
+// func addTimeoutMapping(protoId, ticker int, id string, pipe *Pipe) {
+// 	timeoutLock.Lock()
+// 	defer timeoutLock.Unlock()
+// 	if protoValue, ok := timeoutMapping[protoId]; ok {
+// 		if tickerValue, ok := protoValue[ticker]; ok {
 
-	}
-}
+// 		} else {
+
+// 		}
+// 		protoValue[ticker] = id
+// 	} else {
+// 		tickerMap := make(map[int]string)
+// 		tickerMap[ticker] = id
+// 		timeoutMapping[protoId] = tickerMap
+// 	}
+// }
+
+/*
+	删除一个
+*/
 
 type Pipe struct {
 	c chan string
