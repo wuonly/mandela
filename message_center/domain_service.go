@@ -3,6 +3,7 @@ package message_center
 import (
 	// "fmt"
 	engine "github.com/prestonTao/mandela/net"
+	// "github.com/prestonTao/mandela/nodeStore"
 )
 
 func init() {
@@ -14,8 +15,25 @@ type Domaim struct {
 }
 
 /*
+	查询一个域名是否存在
+*/
+func findDomain(c engine.Controller, packet engine.GetPacket, msg *Message) (bool, string) {
+	//检查这个域名是否归自己管
+	// store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
+	// store.GetRootId()
+	return true, ""
+}
+
+/*
+	查询一个域名是否存在返回
+*/
+func findDomainRecv(c engine.Controller, packet engine.GetPacket, msg *Message) {
+
+}
+
+/*
 	保存一个域名
 */
-func saveDoMaim(c engine.Controller, packet engine.GetPacket, msg *Message) {
+func saveDomain(c engine.Controller, packet engine.GetPacket, msg *Message) {
 
 }

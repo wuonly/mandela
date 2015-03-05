@@ -355,18 +355,3 @@ func (this *NodeManager) saveNode(findNode *FindNode, store *nodeStore.NodeManag
 		}
 	}
 }
-
-type DataStore struct {
-}
-
-func (this *DataStore) SaveDataReq(c engine.Controller, msg engine.GetPacket) {
-	// memcache := c.GetAttribute("cache").(*cache.Memcache)
-	// fmt.Println("收到数据：", string(msg.Date))
-	// data := make(map[string]interface{})
-	// data["tao"] = "hongfei"
-	// memcache.Add(data)
-}
-
-func (this *DataStore) SaveDataRsp(c engine.Controller, msg engine.GetPacket) {
-
-}

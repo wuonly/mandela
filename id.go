@@ -154,31 +154,31 @@ func GetLogicIds(idStr string) (logicIds []string, ok bool) {
 	//1
 	oppositeId := new(big.Int).Not(idInt)
 	//2
-	logicIds = append(logicIds, utils.FormatIdUtil(oppositeId, nodeStore.IdStrBit))
+	logicIds = append(logicIds, utils.FormatIdUtil(oppositeId))
 	id_2 := new(big.Int).Add(oppositeId, Number_quarter)
 	if id_2.Cmp(Number_max) == 1 {
-		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(id_2, Number_max), nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(id_2, Number_max)))
 	} else {
-		logicIds = append(logicIds, utils.FormatIdUtil(id_2, nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(id_2))
 	}
 	//3
 	id_3 := new(big.Int).Add(oppositeId, Number_half)
 	if id_3.Cmp(Number_max) == 1 {
-		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(id_3, Number_max), nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(id_3, Number_max)))
 	} else {
-		logicIds = append(logicIds, utils.FormatIdUtil(id_3, nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(id_3))
 	}
 	//4
 	if oppositeId.Cmp(Number_quarter) == -1 {
-		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(Number_max, new(big.Int).Sub(Number_quarter, oppositeId)), nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(Number_max, new(big.Int).Sub(Number_quarter, oppositeId))))
 	} else {
-		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(oppositeId, Number_quarter), nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(oppositeId, Number_quarter)))
 	}
 	//5
 	if oppositeId.Cmp(Number_half) == -1 {
-		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(Number_half, new(big.Int).Sub(Number_half, oppositeId)), nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(Number_half, new(big.Int).Sub(Number_half, oppositeId))))
 	} else {
-		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(oppositeId, Number_half), nodeStore.IdStrBit))
+		logicIds = append(logicIds, utils.FormatIdUtil(new(big.Int).Sub(oppositeId, Number_half)))
 	}
 	return
 }

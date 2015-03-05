@@ -70,6 +70,8 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 		这是新节点，需要给他生成一个id
 	*/
 	if clientIdInfo.Id == Str_zaro {
+		//生成id之前先检查这个id是否存在
+
 		*clientIdInfo, err = nodeStore.NewIdInfo(clientIdInfo.UserName, clientIdInfo.Email, clientIdInfo.Local, nodeStore.ParseId(name))
 		//给服务器发送生成的id
 		newName := string(clientIdInfo.Build())
