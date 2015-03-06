@@ -58,32 +58,58 @@ func handlerProcess(c engine.Controller, packet engine.GetPacket, msg *Message) 
 //      1.消息超时机制
 //******************************************
 
-var timeoutMapping = make(map[int]map[int]map[string]Pipe) //{ 消息协议id | 时间纳秒数 | 目标peer id字符串 }
+var timeoutMapping = make(map[int]map[int]map[string]*Pipe) //{ 消息协议id | 时间纳秒数 | 目标peer id字符串 }
 var timeoutLock *sync.RWMutex = new(sync.RWMutex)
 
 /*
 	添加一个映射
 */
-// func addTimeoutMapping(protoId, ticker int, id string, pipe *Pipe) {
-// 	timeoutLock.Lock()
-// 	defer timeoutLock.Unlock()
-// 	if protoValue, ok := timeoutMapping[protoId]; ok {
-// 		if tickerValue, ok := protoValue[ticker]; ok {
-
-// 		} else {
-
-// 		}
-// 		protoValue[ticker] = id
-// 	} else {
-// 		tickerMap := make(map[int]string)
-// 		tickerMap[ticker] = id
-// 		timeoutMapping[protoId] = tickerMap
-// 	}
-// }
+func addTimeoutMapping(protoId, ticker int, id string, pipe *Pipe) {
+	timeoutLock.Lock()
+	defer timeoutLock.Unlock()
+	if protoValue, ok := timeoutMapping[protoId]; ok {
+		if tickerValue, ok := protoValue[ticker]; ok {
+			tickerValue[id] = pipe
+		} else {
+			idMap := make(map[string]*Pipe)
+			idMap[id] = pipe
+			protoValue[ticker] = idMap
+		}
+	} else {
+		idMap := make(map[string]*Pipe)
+		idMap[id] = pipe
+		tickerMap := make(map[int]map[string]*Pipe)
+		tickerMap[ticker] = idMap
+		timeoutMapping[protoId] = tickerMap
+	}
+}
 
 /*
-	删除一个
+	删除一个映射
 */
+func removeTimeoutMapping(protoId, ticker int, id string) {
+	timeoutLock.Lock()
+	defer timeoutLock.Unlock()
+	if protoValue, ok := timeoutMapping[protoId]; ok {
+		if tickerValue, ok := protoValue[ticker]; ok {
+			delete(tickerValue, id)
+		}
+	}
+}
+
+/*
+	得到一个映射
+*/
+func getTimeoutMapping(protoId, ticker int, id string) (pipe *Pipe, ok bool) {
+	timeoutLock.Lock()
+	defer timeoutLock.Unlock()
+	if protoValue, ok := timeoutMapping[protoId]; ok {
+		if tickerValue, ok := protoValue[ticker]; ok {
+			pipe, ok = tickerValue[id]
+		}
+	}
+	return
+}
 
 type Pipe struct {
 	c chan string
