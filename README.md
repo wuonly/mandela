@@ -1,11 +1,10 @@
 mandela
 =======
-
-> A p2p application.Provides the NAT connectivity support. This feature is visit NAT computer's app by domain name.将处在内网中的计算机发布到外网中去，让其他计算机都能访问你的应用。
+A p2p application.Provides the NAT connectivity support. This feature is visit NAT computer's app by domain name.将处在内网中的计算机发布到外网中去，让其他计算机都能访问你的应用。
 
 -------------------
 ### 简介
-> 一个匿名p2p软件，软件连接到mandela网络中后，用户注册一个name，网络中所有节点都通过这个name交换数据。
+一个匿名p2p软件，软件连接到mandela网络中后，用户注册一个name，网络中所有节点都通过这个name交换数据。
 
 -------------------
 ### TODO
