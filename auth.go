@@ -5,10 +5,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	engineE "github.com/prestonTao/mandela/net"
+	// "fmt"
+	// msgcenter "github.com/prestonTao/mandela/message_center"
+	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
+	// "github.com/prestonTao/mandela/utils"
 	"io"
 	"net"
+	// "time"
 )
 
 const (
@@ -16,7 +20,6 @@ const (
 )
 
 type Auth struct {
-	nodeManager *nodeStore.NodeManager
 }
 
 /*
@@ -43,7 +46,7 @@ name：连接名称
 //发送
 //@name                 本机服务器的名称
 //@return  remoteName   对方服务器的名称
-func (this *Auth) SendKey(conn net.Conn, session engineE.Session, name string) (remoteName string, err error) {
+func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (remoteName string, err error) {
 	//第一次连接，向对方发送自己的名称
 	conn.Write(GetBytesForName(name))
 	// //得到对方名称
@@ -71,7 +74,19 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	*/
 	if clientIdInfo.Id == Str_zaro {
 		//生成id之前先检查这个id是否存在
-
+		// targetId := utils.GetHashForDomain(clientIdInfo.UserName)
+		// msgOne := &msgcenter.Message{
+		// 	TargetId:   targetId,
+		// 	ProtoId:    msgcenter.MSGID_findDomain,
+		// 	CreateTime: time.Now().Unix(),
+		// 	Sender:     nodeStore.ParseId(nodeManager.GetRootIdInfoString()),
+		// 	Content:    []byte(clientIdInfo.UserName),
+		// 	Accurate:   false,
+		// }
+		// msgOne.Hash = msgcenter.GetHash(msgOne)
+		// SendMsg(msgOne)
+		// ret := <-msgcenter.RegisterTimeOutMsg(msgOne)
+		// fmt.Println("第一次接收超时消息：", ret)
 		*clientIdInfo, err = nodeStore.NewIdInfo(clientIdInfo.UserName, clientIdInfo.Email, clientIdInfo.Local, nodeStore.ParseId(name))
 		//给服务器发送生成的id
 		newName := string(clientIdInfo.Build())

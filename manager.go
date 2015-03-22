@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	msg "github.com/prestonTao/mandela/message_center"
-	msgE "github.com/prestonTao/mandela/net"
+	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
 	"github.com/prestonTao/upnp"
 	"net"
@@ -77,13 +77,13 @@ func portMapping() {
 }
 
 var (
-	IsRoot        bool //是否是第一个节点
-	nodeManager   *nodeStore.NodeManager
+	IsRoot bool //是否是第一个节点
+	// nodeManager   *nodeStore.NodeManager
 	superNodeIp   string
 	superNodePort int
 	privateKey    *rsa.PrivateKey
-	engine        *msgE.Engine
-	auth          *msgE.Auth
+	// engine        *msgE.Engine
+	// auth *msgE.Auth
 )
 
 /*
@@ -139,7 +139,8 @@ func startUp(node *nodeStore.Node) {
 	/*
 		启动消息服务器
 	*/
-	engine = msgE.NewEngine(string(Init_IdInfo.Build()))
+	// engine = msgE.NewEngine(string(Init_IdInfo.Build()))
+	engine.InitEngine(string(Init_IdInfo.Build()))
 	/*
 		生成密钥文件
 	*/
@@ -153,16 +154,16 @@ func startUp(node *nodeStore.Node) {
 	/*
 		启动分布式哈希表
 	*/
-	nodeManager = nodeStore.NewNodeManager(node)
+	// nodeManager = nodeStore.NewNodeManager(node)
+	nodeStore.InitNodeStore(node)
 	/*
 		设置关闭连接回调函数后监听
 	*/
-	auth := new(Auth)
-	auth.nodeManager = nodeManager
-	engine.SetAuth(auth)
+	// auth :=
+	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	engine.GetController().SetAttribute("nodeStore", nodeManager)
+	// engine.GetController().SetAttribute("nodeStore", nodeManager)
 
 	if !IsRoot {
 		/*
@@ -173,7 +174,7 @@ func startUp(node *nodeStore.Node) {
 		if err != nil {
 			return
 		}
-		nodeManager.SuperName = engine.AddClientConn(host, int32(port), false)
+		nodeStore.SuperName = engine.AddClientConn(host, int32(port), false)
 		//给目标机器发送自己的名片
 		introduceSelf()
 	}
@@ -192,17 +193,17 @@ func shutdownCallback() {
 //连接超级节点后，向超级节点介绍自己
 //第一次连接超级节点，用代理方式查找离自己最近的节点
 func introduceSelf() {
-	session, _ := engine.GetController().GetSession(nodeManager.SuperName)
+	session, _ := engine.GetController().GetSession(nodeStore.SuperName)
 	//用代理方式查找最近的超级节点
 	nodeMsg := msg.FindNode{
 		NodeId:  session.GetName(),
-		WantId:  nodeStore.ParseId(nodeManager.GetRootIdInfoString()),
+		WantId:  nodeStore.ParseId(nodeStore.GetRootIdInfoString()),
 		IsProxy: true,
-		ProxyId: nodeManager.GetRootIdInfoString(),
+		ProxyId: nodeStore.GetRootIdInfoString(),
 		IsSuper: Init_IsSuperPeer,
-		Addr:    nodeManager.Root.Addr,
-		TcpPort: nodeManager.Root.TcpPort,
-		UdpPort: nodeManager.Root.UdpPort,
+		Addr:    nodeStore.Root.Addr,
+		TcpPort: nodeStore.Root.TcpPort,
+		UdpPort: nodeStore.Root.UdpPort,
 	}
 
 	// resultBytes, _ := proto.Marshal(&nodeMsg)
@@ -214,26 +215,26 @@ func introduceSelf() {
 //一个连接断开后的回调方法
 func closeConnCallback(name string) {
 	fmt.Println("客户端离线：", name)
-	if name == nodeManager.SuperName {
+	if name == nodeStore.SuperName {
 		return
 	}
-	nodeManager.DelNode(nodeStore.ParseId(name))
+	nodeStore.DelNode(nodeStore.ParseId(name))
 }
 
 //处理查找节点的请求
 //本节点定期查询已知节点是否在线，更新节点信息
 func read() {
 	for {
-		nodeIdStr := <-nodeManager.OutFindNode
-		session, ok := engine.GetController().GetSession(nodeManager.SuperName)
+		nodeIdStr := <-nodeStore.OutFindNode
+		session, ok := engine.GetController().GetSession(nodeStore.SuperName)
 		//root节点刚启动就没有超级节点
 		if !ok {
 			continue
 		}
 		findNodeOne := &msg.FindNode{
-			NodeId:  nodeManager.GetRootIdInfoString(),
+			NodeId:  nodeStore.GetRootIdInfoString(),
 			IsProxy: false,
-			ProxyId: nodeManager.GetRootIdInfoString(),
+			ProxyId: nodeStore.GetRootIdInfoString(),
 			WantId:  nodeIdStr,
 		}
 		/*
@@ -241,16 +242,16 @@ func read() {
 			超级节点：查找邻居节点
 			普通节点：查找离自己最近的超级节点，查找邻居节点做备用超级节点
 		*/
-		if nodeIdStr == nodeStore.ParseId(nodeManager.GetRootIdInfoString()) {
+		if nodeIdStr == nodeStore.ParseId(nodeStore.GetRootIdInfoString()) {
 			//普通节点查找最近的超级节点
-			if !nodeManager.Root.IsSuper {
+			if !nodeStore.Root.IsSuper {
 				findNodeOne.NodeId = session.GetName()
 				findNodeOne.IsProxy = true
 				// findNodeOne.WantId = nodeIdStr
-				findNodeOne.IsSuper = nodeManager.Root.IsSuper
-				findNodeOne.Addr = nodeManager.Root.Addr
-				findNodeOne.TcpPort = nodeManager.Root.TcpPort
-				findNodeOne.UdpPort = nodeManager.Root.UdpPort
+				findNodeOne.IsSuper = nodeStore.Root.IsSuper
+				findNodeOne.Addr = nodeStore.Root.Addr
+				findNodeOne.TcpPort = nodeStore.Root.TcpPort
+				findNodeOne.UdpPort = nodeStore.Root.UdpPort
 
 				resultBytes, _ := json.Marshal(findNodeOne)
 				session.Send(msg.FindNodeNum, &resultBytes)
@@ -259,7 +260,7 @@ func read() {
 
 			//先发送左邻居节点查找请求
 			findNodeOne.WantId = "left"
-			id := nodeManager.GetLeftNode(*nodeManager.Root.IdInfo.GetBigIntId(), 1)
+			id := nodeStore.GetLeftNode(*nodeStore.Root.IdInfo.GetBigIntId(), 1)
 			if id == nil {
 				continue
 			}
@@ -274,7 +275,7 @@ func read() {
 			}
 			//发送右邻居节点查找请求
 			findNodeOne.WantId = "right"
-			id = nodeManager.GetRightNode(*nodeManager.Root.IdInfo.GetBigIntId(), 1)
+			id = nodeStore.GetRightNode(*nodeStore.Root.IdInfo.GetBigIntId(), 1)
 			if id == nil {
 				continue
 			}
@@ -290,7 +291,7 @@ func read() {
 			continue
 		}
 		//自己不是超级节点，就不需要保存逻辑节点
-		// if !nodeManager.Root.IsSuper {
+		// if !nodeStore.Root.IsSuper {
 		// 	continue
 		// }
 
@@ -302,7 +303,7 @@ func read() {
 
 		findNodeBytes, _ := json.Marshal(findNodeOne)
 
-		remote := nodeManager.Get(nodeIdStr, false, "")
+		remote := nodeStore.Get(nodeIdStr, false, "")
 		if remote == nil {
 			continue
 		}

@@ -66,25 +66,9 @@ func (this *Net) newConnect(conn net.Conn) {
 	serverConn.name = remoteName
 	serverConn.attrbutes = make(map[string]interface{})
 	serverConn.run()
-
-	// client := new(ServerConn)
-	// client.session = this.session
-	// client.conn = conn
-	// client.Ip = conn.RemoteAddr().String()
-	// client.Connected_time = time.Now().String()
-	// client.outData = make(chan *[]byte, 1000)
-	// client.inPack = this.Recv
-	// client.run()
 	this.sessionStore.addSession(remoteName, serverConn)
-	// addConn(this.session, serverConn)
 
 	fmt.Println(time.Now().String(), "建立连接", conn.RemoteAddr().String())
-
-	// temp := new(GetPacket)
-	// temp.ConnId = this.session
-	// temp.MsgID = int32(Connect)
-
-	// this.Recv <- temp
 
 }
 
@@ -140,12 +124,9 @@ func (this *Net) Send(name string, msgID uint32, data []byte) bool {
 
 //@name   本服务器名称
 func NewNet(name string) *Net {
-
 	net := new(Net)
 	net.Name = name
 	net.sessionStore = NewSessionStore()
 	net.Recv = make(chan *GetPacket, 5000)
-	// net.start(ip, port)
-	// time.Sleep(time.Millisecond * 3)
 	return net
 }

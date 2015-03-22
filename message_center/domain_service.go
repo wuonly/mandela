@@ -27,8 +27,8 @@ func findDomain(c engine.Controller, packet engine.GetPacket, msg *Message) (boo
 /*
 	查询一个域名是否存在返回
 */
-func findDomainRecv(c engine.Controller, packet engine.GetPacket, msg *Message) {
-
+func findDomainRecv(c engine.Controller, packet engine.GetPacket, msg *Message) (bool, string) {
+	return true, ""
 }
 
 /*

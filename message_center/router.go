@@ -16,16 +16,16 @@ import (
 
 type MsgHandler func(c engine.Controller, packet engine.GetPacket, msg *Message) (bool, string)
 
-var handlersMapping = make(map[int32]MsgHandler)
+var handlersMapping = make(map[int]MsgHandler)
 var router_lock = new(sync.RWMutex)
 
-func addRouter(msgId int32, handler MsgHandler) {
+func addRouter(msgId int, handler MsgHandler) {
 	router_lock.Lock()
 	defer router_lock.Unlock()
 	handlersMapping[msgId] = handler
 }
 
-func getHandler(msgId int32) MsgHandler {
+func getHandler(msgId int) MsgHandler {
 	router_lock.Lock()
 	defer router_lock.Unlock()
 	handler := handlersMapping[msgId]
@@ -50,100 +50,106 @@ func handlerProcess(c engine.Controller, packet engine.GetPacket, msg *Message) 
 		return
 	}
 	ok, str := handler(c, packet, msg)
-	fire(ok, str)
+	fire(msg, ok, str)
 }
 
 //******************************************
 //  消息管理中心
 //      1.消息超时机制
 //******************************************
-
-var timeoutMapping = make(map[int]map[int]map[string]*Pipe) //{ 消息协议id | 时间纳秒数 | 目标peer id字符串 }
+var timeoutMapping = make(map[string]*Pipe) //
 var timeoutLock *sync.RWMutex = new(sync.RWMutex)
 
 /*
 	添加一个映射
+	@sendProtoId   发送消息协议号id
+	@recvProtoId   接收消息协议号id
+	@ticker        消息发送时间unix
+	@id            发送给目标id
 */
-func addTimeoutMapping(protoId, ticker int, id string, pipe *Pipe) {
+func addTimeoutMapping(hash string, pipe *Pipe) {
 	timeoutLock.Lock()
 	defer timeoutLock.Unlock()
-	if protoValue, ok := timeoutMapping[protoId]; ok {
-		if tickerValue, ok := protoValue[ticker]; ok {
-			tickerValue[id] = pipe
-		} else {
-			idMap := make(map[string]*Pipe)
-			idMap[id] = pipe
-			protoValue[ticker] = idMap
-		}
-	} else {
-		idMap := make(map[string]*Pipe)
-		idMap[id] = pipe
-		tickerMap := make(map[int]map[string]*Pipe)
-		tickerMap[ticker] = idMap
-		timeoutMapping[protoId] = tickerMap
-	}
+	timeoutMapping[hash] = pipe
 }
 
 /*
 	删除一个映射
 */
-func removeTimeoutMapping(protoId, ticker int, id string) {
+func removeTimeoutMapping(hash string) {
 	timeoutLock.Lock()
 	defer timeoutLock.Unlock()
-	if protoValue, ok := timeoutMapping[protoId]; ok {
-		if tickerValue, ok := protoValue[ticker]; ok {
-			delete(tickerValue, id)
-		}
-	}
+	delete(timeoutMapping, hash)
 }
 
 /*
 	得到一个映射
 */
-func getTimeoutMapping(protoId, ticker int, id string) (pipe *Pipe, ok bool) {
+func getTimeoutMapping(hash string) (pipe *Pipe, ok bool) {
 	timeoutLock.Lock()
 	defer timeoutLock.Unlock()
-	if protoValue, ok := timeoutMapping[protoId]; ok {
-		if tickerValue, ok := protoValue[ticker]; ok {
-			pipe, ok = tickerValue[id]
-		}
-	}
+	pipe, ok = timeoutMapping[hash]
 	return
 }
 
 type Pipe struct {
-	c chan string
+	hash string      //
+	c    chan string //
+	Done chan bool   //完成这个管道的消息队列
 }
 
 /*
 	设置超时
 */
-func (this *Pipe) timeout() {
-
-	c := make(chan bool, 1)
-
+func (this *Pipe) runTimeout() {
 	select {
-	case <-c:
-
+	case <-this.Done:
+		//完成任务
 	case <-time.NewTicker(time.Second * 10).C:
 		//超时了
 		this.c <- "timeout"
 	}
+	//在消息中心删除这个管道超时任务
+	removeTimeoutMapping(this.hash)
 }
 
 /*
-	1
+	完成这个管道
 */
-func getTimeOutMsg(id string) (c chan bool) {
-	time.Now().UnixNano()
-	c = make(chan bool, 1)
-	return
+func (this *Pipe) done(data string) {
+	//完成这个管道使命
+	this.Done <- true
+	//给管道监听者发送数据
+	this.c <- data
 }
 
 /*
-	回调函数执行成功后，给此方法一个事件，看是否执行成功
+	注册一个消息超时任务
+	@id    超时时间内需要返回的消息id
+	@msg   发送出去的消息
+*/
+func RegisterTimeOutMsg(msg *Message) (c chan bool) {
+	pipe := &Pipe{
+		hash: GetHash(msg),
+		c:    make(chan string, 1),
+		Done: make(chan bool, 1),
+	}
+	go pipe.runTimeout()
+	addTimeoutMapping(pipe.hash, pipe)
+	return pipe.Done
+}
+
+/*
+	回调函数执行成功后，给此方法一个事件
 	用于消除消息的超时
 */
-func fire(ok bool, result string) {
-
+func fire(msg *Message, retOK bool, result string) {
+	//不是回复消息
+	if msg.ReplyTime == 0 {
+		return
+	}
+	pipe, ok := getTimeoutMapping(msg.ReplyHash)
+	if ok {
+		pipe.done(result)
+	}
 }

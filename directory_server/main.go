@@ -20,8 +20,8 @@ const (
 
 	//官方节点地址
 	// Path_SuperPeerdomain = "mandela.io:9981"
-	Path_SuperPeerdomain = "192.168.6.30:9981"
-	// Path_SuperPeerdomain = "192.168.1.110:9981"
+	// Path_SuperPeerdomain = "192.168.6.30:9981"
+	Path_SuperPeerdomain = "192.168.1.110:9981"
 )
 
 //保存文件配置

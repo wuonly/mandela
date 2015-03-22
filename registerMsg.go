@@ -2,6 +2,7 @@ package mandela
 
 import (
 	"github.com/prestonTao/mandela/message_center"
+	engine "github.com/prestonTao/mandela/net"
 )
 
 func init() {

@@ -33,7 +33,7 @@ type Node struct {
 type IdInfo struct {
 	Id          string `json:"id"`          //id
 	CreateTime  string `json:"createtime"`  //创建时间
-	UserName    string `json:"username"`    //用户名
+	UserName    string `json:"username"`    //用户名/域名
 	Email       string `json:"email"`       //email
 	Local       string `json:"local"`       //mandela网络唯一地址
 	SuperNodeId string `json:"supernodeid"` //创建者节点id
