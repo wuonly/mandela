@@ -65,6 +65,8 @@ func CtlCenter(commands []string, stopChan chan bool) {
 		SendMsgAll(commands)
 	case "see":
 		SelectAllPeer(commands[1])
+	case "createdomain":
+		CreateDomain(commands)
 	}
 }
 
@@ -89,7 +91,18 @@ func SendMsgAll(commands []string) {
 	if len(commands) == 1 {
 		SendMsgForAll("hello")
 	}
+	if len(commands) == 2 {
+		SendMsgForAll(commands[1])
+	}
 	if len(commands) == 3 {
 		SendMsgForOne(commands[1], commands[2])
 	}
+}
+
+/*
+	创建一个域名
+	createdomain www.mandela.io []
+*/
+func CreateDomain(commands []string) {
+
 }

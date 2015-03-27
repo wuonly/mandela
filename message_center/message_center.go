@@ -3,6 +3,7 @@ package message_center
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	engine "github.com/prestonTao/mandela/net"
@@ -11,8 +12,8 @@ import (
 )
 
 const (
-	FindNodeNum = iota + 101 //查找结点服务id
-	SendMessage              //发送消息服务id
+	FindNodeNum    = iota + 101 //查找结点服务id
+	SendMessageNum              //发送消息服务id
 
 	SaveKeyValueReqNum
 	SaveKeyValueRspNum
@@ -51,60 +52,69 @@ type Message struct {
 }
 
 /*
-	接收消息并显示或转发
+	检查该消息是否是自己的
+	不是自己的则自动转发出去
 */
-func RecvMsg(c engine.Controller, msg engine.GetPacket) {
+func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 	messageRecv := new(Message)
 	err := json.Unmarshal(msg.Date, messageRecv)
 	if err != nil {
 		fmt.Println(err)
+		return false
 	}
-
-	// store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
 	if nodeStore.ParseId(nodeStore.GetRootIdInfoString()) == messageRecv.TargetId {
 		//是自己的消息，处理这个消息
-		// fmt.Println(string(messageRecv.Content))
-		handlerProcess(c, msg, messageRecv)
+		return true
 	} else {
 		//先判断是否在自己的代理节点中
 		if targetNode, ok := nodeStore.GetProxyNode(messageRecv.TargetId); ok {
 			if session, ok := c.GetSession(string(targetNode.IdInfo.Build())); ok {
-				err := session.Send(SendMessage, &msg.Date)
+				err := session.Send(SendMessageNum, &msg.Date)
 				if err != nil {
 					fmt.Println("message发送数据出错：", err.Error())
 				}
 			} else {
 				//这个节点离线了，想办法处理下
 			}
-			return
+			return false
 		}
 		// fmt.Println("把消息转发出去")
 		//最后转发出去
 		targetNode := nodeStore.Get(messageRecv.TargetId, true, "")
 		if targetNode == nil {
-			return
+			return false
 		}
 		if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
 			targetNode = nodeStore.GetInAll(messageRecv.TargetId, true, "")
 			if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
 				if !messageRecv.Accurate {
-					handlerProcess(c, msg, messageRecv)
+					return true
 				} else {
 					fmt.Println("这个精确发送的消息没人接收")
 				}
-				return
+				return false
 			}
 		}
 		// session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
 		session, ok := c.GetSession(string(targetNode.IdInfo.Build()))
 		if !ok {
-			return
+			return false
 		}
 		// fmt.Println(session.GetName())
-		err := session.Send(SendMessage, &msg.Date)
+		err := session.Send(SendMessageNum, &msg.Date)
 		if err != nil {
 			fmt.Println("message发送数据出错：", err.Error())
 		}
+		return false
+	}
+}
+
+/*
+	接收消息并显示或转发
+*/
+func RecvMsg(c engine.Controller, msg engine.GetPacket) {
+	if IsSendToSelf(c, msg) {
+		handlerProcess(c, msg)
 	}
 }
 
@@ -389,5 +399,5 @@ func GetHash(msg *Message) string {
 	binary.Write(hash, binary.BigEndian, msg.ReplyTime)
 	hash.Write(msg.Content)
 	hash.Write([]byte(msg.ReplyHash))
-	return string(hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil))
 }

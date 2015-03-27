@@ -11,7 +11,7 @@ func init() {
 	engine.RegisterMsg(message_center.FindNodeNum, nodeManager.FindNode)
 
 	//注册发送消息服务
-	engine.RegisterMsg(message_center.SendMessage, message_center.RecvMsg)
+	engine.RegisterMsg(message_center.SendMessageNum, message_center.RecvMsg)
 
 	// dataStore := new(service.DataStore)
 	// engine.RegisterMsg(message.SaveKeyValueReqNum, dataStore.SaveDataReq)

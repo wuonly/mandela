@@ -28,6 +28,13 @@ var (
 	// Mode_dev = false //是否是开发者模式
 )
 
+var (
+	IsRoot        bool //是否是第一个节点
+	superNodeIp   string
+	superNodePort int
+	privateKey    *rsa.PrivateKey
+)
+
 /*
 	判断自己是否有公网ip地址
 	若支持upnp协议，则添加一个端口映射
@@ -75,16 +82,6 @@ func portMapping() {
 	}
 	fmt.Println("端口映射失败")
 }
-
-var (
-	IsRoot bool //是否是第一个节点
-	// nodeManager   *nodeStore.NodeManager
-	superNodeIp   string
-	superNodePort int
-	privateKey    *rsa.PrivateKey
-	// engine        *msgE.Engine
-	// auth *msgE.Auth
-)
 
 /*
 	根据网络环境启动程序

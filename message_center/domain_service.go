@@ -3,11 +3,14 @@ package message_center
 import (
 	// "fmt"
 	engine "github.com/prestonTao/mandela/net"
-	// "github.com/prestonTao/mandela/nodeStore"
+	"github.com/prestonTao/mandela/nodeStore"
+	"time"
 )
 
+var dataStore = make(map[string]string)
+
 func init() {
-	// addRouter(, handler)
+	addRouter(MSGID_findDomain, findDomain)
 }
 
 type Domaim struct {
@@ -18,17 +21,26 @@ type Domaim struct {
 	查询一个域名是否存在
 */
 func findDomain(c engine.Controller, packet engine.GetPacket, msg *Message) (bool, string) {
-	//检查这个域名是否归自己管
-	// store := c.GetAttribute("nodeStore").(*nodeStore.NodeManager)
-	// store.GetRootId()
-	return true, ""
-}
-
-/*
-	查询一个域名是否存在返回
-*/
-func findDomainRecv(c engine.Controller, packet engine.GetPacket, msg *Message) (bool, string) {
-	return true, ""
+	if msg.ReplyHash == "" {
+		newMsg := Message{
+			TargetId:   msg.Sender,
+			ProtoId:    msg.ProtoId,
+			CreateTime: time.Now().Unix(),
+			Sender:     nodeStore.ParseId(nodeStore.GetRootIdInfoString()),
+			ReplyTime:  time.Now().Unix(),
+			Content:    []byte("false"),
+			ReplyHash:  msg.Hash,
+			Accurate:   true,
+		}
+		newMsg.Hash = GetHash(&newMsg)
+		if _, ok := dataStore[string(msg.Content)]; ok {
+			newMsg.Content = []byte("true")
+		}
+		SendMessage(&newMsg)
+		return true, ""
+	} else {
+		return true, string(msg.Content)
+	}
 }
 
 /*

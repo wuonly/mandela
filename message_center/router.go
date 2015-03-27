@@ -1,6 +1,7 @@
 package message_center
 
 import (
+	"encoding/json"
 	"fmt"
 	engine "github.com/prestonTao/mandela/net"
 	"sync"
@@ -35,7 +36,7 @@ func getHandler(msgId int) MsgHandler {
 /*
 	消息分发程序
 */
-func handlerProcess(c engine.Controller, packet engine.GetPacket, msg *Message) {
+func handlerProcess(c engine.Controller, packet engine.GetPacket) {
 	defer func() {
 		if err := recover(); err != nil {
 			e, ok := err.(error)
@@ -44,6 +45,12 @@ func handlerProcess(c engine.Controller, packet engine.GetPacket, msg *Message) 
 			}
 		}
 	}()
+	msg := new(Message)
+	err := json.Unmarshal(packet.Date, msg)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
 	handler := getHandler(msg.ProtoId)
 	if handler == nil {
 		fmt.Println("消息中心：未注册的消息编号-", packet.MsgID)
@@ -94,20 +101,20 @@ func getTimeoutMapping(hash string) (pipe *Pipe, ok bool) {
 
 type Pipe struct {
 	hash string      //
-	c    chan string //
+	C    chan string //
 	Done chan bool   //完成这个管道的消息队列
 }
 
 /*
 	设置超时
 */
-func (this *Pipe) runTimeout() {
+func (this *Pipe) runTimeout(timeout time.Duration) {
 	select {
 	case <-this.Done:
 		//完成任务
-	case <-time.NewTicker(time.Second * 10).C:
+	case <-time.NewTicker(timeout).C:
 		//超时了
-		this.c <- "timeout"
+		this.C <- "timeout"
 	}
 	//在消息中心删除这个管道超时任务
 	removeTimeoutMapping(this.hash)
@@ -120,7 +127,7 @@ func (this *Pipe) done(data string) {
 	//完成这个管道使命
 	this.Done <- true
 	//给管道监听者发送数据
-	this.c <- data
+	this.C <- data
 }
 
 /*
@@ -128,15 +135,16 @@ func (this *Pipe) done(data string) {
 	@id    超时时间内需要返回的消息id
 	@msg   发送出去的消息
 */
-func RegisterTimeOutMsg(msg *Message) (c chan bool) {
+func SendTimeOutMsg(msg *Message, timeout time.Duration) (c chan string) {
 	pipe := &Pipe{
 		hash: GetHash(msg),
-		c:    make(chan string, 1),
+		C:    make(chan string, 1),
 		Done: make(chan bool, 1),
 	}
-	go pipe.runTimeout()
+	go pipe.runTimeout(timeout)
 	addTimeoutMapping(pipe.hash, pipe)
-	return pipe.Done
+	SendMessage(msg)
+	return pipe.C
 }
 
 /*
