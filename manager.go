@@ -96,7 +96,7 @@ func StartUpAuto() {
 	//没有idinfo的新节点
 	if !Init_HaveId {
 		//连接网络并得到一个idinfo
-		idInfo, err := GetId(getSuperAddrOne())
+		idInfo, err := GetId(nodeStore.NewIdInfo("", "", "nimei", Str_zaro))
 		if err == nil {
 			Init_IdInfo = *idInfo
 			// saveIdInfo(Path_Id)

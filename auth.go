@@ -74,14 +74,14 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	*/
 	if clientIdInfo.Id == Str_zaro {
 		//生成id之前先检查这个id是否存在
-		fmt.Println("在网络中注册一个域名：", clientIdInfo.UserName)
-		targetId := utils.GetHashForDomain(clientIdInfo.UserName)
+		fmt.Println("在网络中注册一个域名：", clientIdInfo.Domain)
+		targetId := utils.GetHashForDomain(clientIdInfo.Domain)
 		msgOne := &msgcenter.Message{
 			TargetId:   targetId,
 			ProtoId:    msgcenter.MSGID_findDomain,
 			CreateTime: time.Now().Unix(),
 			Sender:     nodeStore.ParseId(nodeStore.GetRootIdInfoString()),
-			Content:    []byte(clientIdInfo.UserName),
+			Content:    []byte(clientIdInfo.Domain),
 			Accurate:   false,
 		}
 		msgOne.Hash = msgcenter.GetHash(msgOne)
@@ -95,7 +95,7 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 			return
 		}
 
-		*clientIdInfo, err = nodeStore.NewIdInfo(clientIdInfo.UserName, clientIdInfo.Email, clientIdInfo.Local, nodeStore.ParseId(name))
+		*clientIdInfo = nodeStore.NewIdInfo(clientIdInfo.Name, clientIdInfo.Email, clientIdInfo.Domain, nodeStore.ParseId(name))
 		//给服务器发送生成的id
 		newName := string(clientIdInfo.Build())
 		conn.Write(GetBytesForName(newName))

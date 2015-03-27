@@ -33,9 +33,9 @@ type Node struct {
 type IdInfo struct {
 	Id          string `json:"id"`          //id
 	CreateTime  string `json:"createtime"`  //创建时间
-	UserName    string `json:"username"`    //用户名/域名
+	Domain      string `json:"domain"`      //域名
+	Name        string `json:"local"`       //姓名
 	Email       string `json:"email"`       //email
-	Local       string `json:"local"`       //mandela网络唯一地址
 	SuperNodeId string `json:"supernodeid"` //创建者节点id
 	// SuperNodeKey string `json:"supernodekey"` //创建者公钥
 }
@@ -68,7 +68,7 @@ func (this *IdInfo) Build() []byte {
 	@return   true:合法;false:不合法;
 */
 func CheckIdInfo(idInfo IdInfo) bool {
-	if len(idInfo.UserName) > 100 {
+	if len(idInfo.Name) > 100 {
 		fmt.Println("userName 长度不能超过100个字符")
 		return false
 	}
@@ -76,7 +76,7 @@ func CheckIdInfo(idInfo IdInfo) bool {
 		fmt.Println("email 长度不能超过100个字符")
 		return false
 	}
-	if len(idInfo.Local) > 100 {
+	if len(idInfo.Domain) > 100 {
 		fmt.Println("local 长度不能超过100个字符")
 		return false
 	}
@@ -103,26 +103,19 @@ func ParseId(idInfoStr string) (id string) {
 //superNodeKey  超级节点密钥
 //rerutn idInfo
 //return err
-func NewIdInfo(userName, email, local, superNodeId string) (idInfo IdInfo, err error) {
-
-	// if len(superNodeKey) > 100 {
-	// 	err = errors.New("superNodeKey 长度不能超过100个字符")
-	// 	return
-	// }
-
+func NewIdInfo(name, email, domain, superNodeId string) (idInfo IdInfo) {
 	createTime := time.Now().Format("2006-01-02 15:04:05.999999999")
-
 	hash := sha256.New()
-	hash.Write([]byte(userName + "#" + email + "#" + local + "#" + superNodeId + "#" + createTime))
+	hash.Write([]byte(name + "#" + email + "#" + domain + "#" + superNodeId + "#" + createTime))
 	md := hash.Sum(nil)
 	mdStr := hex.EncodeToString(md)
 
 	idInfo = IdInfo{
 		Id:          mdStr,
 		CreateTime:  createTime,
-		UserName:    userName,
+		Name:        name,
 		Email:       email,
-		Local:       local,
+		Domain:      domain,
 		SuperNodeId: superNodeId,
 		// SuperNodeKey: superNodeKey,
 	}

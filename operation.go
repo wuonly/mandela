@@ -6,6 +6,7 @@ import (
 	msgc "github.com/prestonTao/mandela/message_center"
 	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
+	"strings"
 	"time"
 )
 
@@ -44,11 +45,6 @@ func SendMsgForOne(target, message string) {
 	msgc.SendMessage(messageSend)
 }
 
-//注册一个域名帐号
-func CreateAccount(account string) {
-	// id := GetHashKey(account)
-}
-
 /*
 	查看本地保存的所有节点id
 */
@@ -80,8 +76,30 @@ func SeeRightNode() {
 }
 
 /*
-	创建一个id
+	添加一个超级节点ip地址
+	@addr   例如：121.45.6.157:8076
 */
-func CreateIdInfo() {
+func CreateIdInfo(addr string) {
+	addrs := strings.Split(addr, ":")
+	if len(addrs) != 2 {
+		return
+	}
+	if !IsOnlyIp(addrs[0]) {
+		return
+	}
+	if CheckOnline(addr) {
+		addSuperPeerAddr(addr)
+	}
+}
 
+/*
+	注册一个域名帐号
+	@name     姓名
+	@email    邮箱
+	@domain   网络唯一标识
+*/
+func CreateAccount(name, email, domain string) {
+	idinfo := nodeStore.NewIdInfo(name, email, domain, Str_zaro)
+	GetId(idinfo)
+	// id := GetHashKey(account)
 }

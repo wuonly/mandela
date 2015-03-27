@@ -90,15 +90,15 @@ func saveIdInfo(path string) {
 	连接超级节点，得到一个id
 	@ addr   超级节点ip地址
 */
-func GetId(addr string) (idInfo *nodeStore.IdInfo, err error) {
-	idInfo = &nodeStore.IdInfo{
-		Id:       Str_zaro,
-		UserName: "nimei",
-		Email:    "qqqqq@qq.com",
-		Local:    "djfkafjkls",
+func GetId(idInfo nodeStore.IdInfo) (newIdInfo *nodeStore.IdInfo, err error) {
+	idInfo = nodeStore.IdInfo{
+		Id:     Str_zaro,
+		Name:   "nimei",
+		Email:  "qqqqq@qq.com",
+		Domain: "djfkafjkls",
 	}
 
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.Dial("tcp", getSuperAddrOne())
 	if err != nil {
 		err = errors.New("连接超级节点失败")
 		return
@@ -126,8 +126,8 @@ func GetId(addr string) (idInfo *nodeStore.IdInfo, err error) {
 		return
 	}
 	//得到对方生成的名称
-	idInfo = new(nodeStore.IdInfo)
-	json.Unmarshal(nameByte[:n], idInfo)
+	newIdInfo = new(nodeStore.IdInfo)
+	json.Unmarshal(nameByte[:n], newIdInfo)
 	conn.Close()
 	return
 }
