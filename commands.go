@@ -20,7 +20,8 @@ func StartCommandWindow() {
 	signal.Notify(c, os.Interrupt, os.Kill)
 
 	//启动mandela程序
-	StartUpAuto()
+	// StartUpAuto()
+	Init()
 
 	running := true
 	for running {
@@ -59,8 +60,8 @@ func CtlCenter(commands []string, stopChan chan bool) {
 		stopChan <- false
 	case "exit":
 		stopChan <- false
-	case "info":
-
+	case "start":
+		Launcher()
 	case "send":
 		SendMsgAll(commands)
 	case "see":
@@ -104,5 +105,14 @@ func SendMsgAll(commands []string) {
 	createdomain www.mandela.io []
 */
 func CreateDomain(commands []string) {
+	args := make([]string, 3)
+	args = append(args, commands[1:]...)
+	CreateAccount(args[0], args[1], args[2])
+}
 
+/*
+	连接到mandela网络
+*/
+func Launcher() {
+	StartUp()
 }

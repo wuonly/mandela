@@ -36,6 +36,49 @@ var (
 )
 
 /*
+	初始化
+*/
+func Init() {
+	loadIdInfo()
+	if !IsRoot {
+		startLoadSuperPeer()
+	}
+	go StartWeb()
+}
+
+/*
+	开始启动服务器
+*/
+func StartUp() {
+	//尝试端口映射
+	portMapping()
+	//是超级节点
+	var node *nodeStore.Node
+	if Init_IsSuperPeer || IsRoot {
+		node = &nodeStore.Node{
+			IdInfo:  Init_IdInfo,
+			IsSuper: Init_IsSuperPeer, //是否是超级节点
+			Addr:    Init_GlobalUnicastAddress,
+			TcpPort: int32(Init_GlobalUnicastAddress_port),
+			UdpPort: 0,
+		}
+	} else {
+		node = &nodeStore.Node{
+			IdInfo:  Init_IdInfo,
+			IsSuper: Init_IsSuperPeer, //是否是超级节点
+			Addr:    Init_LocalIP,
+			TcpPort: int32(Init_LocalPort),
+			UdpPort: 0,
+		}
+	}
+	startUp(node)
+	if IsRoot {
+		// StartRootPeer()
+		startLoadSuperPeer()
+	}
+}
+
+/*
 	判断自己是否有公网ip地址
 	若支持upnp协议，则添加一个端口映射
 */
@@ -94,7 +137,7 @@ func StartUpAuto() {
 	//尝试端口映射
 	portMapping()
 	//没有idinfo的新节点
-	if !Init_HaveId {
+	if len(Init_IdInfo.Id) == 0 {
 		//连接网络并得到一个idinfo
 		idInfo, err := GetId(nodeStore.NewIdInfo("", "", "nimei", Str_zaro))
 		if err == nil {
@@ -136,7 +179,6 @@ func startUp(node *nodeStore.Node) {
 	/*
 		启动消息服务器
 	*/
-	// engine = msgE.NewEngine(string(Init_IdInfo.Build()))
 	engine.InitEngine(string(Init_IdInfo.Build()))
 	/*
 		生成密钥文件
@@ -151,7 +193,6 @@ func startUp(node *nodeStore.Node) {
 	/*
 		启动分布式哈希表
 	*/
-	// nodeManager = nodeStore.NewNodeManager(node)
 	nodeStore.InitNodeStore(node)
 	/*
 		设置关闭连接回调函数后监听
@@ -160,8 +201,6 @@ func startUp(node *nodeStore.Node) {
 	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	// engine.GetController().SetAttribute("nodeStore", nodeManager)
-
 	if !IsRoot {
 		/*
 			连接到超级节点
@@ -175,7 +214,6 @@ func startUp(node *nodeStore.Node) {
 		//给目标机器发送自己的名片
 		introduceSelf()
 	}
-
 	go read()
 }
 

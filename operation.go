@@ -79,7 +79,7 @@ func SeeRightNode() {
 	添加一个超级节点ip地址
 	@addr   例如：121.45.6.157:8076
 */
-func CreateIdInfo(addr string) {
+func AddAddr(addr string) {
 	addrs := strings.Split(addr, ":")
 	if len(addrs) != 2 {
 		return
@@ -99,7 +99,12 @@ func CreateIdInfo(addr string) {
 	@domain   网络唯一标识
 */
 func CreateAccount(name, email, domain string) {
-	idinfo := nodeStore.NewIdInfo(name, email, domain, Str_zaro)
-	GetId(idinfo)
-	// id := GetHashKey(account)
+	//连接网络并得到一个idinfo
+	idInfo, err := GetId(nodeStore.NewIdInfo(name, email, domain, Str_zaro))
+	if err == nil {
+		Init_IdInfo = *idInfo
+	} else {
+		fmt.Println("从网络中获得idinfo失败")
+		return
+	}
 }

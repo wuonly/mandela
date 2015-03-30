@@ -29,9 +29,6 @@ const (
 
 var (
 	Path_Id = filepath.Join(Path_configDir, "idinfo.json")
-	//节点是否是新节点，
-	//新节点需要连接超级节点，然后超级节点给她生成id
-	Init_HaveId = false
 
 	Init_IdInfo nodeStore.IdInfo
 
@@ -64,16 +61,13 @@ func loadIdInfo() {
 	//本地没有idinfo文件
 	if err != nil {
 		fmt.Println("读取id.json文件出错")
-		Init_HaveId = false
 		return
 	}
 	err = json.Unmarshal(data, &Init_IdInfo)
 	if err != nil {
 		fmt.Println("解析id.json文件错误")
-		Init_HaveId = false
 		return
 	}
-	Init_HaveId = true
 }
 
 /*
