@@ -16,10 +16,8 @@
 @import "/dojo/dojo/resources/dojo.css";
 /*
     @import "/dojo/dijit/themes/claro/claro.css";
-    @import "/dojo/dijit/themes/claro/document.css";
-    @import "/dojo/dijit/themes/claro/claro.css";
-    @import "/dojo/dojox/grid/resources/claroGrid.css";
 */
+    @import "/css/claro/claro.css";
 
 html, body {
 	width: 100%;
@@ -64,9 +62,9 @@ djConfig="parseOnLoad:true" 表示确定在页面加载完成以后执行解析�
 <div data-dojo-type="dijit/layout/BorderContainer" data-dojo-props="design:'headline', gutters:true, liveSplitters:true" id="index_border">	
 	<!-- top 区域 -->
 	<div id="indexTop" data-dojo-type="dijit/layout/ContentPane" data-dojo-props="splitter:false, region:'top'" style="border:red solid 1px;">
-    	土壤水分监测数据管理系统<br/>
+    	脚洗干净会比较自信<br/>
     	<button type="button" data-dojo-type="dijit/form/Button" class="commandButton">
-          <span><div class="nvaButton">检测站点1</div></span>
+          <span><div class="nvaButton">洗干净了就点我</div></span>
             <script type="dojo/on" data-dojo-event="click">
                 	//这里可以调用通过lang.setObject()添加到方法。
                     //index.showTab("站点1","html/tab1.html","js/tab1.js");

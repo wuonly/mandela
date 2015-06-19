@@ -20,8 +20,7 @@ func StartCommandWindow() {
 	signal.Notify(c, os.Interrupt, os.Kill)
 
 	//启动mandela程序
-	// StartUpAuto()
-	Init()
+	StartUpAuto()
 
 	running := true
 	for running {
@@ -67,7 +66,7 @@ func CtlCenter(commands []string, stopChan chan bool) {
 	case "see":
 		SelectAllPeer(commands[1])
 	case "createdomain":
-		CreateDomain(commands)
+		CreateDomain_script(commands)
 	}
 }
 
@@ -104,7 +103,7 @@ func SendMsgAll(commands []string) {
 	创建一个域名
 	createdomain www.mandela.io []
 */
-func CreateDomain(commands []string) {
+func CreateDomain_script(commands []string) {
 	args := make([]string, 3)
 	args = append(args, commands[1:]...)
 	CreateAccount(args[0], args[1], args[2])

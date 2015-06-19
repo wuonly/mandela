@@ -46,6 +46,13 @@ func SendMsgForOne(target, message string) {
 }
 
 /*
+	发送消息给一个域名
+*/
+func SendMsgForDomain(tdomain, msg string) {
+
+}
+
+/*
 	查看本地保存的所有节点id
 */
 func See() {

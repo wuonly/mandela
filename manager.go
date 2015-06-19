@@ -13,8 +13,15 @@ import (
 	"strconv"
 )
 
+const (
+	C_role_auto   = "auto"   //根据网络环境自适应
+	C_role_client = "client" //客户端模式
+	C_role_super  = "super"  //超级节点模式
+	C_role_root   = "root"   //根节点模式
+)
+
 var (
-	Init_IsSuperPeer               = false //是超级节点
+	Init_IsSuperPeer               = false //有公网ip或添加了端口映射则是超级节点
 	Init_GlobalUnicastAddress      = ""    //公网地址
 	Init_GlobalUnicastAddress_port = 9981  //
 
@@ -22,28 +29,97 @@ var (
 
 	Init_LocalIP     = ""   //本地ip地址
 	Init_LocalPort   = 9981 //本地监听端口
-	Init_ExternalIP  = ""   //
+	Init_ExternalIP  = ""   //添加端口映射后的网关公网ip地址
 	Init_MappingPort = 9981 //映射到路由器的端口
 
-	// Mode_dev = false //是否是开发者模式
+	// Mode_dev   = false       //是否是开发者模式
+	Mode_local = false       //是否是局域网开发模式
+	Init_role  = C_role_auto //服务器角色
+
 )
 
 var (
-	IsRoot        bool //是否是第一个节点
+	// IsRoot        bool //是否是第一个节点
 	superNodeIp   string
 	superNodePort int
 	privateKey    *rsa.PrivateKey
 )
 
 /*
-	初始化
+	根据网络情况自己确定节点角色
 */
-func Init() {
+func AutoRole() {
+	//尝试端口映射
+	if !Mode_local {
+		portMapping()
+	}
+	if Mode_local && Init_role == C_role_super {
+		Init_IsSuperPeer = true
+		newport := GetAvailablePort()
+		Init_GlobalUnicastAddress = Init_LocalIP
+		Init_GlobalUnicastAddress_port = newport
+		Init_ExternalIP = Init_LocalIP
+		Init_MappingPort = newport
+	}
+	if Init_role == C_role_auto {
+
+	}
+}
+
+/*
+	根据网络环境启动程序
+*/
+func StartUpAuto() {
+	//得到本地ip地址
+	Init_LocalIP = GetLocalIntenetIp()
+	if Mode_local {
+		Init_LocalIP = "127.0.0.1"
+	}
+	AutoRole()
 	loadIdInfo()
-	if !IsRoot {
+	InitSuperPeer()
+
+	if Init_role != C_role_root {
 		startLoadSuperPeer()
 	}
-	go StartWeb()
+	//开启web服务
+	// go StartWeb()
+
+	//没有idinfo的新节点
+	if len(Init_IdInfo.Id) == 0 {
+		//连接网络并得到一个idinfo
+		idInfo, err := GetId(nodeStore.NewIdInfo("", "", "nimei", Str_zaro))
+		if err == nil {
+			Init_IdInfo = *idInfo
+			// saveIdInfo(Path_Id)
+		} else {
+			fmt.Println("从网络中获得idinfo失败")
+			return
+		}
+	}
+	//是超级节点
+	var node *nodeStore.Node
+	node = &nodeStore.Node{
+		IdInfo:  Init_IdInfo,
+		IsSuper: Init_IsSuperPeer, //是否是超级节点
+		UdpPort: 0,
+	}
+	if Init_role == C_role_root {
+		node.Addr = Init_GlobalUnicastAddress
+		node.TcpPort = int32(Init_GlobalUnicastAddress_port)
+	} else if Init_IsSuperPeer {
+		node.Addr = Init_ExternalIP
+		node.TcpPort = int32(Init_MappingPort)
+	} else {
+		node.Addr = Init_LocalIP
+		node.TcpPort = int32(Init_LocalPort)
+	}
+
+	startUp(node)
+	if Init_role == C_role_root {
+		// StartRootPeer()
+		startLoadSuperPeer()
+	}
 }
 
 /*
@@ -54,7 +130,7 @@ func StartUp() {
 	portMapping()
 	//是超级节点
 	var node *nodeStore.Node
-	if Init_IsSuperPeer || IsRoot {
+	if Init_IsSuperPeer || Init_role == C_role_root {
 		node = &nodeStore.Node{
 			IdInfo:  Init_IdInfo,
 			IsSuper: Init_IsSuperPeer, //是否是超级节点
@@ -72,7 +148,7 @@ func StartUp() {
 		}
 	}
 	startUp(node)
-	if IsRoot {
+	if Init_role == C_role_root {
 		// StartRootPeer()
 		startLoadSuperPeer()
 	}
@@ -83,8 +159,6 @@ func StartUp() {
 	若支持upnp协议，则添加一个端口映射
 */
 func portMapping() {
-	//得到本地ip地址
-	Init_LocalIP = GetLocalIntenetIp()
 	/*
 		获得一个可用的端口
 	*/
@@ -126,54 +200,6 @@ func portMapping() {
 	fmt.Println("端口映射失败")
 }
 
-/*
-	根据网络环境启动程序
-*/
-func StartUpAuto() {
-	loadIdInfo()
-	if !IsRoot {
-		startLoadSuperPeer()
-	}
-	//尝试端口映射
-	portMapping()
-	//没有idinfo的新节点
-	if len(Init_IdInfo.Id) == 0 {
-		//连接网络并得到一个idinfo
-		idInfo, err := GetId(nodeStore.NewIdInfo("", "", "nimei", Str_zaro))
-		if err == nil {
-			Init_IdInfo = *idInfo
-			// saveIdInfo(Path_Id)
-		} else {
-			fmt.Println("从网络中获得idinfo失败")
-			return
-		}
-	}
-	//是超级节点
-	var node *nodeStore.Node
-	if Init_IsSuperPeer || IsRoot {
-		node = &nodeStore.Node{
-			IdInfo:  Init_IdInfo,
-			IsSuper: Init_IsSuperPeer, //是否是超级节点
-			Addr:    Init_GlobalUnicastAddress,
-			TcpPort: int32(Init_GlobalUnicastAddress_port),
-			UdpPort: 0,
-		}
-	} else {
-		node = &nodeStore.Node{
-			IdInfo:  Init_IdInfo,
-			IsSuper: Init_IsSuperPeer, //是否是超级节点
-			Addr:    Init_LocalIP,
-			TcpPort: int32(Init_LocalPort),
-			UdpPort: 0,
-		}
-	}
-	startUp(node)
-	if IsRoot {
-		// StartRootPeer()
-		startLoadSuperPeer()
-	}
-}
-
 func startUp(node *nodeStore.Node) {
 	fmt.Println("本机id为：", Init_IdInfo.GetId())
 	/*
@@ -201,7 +227,7 @@ func startUp(node *nodeStore.Node) {
 	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
-	if !IsRoot {
+	if Init_role != C_role_root {
 		/*
 			连接到超级节点
 		*/

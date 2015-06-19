@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/prestonTao/mandela"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -17,30 +18,34 @@ import (
 const (
 	//超级节点地址列表文件地址
 	Path_SuperPeerAddress = "node_entry.json"
-
-	//官方节点地址
-	// Path_SuperPeerdomain = "mandela.io:9981"
-	// Path_SuperPeerdomain = "192.168.6.30:9981"
-	Path_SuperPeerdomain = "192.168.1.110:9981"
 )
 
-//保存文件配置
-var config map[string]string
+var (
+	//官方节点地址
+	Path_SuperPeerdomain = "mandela.io:9981"
 
-//超级节点地址最大数量
-var Sys_config_entryCount = 10000
+	//保存文件配置
+	config map[string]string
 
-//本地保存的超级节点地址列表
-var Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
+	//超级节点地址最大数量
+	Sys_config_entryCount = 10000
 
-//清理本地保存的超级节点地址间隔时间
-var Sys_cleanAddressTicker = time.Minute * 1
+	//本地保存的超级节点地址列表
+	Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
+
+	//清理本地保存的超级节点地址间隔时间
+	Sys_cleanAddressTicker = time.Minute * 1
+)
 
 /*
 	解析config.json文件
 	解析node_entry.json文件
 */
 func init() {
+	if mandela.Mode_local {
+		Path_SuperPeerdomain = "127.0.0.1:9981"
+	}
+	addSuperPeerAddr(Path_SuperPeerdomain)
 	/*
 		解析config.json文件
 	*/
@@ -101,10 +106,12 @@ func loadSuperPeerEntry() {
 	for key, _ := range tempSuperPeerEntry {
 		addSuperPeerAddr(key)
 	}
+	//添加了节点后立即检查所有节点是否可用
+	LoopCheckAddr()
 }
 
 /*
-	定时检查地址是否可用
+	检查地址列表里的每一个地址是否可用，不可用就删除
 */
 func LoopCheckAddr() {
 	/*

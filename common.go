@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -82,4 +83,20 @@ func CheckOnline(addr string) (isOnline bool) {
 	}
 	conn.Close()
 	return true
+}
+
+/*
+	获得一个可用的端口
+*/
+func GetAvailablePort() int {
+	startPort := 9981
+	for i := 0; i < 1000; i++ {
+		_, err := net.ListenPacket("udp", "127.0.0.1:"+strconv.Itoa(startPort))
+		if err != nil {
+			startPort = startPort + 1
+		} else {
+			return startPort
+		}
+	}
+	return 0
 }

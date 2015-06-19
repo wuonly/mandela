@@ -60,12 +60,12 @@ func loadIdInfo() {
 	data, err := ioutil.ReadFile(Path_Id)
 	//本地没有idinfo文件
 	if err != nil {
-		fmt.Println("读取id.json文件出错")
+		fmt.Println("读取idinfo.json文件出错")
 		return
 	}
 	err = json.Unmarshal(data, &Init_IdInfo)
 	if err != nil {
-		fmt.Println("解析id.json文件错误")
+		fmt.Println("解析idinfo.json文件错误")
 		return
 	}
 }

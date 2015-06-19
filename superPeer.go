@@ -22,14 +22,15 @@ import (
 	"time"
 )
 
+const (
+// Local_
+)
+
 var (
 	//官方节点地址
-	// Path_SuperPeerdomain = "mandela.io:9981"
-	// Path_SuperPeerdomain = "192.168.6.30:9981"
-	Path_SuperPeerdomain = "192.168.1.110:9981"
+	Path_SuperPeerdomain = "mandela.io:9981"
 	//官方目录服务器地址
-	// Path_DirectotyServerAddr = []string{"mandela.io:19981"}
-	Path_DirectotyServerAddr = []string{"127.0.0.1:19981"}
+	Path_DirectotyServerAddr = []string{"mandela.io:19981"}
 )
 
 var (
@@ -48,7 +49,11 @@ var (
 	Sys_StopCleanSuperPeerEntry = make(chan bool)
 )
 
-func init() {
+func InitSuperPeer() {
+	if Mode_local {
+		Path_SuperPeerdomain = Init_LocalIP + ":9981"
+		Path_DirectotyServerAddr = []string{Init_LocalIP + ":19981"}
+	}
 	//判断文件夹是否存在
 	if _, err := os.Stat(Path_configDir); err != nil {
 		if os.IsNotExist(err) {
@@ -156,6 +161,7 @@ func addSuperPeerAddr(addr string) {
 func getSuperAddrOne() (addr string) {
 	timens := int64(time.Now().Nanosecond())
 	rand.Seed(timens)
+	fmt.Println(len(Sys_superNodeEntry))
 	// 随机取[0-1000)
 	r := rand.Intn(len(Sys_superNodeEntry))
 	count := 0

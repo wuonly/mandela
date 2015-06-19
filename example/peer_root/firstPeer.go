@@ -9,6 +9,7 @@ func main() {
 }
 
 func StartUP() {
-	mandela.IsRoot = true
+	mandela.Init_role = mandela.C_role_root
+	mandela.Mode_local = true
 	mandela.StartCommandWindow()
 }

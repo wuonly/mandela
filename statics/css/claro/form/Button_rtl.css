@@ -1,0 +1,8 @@
+
+.claro .dijitComboButtonRtl .dijitStretch {
+}
+.claro .dijitComboButtonRtl .dijitArrowButton {
+  padding: 3px 0 4px;
+  border-left-width: 1px;
+  border-right-width: 0;
+}

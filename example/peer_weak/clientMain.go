@@ -9,7 +9,8 @@ func main() {
 }
 
 func StartUP() {
-	m.IsRoot = false
+	m.Init_role = m.C_role_client
+	m.Mode_local = true
 	m.StartCommandWindow()
 
 }
