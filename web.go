@@ -83,7 +83,7 @@ func CreateDomain_handler(params martini.Params) map[string]interface{} {
 func SendMsg_handler(params martini.Params) map[string]interface{} {
 	tid := params["tid"]
 	msg := params["msg"]
-	SendMsgForOne(tid, msg)
+	SendMsgForOne_opt(tid, msg)
 
 	retmap := make(map[string]interface{})
 	retmap["ret"] = 0

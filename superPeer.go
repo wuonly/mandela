@@ -161,7 +161,6 @@ func addSuperPeerAddr(addr string) {
 func getSuperAddrOne() (addr string) {
 	timens := int64(time.Now().Nanosecond())
 	rand.Seed(timens)
-	fmt.Println(len(Sys_superNodeEntry))
 	// 随机取[0-1000)
 	r := rand.Intn(len(Sys_superNodeEntry))
 	count := 0

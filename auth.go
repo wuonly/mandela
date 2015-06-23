@@ -49,7 +49,7 @@ name：连接名称
 func (this *Auth) SendKey(conn net.Conn, session engine.Session, name string) (remoteName string, err error) {
 	//第一次连接，向对方发送自己的名称
 	conn.Write(GetBytesForName(name))
-	// //得到对方名称
+	//得到对方名称
 	remoteName, err = GetNameForConn(conn)
 	return
 }

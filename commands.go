@@ -62,7 +62,7 @@ func CtlCenter(commands []string, stopChan chan bool) {
 	case "start":
 		Launcher()
 	case "send":
-		SendMsgAll(commands)
+		SendMsgAll_script(commands)
 	case "see":
 		SelectAllPeer(commands[1])
 	case "createdomain":
@@ -87,7 +87,7 @@ func SelectAllPeer(domain string) {
 /*
 	给节点发送消息
 */
-func SendMsgAll(commands []string) {
+func SendMsgAll_script(commands []string) {
 	if len(commands) == 1 {
 		SendMsgForAll("hello")
 	}
@@ -95,7 +95,7 @@ func SendMsgAll(commands []string) {
 		SendMsgForAll(commands[1])
 	}
 	if len(commands) == 3 {
-		SendMsgForOne(commands[1], commands[2])
+		SendMsgForOne_opt(commands[1], commands[2])
 	}
 }
 

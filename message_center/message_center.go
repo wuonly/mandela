@@ -315,7 +315,9 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 	}
 }
 
-//自己保存这个节点，只能保存超级节点
+/*
+	自己保存这个节点，只能保存超级节点
+*/
 func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 	//自己不是超级节点
 	if !nodeStore.Root.IsSuper {

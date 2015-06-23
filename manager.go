@@ -11,6 +11,7 @@ import (
 	"github.com/prestonTao/upnp"
 	"net"
 	"strconv"
+	"time"
 )
 
 const (
@@ -53,13 +54,20 @@ func AutoRole() {
 	if !Mode_local {
 		portMapping()
 	}
+	//得到本地ip地址
+	Init_LocalIP = GetLocalIntenetIp()
+	//得到本机可用端口
+	Init_LocalPort = GetAvailablePort()
 	if Mode_local && Init_role == C_role_super {
 		Init_IsSuperPeer = true
-		newport := GetAvailablePort()
 		Init_GlobalUnicastAddress = Init_LocalIP
-		Init_GlobalUnicastAddress_port = newport
+		Init_GlobalUnicastAddress_port = Init_LocalPort
 		Init_ExternalIP = Init_LocalIP
-		Init_MappingPort = newport
+		Init_MappingPort = Init_LocalPort
+	}
+	//自己是根节点
+	if Init_role == C_role_root {
+		Init_IsSuperPeer = true
 	}
 	if Init_role == C_role_auto {
 
@@ -70,8 +78,7 @@ func AutoRole() {
 	根据网络环境启动程序
 */
 func StartUpAuto() {
-	//得到本地ip地址
-	Init_LocalIP = GetLocalIntenetIp()
+
 	if Mode_local {
 		Init_LocalIP = "127.0.0.1"
 	}
@@ -88,7 +95,15 @@ func StartUpAuto() {
 	//没有idinfo的新节点
 	if len(Init_IdInfo.Id) == 0 {
 		//连接网络并得到一个idinfo
-		idInfo, err := GetId(nodeStore.NewIdInfo("", "", "nimei", Str_zaro))
+		newnode := nodeStore.IdInfo{
+			Id:          Str_zaro,
+			CreateTime:  time.Now().Format("2006-01-02 15:04:05.999999999"),
+			Domain:      GetRandomDomain(),
+			Name:        "",
+			Email:       "",
+			SuperNodeId: Str_zaro,
+		}
+		idInfo, err := GetId(newnode)
 		if err == nil {
 			Init_IdInfo = *idInfo
 			// saveIdInfo(Path_Id)
@@ -105,6 +120,7 @@ func StartUpAuto() {
 		UdpPort: 0,
 	}
 	if Init_role == C_role_root {
+
 		node.Addr = Init_GlobalUnicastAddress
 		node.TcpPort = int32(Init_GlobalUnicastAddress_port)
 	} else if Init_IsSuperPeer {
@@ -159,17 +175,6 @@ func StartUp() {
 	若支持upnp协议，则添加一个端口映射
 */
 func portMapping() {
-	/*
-		获得一个可用的端口
-	*/
-	for i := 0; i < 1000; i++ {
-		_, err := net.ListenPacket("udp", Init_LocalIP+":"+strconv.Itoa(Init_LocalPort))
-		if err != nil {
-			Init_LocalPort = Init_LocalPort + 1
-		} else {
-			break
-		}
-	}
 	fmt.Println("监听一个本地地址：", Init_LocalIP, ":", Init_LocalPort)
 	//本地地址是全球唯一公网地址
 	if IsOnlyIp(Init_LocalIP) {
@@ -223,7 +228,6 @@ func startUp(node *nodeStore.Node) {
 	/*
 		设置关闭连接回调函数后监听
 	*/
-	// auth :=
 	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(Init_LocalIP, int32(Init_LocalPort))
@@ -251,8 +255,10 @@ func shutdownCallback() {
 	Sys_mapping.Reclaim()
 }
 
-//连接超级节点后，向超级节点介绍自己
-//第一次连接超级节点，用代理方式查找离自己最近的节点
+/*
+	连接超级节点后，向超级节点介绍自己
+	第一次连接超级节点，用代理方式查找离自己最近的节点
+*/
 func introduceSelf() {
 	session, _ := engine.GetController().GetSession(nodeStore.SuperName)
 	//用代理方式查找最近的超级节点

@@ -34,7 +34,7 @@ func SendMsgForAll(message string) {
 }
 
 //给某个人发送消息
-func SendMsgForOne(target, message string) {
+func SendMsgForOne_opt(target, message string) {
 	messageSend := &msgc.Message{
 		TargetId:   target,
 		Sender:     nodeStore.ParseId(nodeStore.GetRootIdInfoString()),

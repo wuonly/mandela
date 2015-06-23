@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"math/rand"
 	"net"
 	"strconv"
 	"strings"
@@ -99,4 +100,19 @@ func GetAvailablePort() int {
 		}
 	}
 	return 0
+}
+
+/*
+	随机获取一个域名
+*/
+func GetRandomDomain() string {
+	str := "abcdefghijklmnopqrstuvwxyz"
+	rand.Seed(int64(time.Now().Nanosecond()))
+	result := ""
+	r := 0
+	for i := 0; i < 8; i++ {
+		r = rand.Intn(25)
+		result = result + str[r:r+1]
+	}
+	return result
 }

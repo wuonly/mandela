@@ -85,12 +85,12 @@ func saveIdInfo(path string) {
 	@ addr   超级节点ip地址
 */
 func GetId(idInfo nodeStore.IdInfo) (newIdInfo *nodeStore.IdInfo, err error) {
-	idInfo = nodeStore.IdInfo{
-		Id:     Str_zaro,
-		Name:   "nimei",
-		Email:  "qqqqq@qq.com",
-		Domain: "djfkafjkls",
-	}
+	// idInfo = nodeStore.IdInfo{
+	// 	Id:     Str_zaro,
+	// 	Name:   "nimei",
+	// 	Email:  "qqqqq@qq.com",
+	// 	Domain: "djfkafjkls",
+	// }
 
 	conn, err := net.Dial("tcp", getSuperAddrOne())
 	if err != nil {
