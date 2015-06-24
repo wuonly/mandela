@@ -18,7 +18,7 @@ var (
 	OutFindNode    chan string      = make(chan string, 1000)   //需要查询是否在线的节点
 	Groups         *NodeGroup       = NewNodeGroup()            //组
 	NodeIdLevel    uint             = 256                       //节点id长度
-	MaxRecentCount int              = 1                         //存放相邻节点个数(左半边个数或者右半边个数)
+	MaxRecentCount int              = 2                         //存放相邻节点个数(左半边个数或者右半边个数)
 	Proxys         map[string]*Node = make(map[string]*Node, 0) //被代理的节点，id字符串为键
 	SuperName      string                                       //超级节点名称
 )

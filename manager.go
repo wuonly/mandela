@@ -332,7 +332,13 @@ func read() {
 				continue
 			}
 			findNodeBytes, _ := json.Marshal(findNodeOne)
-			clientConn, ok := engine.GetController().GetSession(string(id[0].IdInfo.Build()))
+			ok := false
+			var clientConn engine.Session
+			if nodeStore.Root.IsSuper {
+				clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
+			} else {
+				session, ok = engine.GetController().GetSession(nodeStore.SuperName)
+			}
 			if !ok {
 				continue
 			}
@@ -347,7 +353,9 @@ func read() {
 				continue
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
-			clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
+			if nodeStore.Root.IsSuper {
+				clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
+			}
 			if !ok {
 				continue
 			}

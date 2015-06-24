@@ -66,6 +66,18 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 		//是自己的消息，处理这个消息
 		return true
 	} else {
+		//先判断自己是不是超级节点
+		if !nodeStore.Root.IsSuper {
+			if session, ok := c.GetSession(nodeStore.SuperName); ok {
+				err := session.Send(SendMessageNum, &msg.Date)
+				if err != nil {
+					fmt.Println("message发送数据出错：", err.Error())
+				}
+			} else {
+				//超级节点都不在了，搞个锤子
+			}
+			return false
+		}
 		//先判断是否在自己的代理节点中
 		if targetNode, ok := nodeStore.GetProxyNode(messageRecv.TargetId); ok {
 			if session, ok := c.GetSession(string(targetNode.IdInfo.Build())); ok {
@@ -88,6 +100,7 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 			targetNode = nodeStore.GetInAll(messageRecv.TargetId, true, "")
 			if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
 				if !messageRecv.Accurate {
+					fmt.Println("222222222222222222222222")
 					return true
 				} else {
 					fmt.Println("这个精确发送的消息没人接收")
