@@ -322,7 +322,21 @@ func read() {
 
 				resultBytes, _ := json.Marshal(findNodeOne)
 				session.Send(msg.FindNodeNum, &resultBytes)
-				// continue
+
+				findNodeOne.WantId = "left"
+				findNodeBytes, _ := json.Marshal(findNodeOne)
+				err := session.Send(msg.FindNodeNum, &findNodeBytes)
+				if err != nil {
+					fmt.Println("manager发送数据出错：", err.Error())
+				}
+
+				findNodeOne.WantId = "right"
+				findNodeBytes, _ = json.Marshal(findNodeOne)
+				err = session.Send(msg.FindNodeNum, &findNodeBytes)
+				if err != nil {
+					fmt.Println("manager发送数据出错：", err.Error())
+				}
+				continue
 			}
 
 			//先发送左邻居节点查找请求
@@ -337,7 +351,7 @@ func read() {
 			if nodeStore.Root.IsSuper {
 				clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
 			} else {
-				session, ok = engine.GetController().GetSession(nodeStore.SuperName)
+				clientConn, ok = engine.GetController().GetSession(nodeStore.SuperName)
 			}
 			if !ok {
 				continue
@@ -354,10 +368,9 @@ func read() {
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
 			if nodeStore.Root.IsSuper {
-				clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
-			}
-			if !ok {
-				continue
+				if clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build())); !ok {
+					continue
+				}
 			}
 			err = clientConn.Send(msg.FindNodeNum, &findNodeBytes)
 			if err != nil {
