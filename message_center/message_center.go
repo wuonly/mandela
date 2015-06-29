@@ -193,8 +193,11 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	//    查找邻居节点
 	//--------------------------------------------
 	if findNode.WantId == "left" || findNode.WantId == "right" {
+		fmt.Println("查找来源：", nodeStore.ParseId(findNode.NodeId))
+		fmt.Println("这次查找的节点方向：", findNode.WantId)
 		//需要查找的节点id
 		nodeIdInt, _ := new(big.Int).SetString(nodeStore.ParseId(findNode.ProxyId), nodeStore.IdStrBit)
+		fmt.Println("这次查找的节点id：", nodeIdInt)
 		var nodes []*nodeStore.Node
 		//查找左邻居节点
 		if findNode.WantId == "left" {
@@ -211,7 +214,8 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			}
 		}
 		//把找到的邻居节点返回给查找者
-		for _, nodeOne := range nodes {
+		for i, nodeOne := range nodes {
+			fmt.Println("查找到的节点", i, ":", nodeOne.IdInfo.GetId())
 			rspMsg := FindNode{
 				NodeId:  findNode.NodeId,
 				WantId:  findNode.WantId,
@@ -370,9 +374,23 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 		UdpPort: findNode.UdpPort,
 	}
 
+	fmt.Println("是否需要这个节点  id为：", findNodeIdInfo.GetId())
 	//是否需要这个节点
 	if isNeed, replace := nodeStore.CheckNeedNode(findNodeIdInfo.GetId()); isNeed {
-		fmt.Println("需要这个节点", findNodeIdInfo.GetId())
+		fmt.Println("是需要这个节点")
+		//------------start--------------------------
+		//这一块只为打印一个日志，可以去掉
+		ishave := false
+		for _, value := range nodeStore.GetAllNodes() {
+			if value.IdInfo.GetId() == findNodeIdInfo.GetId() {
+				ishave = true
+				break
+			}
+		}
+		if ishave {
+			fmt.Println("需要这个节点", findNodeIdInfo.GetId())
+		}
+		//------------end--------------------------
 		nodeStore.AddNode(newNode)
 		//把替换的节点连接删除
 		if replace != "" {
@@ -382,6 +400,7 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 					session.Close()
 					session, _ := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
 					nodeStore.SuperName = session.GetName()
+					introduceSelf(session)
 				}
 			}
 			if session, ok := c.GetSession(replace); ok {
@@ -396,14 +415,38 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 			}
 			//检查这个session是否存在
 			if _, ok := c.GetNet().GetSession(string(newNode.IdInfo.Build())); !ok {
-				_, err := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
+				session, err := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
 				if err != nil {
 					fmt.Println(newNode)
 					fmt.Println("连接客户端出错")
+				} else {
+					introduceSelf(session)
 				}
 			}
 		}
 	}
+}
+
+/*
+	连接节点后，向节点介绍自己
+*/
+func introduceSelf(session engine.Session) {
+	//用代理方式查找最近的超级节点
+	nodeMsg := FindNode{
+		NodeId:  session.GetName(),
+		WantId:  nodeStore.ParseId(nodeStore.GetRootIdInfoString()),
+		IsProxy: true,
+		ProxyId: nodeStore.GetRootIdInfoString(),
+		IsSuper: nodeStore.Root.IsSuper,
+		Addr:    nodeStore.Root.Addr,
+		TcpPort: nodeStore.Root.TcpPort,
+		UdpPort: nodeStore.Root.UdpPort,
+	}
+
+	// resultBytes, _ := proto.Marshal(&nodeMsg)
+	resultBytes, _ := json.Marshal(nodeMsg)
+
+	session.Send(FindNodeNum, &resultBytes)
 }
 
 /*
