@@ -249,7 +249,7 @@ func CheckNeedNode(nodeId string) (isNeed bool, replace string) {
 		fmt.Println(nodeId)
 		return
 	}
-	if len(GetAllNodes()) == 0 {
+	if len(GetAllNodes()) == 0 || len(GetAllNodes()) < MaxRecentCount*2 {
 		return true, ""
 	}
 	consHash := NewHash()
@@ -282,17 +282,23 @@ func CheckNeedNode(nodeId string) (isNeed bool, replace string) {
 			return true, hex.EncodeToString(targetId.Bytes())
 		}
 		//判断是否是左边最近的临近节点
-		id := consistentHash.GetLeftLow(Root.IdInfo.GetBigIntId(), 1)[0]
-		distanceA := new(big.Int).Xor(id, Root.IdInfo.GetBigIntId())
+		ids := consistentHash.GetLeftLow(Root.IdInfo.GetBigIntId(), MaxRecentCount)
 		distanceB := new(big.Int).Xor(nodeIdInt, Root.IdInfo.GetBigIntId())
-		if distanceA.Cmp(distanceB) == 1 {
-			return true, hex.EncodeToString(id.Bytes())
+		for _, idOne := range ids {
+			// fmt.Println("左边最邻近的节点：", hex.EncodeToString(idOne.Bytes()))
+			distanceA := new(big.Int).Xor(idOne, Root.IdInfo.GetBigIntId())
+			if distanceA.Cmp(distanceB) == 1 {
+				return true, hex.EncodeToString(idOne.Bytes())
+			}
 		}
 		//判断是否是右边最近的临近节点
-		id = consistentHash.GetRightLow(Root.IdInfo.GetBigIntId(), 1)[0]
-		distanceA = new(big.Int).Xor(id, Root.IdInfo.GetBigIntId())
-		if distanceA.Cmp(distanceB) == 1 {
-			return true, hex.EncodeToString(id.Bytes())
+		ids = consistentHash.GetRightLow(Root.IdInfo.GetBigIntId(), MaxRecentCount)
+		for _, idOne := range ids {
+			// fmt.Println("右边最邻近的节点：", hex.EncodeToString(idOne.Bytes()))
+			distanceA := new(big.Int).Xor(idOne, Root.IdInfo.GetBigIntId())
+			if distanceA.Cmp(distanceB) == 1 {
+				return true, hex.EncodeToString(idOne.Bytes())
+			}
 		}
 		return false, ""
 	} else {

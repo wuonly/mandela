@@ -193,11 +193,8 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	//    查找邻居节点
 	//--------------------------------------------
 	if findNode.WantId == "left" || findNode.WantId == "right" {
-		fmt.Println("查找来源：", nodeStore.ParseId(findNode.NodeId))
-		fmt.Println("这次查找的节点方向：", findNode.WantId)
 		//需要查找的节点id
 		nodeIdInt, _ := new(big.Int).SetString(nodeStore.ParseId(findNode.ProxyId), nodeStore.IdStrBit)
-		fmt.Println("这次查找的节点id：", nodeIdInt)
 		var nodes []*nodeStore.Node
 		//查找左邻居节点
 		if findNode.WantId == "left" {
@@ -214,8 +211,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 			}
 		}
 		//把找到的邻居节点返回给查找者
-		for i, nodeOne := range nodes {
-			fmt.Println("查找到的节点", i, ":", nodeOne.IdInfo.GetId())
+		for _, nodeOne := range nodes {
 			rspMsg := FindNode{
 				NodeId:  findNode.NodeId,
 				WantId:  findNode.WantId,
@@ -373,23 +369,20 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 		TcpPort: findNode.TcpPort,
 		UdpPort: findNode.UdpPort,
 	}
-
-	fmt.Println("是否需要这个节点  id为：", findNodeIdInfo.GetId())
 	//是否需要这个节点
 	if isNeed, replace := nodeStore.CheckNeedNode(findNodeIdInfo.GetId()); isNeed {
-		fmt.Println("是需要这个节点")
 		//------------start--------------------------
 		//这一块只为打印一个日志，可以去掉
-		ishave := false
-		for _, value := range nodeStore.GetAllNodes() {
-			if value.IdInfo.GetId() == findNodeIdInfo.GetId() {
-				ishave = true
-				break
-			}
-		}
-		if ishave {
-			fmt.Println("需要这个节点", findNodeIdInfo.GetId())
-		}
+		// ishave := false
+		// for _, value := range nodeStore.GetAllNodes() {
+		// 	if value.IdInfo.GetId() == findNodeIdInfo.GetId() {
+		// 		ishave = true
+		// 		break
+		// 	}
+		// }
+		// if ishave {
+		// 	fmt.Println("需要这个节点", findNodeIdInfo.GetId())
+		// }
 		//------------end--------------------------
 		nodeStore.AddNode(newNode)
 		//把替换的节点连接删除

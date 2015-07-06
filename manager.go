@@ -283,6 +283,16 @@ func introduceSelf() {
 func closeConnCallback(name string) {
 	fmt.Println("客户端离线：", name)
 	if name == nodeStore.SuperName {
+		targetNode := nodeStore.Get(nodeStore.Root.IdInfo.GetId(), false, nodeStore.Root.IdInfo.GetId())
+		if targetNode == nil {
+			return
+		}
+		if Init_role == C_role_client {
+			nodeStore.SuperName = engine.AddClientConn(targetNode.Addr, targetNode.TcpPort, false)
+		} else {
+			session, _ := engine.GetController().GetSession(string(targetNode.IdInfo.Build()))
+			nodeStore.SuperName = session.GetName()
+		}
 		return
 	}
 	nodeStore.DelNode(nodeStore.ParseId(name))

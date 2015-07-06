@@ -89,6 +89,7 @@ func (this *Net) CloseClient(name string) bool {
 /*
 	连接一个服务器
 	@serverName   给客户端发送的自己的名字
+	@powerful     是否是强连接，是强连接断开后自动重连
 */
 func (this *Net) AddClientConn(ip, serverName string, port int32, powerful bool) (Session, error) {
 	clientConn := &Client{
