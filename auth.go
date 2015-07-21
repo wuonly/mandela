@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
+	// "fmt"
 	msgcenter "github.com/prestonTao/mandela/message_center"
 	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
@@ -74,7 +74,7 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	*/
 	if clientIdInfo.Id == Str_zaro {
 		//生成id之前先检查这个id是否存在
-		fmt.Println("在网络中注册一个域名：", clientIdInfo.Domain)
+		// fmt.Println("在网络中注册一个域名：", clientIdInfo.Domain)
 		targetId := utils.GetHashForDomain(clientIdInfo.Domain)
 		msgOne := &msgcenter.Message{
 			TargetId:   targetId,

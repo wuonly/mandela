@@ -68,12 +68,14 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 	} else {
 		//先判断自己是不是超级节点
 		if !nodeStore.Root.IsSuper {
+			fmt.Println("super name:", nodeStore.SuperName)
 			if session, ok := c.GetSession(nodeStore.SuperName); ok {
 				err := session.Send(SendMessageNum, &msg.Date)
 				if err != nil {
 					fmt.Println("message发送数据出错：", err.Error())
 				}
 			} else {
+				fmt.Println("超级节点不在了")
 				//超级节点都不在了，搞个锤子
 			}
 			return false
@@ -100,7 +102,6 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 			targetNode = nodeStore.GetInAll(messageRecv.TargetId, true, "")
 			if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
 				if !messageRecv.Accurate {
-					fmt.Println("发送消息：222222222222222222222222")
 					return true
 				} else {
 					fmt.Println("这个精确发送的消息没人接收")
@@ -177,7 +178,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 		if targetNode.IdInfo.GetId() == nodeStore.ParseId(nodeStore.GetRootIdInfoString()) {
 			//这里要想个办法解决下
 			fmt.Println("想办法解决下这个问题")
-			fmt.Println("wantId: ", findNode.WantId, "\ntargerNodeid: ", targetNode.IdInfo.GetId())
+			fmt.Println("from:", nodeStore.ParseId(findNode.ProxyId), "\nwantId: ", findNode.WantId, "\ntargerNodeid: ", targetNode.IdInfo.GetId())
 			// fmt.Println(findNode)
 			return
 		}
@@ -324,7 +325,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controller) {
 	session, ok := c.GetSession(nodeId)
 	if !ok {
-		fmt.Println("这个session已经不存在了")
+		fmt.Println("这个session已经不存在了:", nodeId)
 		return
 	}
 	err := session.Send(FindNodeNum, data)
@@ -349,7 +350,10 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 		if nodeStore.SuperName != findNode.FindId {
 			oldSuperName := nodeStore.SuperName
 			session, _ := c.GetNet().AddClientConn(findNode.Addr, nodeStore.GetRootIdInfoString(), findNode.TcpPort, false)
+
 			nodeStore.SuperName = session.GetName()
+			if _, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
+			}
 			if session, ok := c.GetNet().GetSession(oldSuperName); ok {
 				session.Close()
 			}

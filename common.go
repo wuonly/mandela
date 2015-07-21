@@ -57,6 +57,17 @@ func GetLocalIntenetIp() string {
 }
 
 /*
+	不联网的情况下，得到本机ip地址
+*/
+func GetLocalHost() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "127.0.0.1"
+	}
+	return addrs[0].String()
+}
+
+/*
 	是全球唯一ip
 */
 func IsOnlyIp(ip string) bool {

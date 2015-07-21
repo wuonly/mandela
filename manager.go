@@ -55,7 +55,11 @@ func AutoRole() {
 		portMapping()
 	}
 	//得到本地ip地址
-	Init_LocalIP = GetLocalIntenetIp()
+	if Mode_local {
+		Init_LocalIP = GetLocalHost()
+	} else {
+		Init_LocalIP = GetLocalIntenetIp()
+	}
 	//得到本机可用端口
 	Init_LocalPort = GetAvailablePort()
 	if Mode_local && Init_role == C_role_super {
@@ -279,14 +283,17 @@ func introduceSelf() {
 	session.Send(msg.FindNodeNum, &resultBytes)
 }
 
-//一个连接断开后的回调方法
+/*
+	一个连接断开后的回调方法
+*/
 func closeConnCallback(name string) {
-	fmt.Println("客户端离线：", name)
+
 	if name == nodeStore.SuperName {
 		targetNode := nodeStore.Get(nodeStore.Root.IdInfo.GetId(), false, nodeStore.Root.IdInfo.GetId())
 		if targetNode == nil {
 			return
 		}
+
 		if Init_role == C_role_client {
 			nodeStore.SuperName = engine.AddClientConn(targetNode.Addr, targetNode.TcpPort, false)
 		} else {
@@ -294,6 +301,15 @@ func closeConnCallback(name string) {
 			nodeStore.SuperName = session.GetName()
 		}
 		return
+	}
+	// session, ok := engine.GetController().GetSession(name)
+	// if err != nil {
+	// 	fmt.Println("客户端离线，但找不到这个session")
+	// }
+	node := nodeStore.Get(nodeStore.ParseId(name), false, "")
+	fmt.Println("节点下线", node)
+	if node != nil && !node.IsSuper {
+		fmt.Println("自己代理的节点下线:", nodeStore.ParseId(name))
 	}
 	nodeStore.DelNode(nodeStore.ParseId(name))
 }
