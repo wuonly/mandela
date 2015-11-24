@@ -8,6 +8,7 @@ import (
 	msg "github.com/prestonTao/mandela/message_center"
 	engine "github.com/prestonTao/mandela/net"
 	"github.com/prestonTao/mandela/nodeStore"
+	"github.com/prestonTao/mandela/utils"
 	"github.com/prestonTao/upnp"
 	"net"
 	"strconv"
@@ -45,6 +46,13 @@ var (
 	superNodePort int
 	privateKey    *rsa.PrivateKey
 )
+
+func init() {
+	utils.GlobalInit("console", "", "debug", 1)
+	// utils.GlobalInit("file", `{"filename":"/var/log/gd/gd.log"}`, "", 1000)
+	// utils.Log.Debug("session handle receive, %d, %v", msg.Code(), msg.Content())
+	utils.Log.Debug("log init")
+}
 
 /*
 	根据网络情况自己确定节点角色
@@ -289,6 +297,7 @@ func introduceSelf() {
 func closeConnCallback(name string) {
 
 	if name == nodeStore.SuperName {
+		fmt.Println("超级节点断开连接:", name)
 		targetNode := nodeStore.Get(nodeStore.Root.IdInfo.GetId(), false, nodeStore.Root.IdInfo.GetId())
 		if targetNode == nil {
 			return
@@ -346,6 +355,7 @@ func read() {
 				findNodeOne.TcpPort = nodeStore.Root.TcpPort
 				findNodeOne.UdpPort = nodeStore.Root.UdpPort
 
+				// fmt.Println("1---------", findNodeOne)
 				resultBytes, _ := json.Marshal(findNodeOne)
 				session.Send(msg.FindNodeNum, &resultBytes)
 

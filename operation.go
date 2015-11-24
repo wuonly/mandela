@@ -83,6 +83,14 @@ func SeeRightNode() {
 }
 
 /*
+	查看超级节点
+*/
+func SeeSuperNode() {
+	_, ok := engine.GetController().GetSession(nodeStore.SuperName)
+	fmt.Println(nodeStore.SuperName, "是否已连接：", ok)
+}
+
+/*
 	添加一个超级节点ip地址
 	@addr   例如：121.45.6.157:8076
 */

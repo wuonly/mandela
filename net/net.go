@@ -2,6 +2,7 @@ package net
 
 import (
 	"fmt"
+	"github.com/prestonTao/mandela/utils"
 	"net"
 	"strconv"
 	"time"
@@ -26,7 +27,8 @@ func (this *Net) Listen(ip string, port int32) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("监听一个地址：", ip+":"+strconv.Itoa(int(port)))
+	utils.Log.Debug("监听一个地址：%s", ip+":"+strconv.Itoa(int(port)))
+	// fmt.Println("监听一个地址：", ip+":"+strconv.Itoa(int(port)))
 	// fmt.Println(ip + ":" + strconv.Itoa(int(port)) + "成功启动服务器")
 	go this.listener(listener)
 }

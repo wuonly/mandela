@@ -81,6 +81,8 @@ func SelectAllPeer(domain string) {
 		SeeLeftNode()
 	case "right":
 		SeeRightNode()
+	case "super":
+		SeeSuperNode()
 	}
 }
 

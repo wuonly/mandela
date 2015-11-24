@@ -102,6 +102,7 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 			targetNode = nodeStore.GetInAll(messageRecv.TargetId, true, "")
 			if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
 				if !messageRecv.Accurate {
+					fmt.Println("看下是不是这里的问题")
 					return true
 				} else {
 					fmt.Println("这个精确发送的消息没人接收")
@@ -151,6 +152,7 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 	if findNode.FindId != "" {
 		//普通节点收到自己发出的代理查找请求
 		if findNode.IsProxy && (findNode.ProxyId == nodeStore.GetRootIdInfoString()) {
+			fmt.Println("自己保存这个节点", findNode)
 			//自己保存这个节点
 			this.saveNode(findNode, c)
 			// if nodeStore.SuperName != findNode.FindId {
@@ -223,6 +225,9 @@ func (this *NodeManager) FindNode(c engine.Controller, msg engine.GetPacket) {
 				IsSuper: nodeOne.IsSuper,
 				TcpPort: int32(nodeOne.TcpPort),
 				UdpPort: int32(nodeOne.UdpPort),
+			}
+			if findNode.IsProxy == true {
+				fmt.Println("查找邻居节点：", findNode.WantId, "  返回结果：", rspMsg)
 			}
 			resultBytes, _ := json.Marshal(&rspMsg)
 			this.sendMsg(msg.Name, &resultBytes, c)
@@ -349,13 +354,18 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 		//查找到的节点和自己的超级节点不一样，则连接新的超级节点
 		if nodeStore.SuperName != findNode.FindId {
 			oldSuperName := nodeStore.SuperName
+			fmt.Println("链接新的超级节点")
 			session, _ := c.GetNet().AddClientConn(findNode.Addr, nodeStore.GetRootIdInfoString(), findNode.TcpPort, false)
 
 			nodeStore.SuperName = session.GetName()
+
 			if _, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
+				fmt.Println("链接成功：", nodeStore.SuperName)
 			}
 			if session, ok := c.GetNet().GetSession(oldSuperName); ok {
+				fmt.Println("close -------------------1")
 				session.Close()
+				fmt.Println("关闭旧链接：", oldSuperName)
 			}
 			return
 		}
@@ -385,7 +395,7 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 		// 	}
 		// }
 		// if ishave {
-		// 	fmt.Println("需要这个节点", findNodeIdInfo.GetId())
+		fmt.Println("需要这个节点", findNodeIdInfo.GetId())
 		// }
 		//------------end--------------------------
 		nodeStore.AddNode(newNode)
@@ -394,6 +404,7 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 			//是否要替换超级节点
 			if session, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
 				if replace == session.GetName() {
+					fmt.Println("close -------------------2")
 					session.Close()
 					session, _ := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
 					nodeStore.SuperName = session.GetName()
@@ -401,6 +412,7 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 				}
 			}
 			if session, ok := c.GetSession(replace); ok {
+				fmt.Println("close -------------------3")
 				session.Close()
 				nodeStore.DelNode(replace)
 			}
