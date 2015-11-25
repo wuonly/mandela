@@ -51,7 +51,9 @@ func init() {
 	utils.GlobalInit("console", "", "debug", 1)
 	// utils.GlobalInit("file", `{"filename":"/var/log/gd/gd.log"}`, "", 1000)
 	// utils.Log.Debug("session handle receive, %d, %v", msg.Code(), msg.Content())
-	utils.Log.Debug("log init")
+	utils.Log.Debug("test debug")
+	utils.Log.Warn("test warn")
+	utils.Log.Error("test error")
 }
 
 /*
@@ -218,7 +220,7 @@ func portMapping() {
 }
 
 func startUp(node *nodeStore.Node) {
-	fmt.Println("本机id为：", Init_IdInfo.GetId())
+	utils.Log.Debug("本机id为：%s", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
 	*/

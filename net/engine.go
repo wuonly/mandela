@@ -2,6 +2,7 @@ package net
 
 import (
 	"fmt"
+	"github.com/prestonTao/mandela/utils"
 	"sync"
 )
 
@@ -116,7 +117,7 @@ func (this *Engine) read() {
 func (this *Engine) handler(msg *GetPacket) {
 	handler := GetHandler(msg.MsgID)
 	if handler == nil {
-		fmt.Println("该消息未注册，消息编号：", msg.MsgID)
+		utils.Log.Warn("该消息未注册，消息编号：%d", msg.MsgID)
 		return
 	}
 	//这里决定了消息是否异步处理
