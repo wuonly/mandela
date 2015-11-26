@@ -2,7 +2,7 @@ package net
 
 import (
 	"fmt"
-	"github.com/prestonTao/mandela/utils"
+	"github.com/prestonTao/mandela/core/utils"
 	"sync"
 )
 

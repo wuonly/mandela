@@ -2,29 +2,22 @@
 	加载本地配置文件中的idinfo
 		1.读取并解析本地idinfo配置文件。
 */
-package mandela
+package addr_manager
 
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"github.com/prestonTao/mandela/nodeStore"
-	"github.com/prestonTao/mandela/utils"
+	// "fmt"
+	"github.com/prestonTao/mandela/core/nodeStore"
+	"github.com/prestonTao/mandela/core/utils"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
 	"path/filepath"
-)
-
-const (
-	Str_zaro          = "0000000000000000000000000000000000000000000000000000000000000000" //字符串0
-	Str_maxNumber     = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //256位的最大数十六进制表示id
-	Str_halfNumber    = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //最大id的二分之一
-	Str_quarterNumber = "3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" //最大id的四分之一
 )
 
 var (
@@ -60,12 +53,14 @@ func loadIdInfo() {
 	data, err := ioutil.ReadFile(Path_Id)
 	//本地没有idinfo文件
 	if err != nil {
-		fmt.Println("读取idinfo.json文件出错")
+		// fmt.Println("读取idinfo.json文件出错")
+		utils.Log.Warn("读取idinfo.json文件出错")
 		return
 	}
 	err = json.Unmarshal(data, &Init_IdInfo)
 	if err != nil {
-		fmt.Println("解析idinfo.json文件错误")
+		// fmt.Println("解析idinfo.json文件错误")
+		utils.Log.Warn("解析idinfo.json文件错误")
 		return
 	}
 }
@@ -134,7 +129,8 @@ func GetLogicIds(idStr string) (logicIds []string, ok bool) {
 	ok = true
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println(r)
+			// fmt.Println(r)
+			utils.Log.Warn("%v", r)
 			ok = false
 		}
 	}()

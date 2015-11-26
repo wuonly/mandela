@@ -1,11 +1,11 @@
-package mandela
+package core
 
 import (
 	"encoding/json"
 	"fmt"
-	msgc "github.com/prestonTao/mandela/message_center"
-	engine "github.com/prestonTao/mandela/net"
-	"github.com/prestonTao/mandela/nodeStore"
+	msgc "github.com/prestonTao/mandela/core/message_center"
+	engine "github.com/prestonTao/mandela/core/net"
+	"github.com/prestonTao/mandela/core/nodeStore"
 	"strings"
 	"time"
 )

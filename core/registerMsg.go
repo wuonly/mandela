@@ -1,8 +1,8 @@
-package mandela
+package core
 
 import (
-	"github.com/prestonTao/mandela/message_center"
-	engine "github.com/prestonTao/mandela/net"
+	"github.com/prestonTao/mandela/core/message_center"
+	engine "github.com/prestonTao/mandela/core/net"
 )
 
 func init() {

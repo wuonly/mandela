@@ -1,7 +1,7 @@
 package main
 
 import (
-	m "github.com/prestonTao/mandela"
+	m "github.com/prestonTao/mandela/core"
 )
 
 func main() {

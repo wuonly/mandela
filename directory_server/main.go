@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/prestonTao/mandela"
+	"github.com/prestonTao/mandela/core"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -42,7 +42,7 @@ var (
 	解析node_entry.json文件
 */
 func init() {
-	if mandela.Mode_local {
+	if core.Mode_local {
 		Path_SuperPeerdomain = "127.0.0.1:9981"
 	}
 	addSuperPeerAddr(Path_SuperPeerdomain)

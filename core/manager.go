@@ -1,14 +1,15 @@
-package mandela
+package core
 
 import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	msg "github.com/prestonTao/mandela/message_center"
-	engine "github.com/prestonTao/mandela/net"
-	"github.com/prestonTao/mandela/nodeStore"
-	"github.com/prestonTao/mandela/utils"
+	addrm "github.com/prestonTao/mandela/core/addr_manager"
+	msg "github.com/prestonTao/mandela/core/message_center"
+	engine "github.com/prestonTao/mandela/core/net"
+	"github.com/prestonTao/mandela/core/nodeStore"
+	"github.com/prestonTao/mandela/core/utils"
 	"github.com/prestonTao/upnp"
 	"net"
 	"strconv"
@@ -35,7 +36,7 @@ var (
 	Init_MappingPort = 9981 //映射到路由器的端口
 
 	// Mode_dev   = false       //是否是开发者模式
-	Mode_local = false       //是否是局域网开发模式
+	Mode_local = true        //是否是局域网开发模式
 	Init_role  = C_role_auto //服务器角色
 
 )
@@ -86,6 +87,8 @@ func AutoRole() {
 	if Init_role == C_role_auto {
 
 	}
+	utils.Log.Debug("本机角色为：%s", Init_role)
+	utils.Log.Debug("本机监听地址：%s:%d", Init_LocalIP, Init_LocalPort)
 }
 
 /*
@@ -94,6 +97,7 @@ func AutoRole() {
 func StartUpAuto() {
 
 	if Mode_local {
+		utils.Log.Debug("局域网模式")
 		Init_LocalIP = "127.0.0.1"
 	}
 	AutoRole()
@@ -189,34 +193,40 @@ func StartUp() {
 	若支持upnp协议，则添加一个端口映射
 */
 func portMapping() {
-	fmt.Println("监听一个本地地址：", Init_LocalIP, ":", Init_LocalPort)
+	// utils.Log.Debug("监听一个本地地址：%s:%d", Init_LocalIP, Init_LocalPort)
+
+	// fmt.Println("监听一个本地地址：", Init_LocalIP, ":", Init_LocalPort)
 	//本地地址是全球唯一公网地址
 	if IsOnlyIp(Init_LocalIP) {
 		Init_IsSuperPeer = true
 		Init_GlobalUnicastAddress = Init_LocalIP
 		Init_GlobalUnicastAddress_port = Init_LocalPort
-		fmt.Println("本机ip是公网全球唯一地址")
+		// fmt.Println("本机ip是公网全球唯一地址")
+		utils.Log.Debug("本机ip是公网全球唯一地址")
 		return
 	}
 	//获得网关公网地址
 	err := Sys_mapping.ExternalIPAddr()
 	if err != nil {
 		fmt.Println(err.Error())
+		utils.Log.Warn("网关不支持端口映射")
 		return
-	} else {
-		Init_ExternalIP = Sys_mapping.GatewayOutsideIP
-		Init_GlobalUnicastAddress = Init_ExternalIP
 	}
+	Init_ExternalIP = Sys_mapping.GatewayOutsideIP
+	Init_GlobalUnicastAddress = Init_ExternalIP
+	utils.Log.Debug("正在尝试端口映射")
 	for i := 0; i < 1000; i++ {
 		if err := Sys_mapping.AddPortMapping(Init_LocalPort, Init_MappingPort, "TCP"); err == nil {
 			Init_IsSuperPeer = true
 			Init_GlobalUnicastAddress_port = Init_MappingPort
-			fmt.Println("映射到公网地址：", Init_ExternalIP, ":", Init_MappingPort)
+			// fmt.Println("映射到公网地址：", Init_ExternalIP, ":", Init_MappingPort)
+			utils.Log.Debug("映射到公网地址：%s:%d", Init_ExternalIP, Init_MappingPort)
 			return
 		}
 		Init_MappingPort = Init_MappingPort + 1
 	}
-	fmt.Println("端口映射失败")
+	utils.Log.Warn("端口映射失败")
+	// fmt.Println("端口映射失败")
 }
 
 func startUp(node *nodeStore.Node) {

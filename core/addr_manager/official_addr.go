@@ -9,13 +9,12 @@
 		3.添加官方地址。
 		4.启动心跳检查本地地址是否可用。
 */
-package mandela
+package addr_manager
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,10 +49,8 @@ var (
 )
 
 func InitSuperPeer() {
-	if Mode_local {
-		Path_SuperPeerdomain = Init_LocalIP + ":9981"
-		Path_DirectotyServerAddr = []string{Init_LocalIP + ":19981"}
-	}
+	Path_SuperPeerdomain = Init_LocalIP + ":9981"
+	Path_DirectotyServerAddr = []string{Init_LocalIP + ":19981"}
 	//判断文件夹是否存在
 	if _, err := os.Stat(Path_configDir); err != nil {
 		if os.IsNotExist(err) {
@@ -123,64 +120,3 @@ func parseSuperPeerEntry(fileBytes []byte) {
 // 	Sys_StopCleanSuperPeerEntry <- true
 // 	loadSuperPeerEntry()
 // }
-
-/*
-	检查地址是否可用
-*/
-func CheckAddr() {
-	/*
-		先获得一个拷贝
-	*/
-	oldSuperPeerEntry := make(map[string]string)
-	for key, value := range Sys_superNodeEntry {
-		oldSuperPeerEntry[key] = value
-	}
-	/*
-		一个地址一个地址的判断是否可用
-	*/
-	for key, _ := range oldSuperPeerEntry {
-		if CheckOnline(key) {
-			addSuperPeerAddr(key)
-		} else {
-			delete(Sys_superNodeEntry, key)
-		}
-	}
-}
-
-/*
-	添加一个地址
-*/
-func addSuperPeerAddr(addr string) {
-	Sys_superNodeEntry[addr] = ""
-}
-
-/*
-	随机得到一个超级节点地址
-	@return  addr  随机获得的地址
-*/
-func getSuperAddrOne() (addr string) {
-	timens := int64(time.Now().Nanosecond())
-	rand.Seed(timens)
-	// 随机取[0-1000)
-	r := rand.Intn(len(Sys_superNodeEntry))
-	count := 0
-	for key, _ := range Sys_superNodeEntry {
-		addr = key
-		if count == r {
-			return key
-		}
-		count = count + 1
-	}
-	return
-}
-
-/*
-	保存超级节点地址列表到本地配置文件
-	@path  保存到本地的磁盘路径
-*/
-func saveSuperPeerEntry(path string) {
-	fileBytes, _ := json.Marshal(Sys_superNodeEntry)
-	file, _ := os.Create(path)
-	file.Write(fileBytes)
-	file.Close()
-}

@@ -3,7 +3,7 @@ package message_center
 import (
 	"encoding/json"
 	"fmt"
-	engine "github.com/prestonTao/mandela/net"
+	engine "github.com/prestonTao/mandela/core/net"
 	"sync"
 	"time"
 )

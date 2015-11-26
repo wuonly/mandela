@@ -1,4 +1,4 @@
-package mandela
+package addr_manager
 
 import (
 	// "math/big"

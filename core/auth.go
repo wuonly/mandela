@@ -1,15 +1,15 @@
-package mandela
+package core
 
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	// "fmt"
-	msgcenter "github.com/prestonTao/mandela/message_center"
-	engine "github.com/prestonTao/mandela/net"
-	"github.com/prestonTao/mandela/nodeStore"
-	"github.com/prestonTao/mandela/utils"
+	addrm "github.com/prestonTao/mandela/core/addr_manager"
+	msgcenter "github.com/prestonTao/mandela/core/message_center"
+	engine "github.com/prestonTao/mandela/core/net"
+	"github.com/prestonTao/mandela/core/nodeStore"
+	"github.com/prestonTao/mandela/core/utils"
 	"io"
 	"net"
 	"time"
@@ -72,7 +72,7 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 	/*
 		这是新节点，需要给他生成一个id
 	*/
-	if clientIdInfo.Id == Str_zaro {
+	if clientIdInfo.Id == addrm.Str_zaro {
 		//生成id之前先检查这个id是否存在
 		// fmt.Println("在网络中注册一个域名：", clientIdInfo.Domain)
 		targetId := utils.GetHashForDomain(clientIdInfo.Domain)

@@ -2,7 +2,7 @@ package message_center
 
 import (
 	"fmt"
-	engine "github.com/prestonTao/mandela/net"
+	engine "github.com/prestonTao/mandela/core/net"
 )
 
 func init() {

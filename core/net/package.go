@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/prestonTao/mandela/utils"
+	"github.com/prestonTao/mandela/core/utils"
 	"hash/crc32"
 	"io"
 	"log"

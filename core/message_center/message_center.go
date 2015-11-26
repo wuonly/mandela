@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	engine "github.com/prestonTao/mandela/net"
-	"github.com/prestonTao/mandela/nodeStore"
+	engine "github.com/prestonTao/mandela/core/net"
+	"github.com/prestonTao/mandela/core/nodeStore"
 	"math/big"
 )
 
