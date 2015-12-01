@@ -3,9 +3,11 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	addrm "github.com/prestonTao/mandela/core/addr_manager"
 	msgc "github.com/prestonTao/mandela/core/message_center"
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
+	"github.com/prestonTao/mandela/core/utils"
 	"strings"
 	"time"
 )
@@ -99,11 +101,11 @@ func AddAddr(addr string) {
 	if len(addrs) != 2 {
 		return
 	}
-	if !IsOnlyIp(addrs[0]) {
+	if !utils.IsOnlyIp(addrs[0]) {
 		return
 	}
-	if CheckOnline(addr) {
-		addSuperPeerAddr(addr)
+	if addrm.CheckOnline(addr) {
+		addrm.AddSuperPeerAddr(addr)
 	}
 }
 
@@ -115,9 +117,9 @@ func AddAddr(addr string) {
 */
 func CreateAccount(name, email, domain string) {
 	//连接网络并得到一个idinfo
-	idInfo, err := GetId(nodeStore.NewIdInfo(name, email, domain, Str_zaro))
+	idInfo, err := addrm.GetId(nodeStore.NewIdInfo(name, email, domain, addrm.Str_zaro))
 	if err == nil {
-		Init_IdInfo = *idInfo
+		addrm.Init_IdInfo = *idInfo
 	} else {
 		fmt.Println("从网络中获得idinfo失败")
 		return

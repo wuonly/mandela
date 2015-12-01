@@ -33,22 +33,6 @@ var (
 	Path_DirectotyServerAddr = []string{"mandela.io:19981"}
 )
 
-var (
-	//配置文件存放目录
-	Path_configDir = "conf"
-	//超级节点地址列表文件地址
-	Path_SuperPeerAddress = filepath.Join(Path_configDir, "nodeEntry.json")
-
-	//超级节点地址最大数量
-	Sys_config_entryCount = 1000
-	//本地保存的超级节点地址列表
-	Sys_superNodeEntry = make(map[string]string, Sys_config_entryCount)
-	//清理本地保存的超级节点地址间隔时间
-	Sys_cleanAddressTicker = time.Minute * 1
-	//需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
-	Sys_StopCleanSuperPeerEntry = make(chan bool)
-)
-
 func InitSuperPeer() {
 	Path_SuperPeerdomain = config.Init_LocalIP + ":9981"
 	Path_DirectotyServerAddr = []string{config.Init_LocalIP + ":19981"}
@@ -64,9 +48,9 @@ func InitSuperPeer() {
 /*
 	开始加载超级节点地址
 */
-func startLoadSuperPeer() {
+func StartLoadSuperPeer() {
 	Sys_superNodeEntry[Path_SuperPeerdomain] = ""
-	loadSuperPeerEntry()
+	LoadSuperPeerEntry()
 	CheckAddr()
 	go func() {
 		//获得一个心跳
@@ -92,7 +76,7 @@ func pullSuperPeerAddrForDS(ds []string) {
 /*
 	读取并解析本地的超级节点列表文件
 */
-func loadSuperPeerEntry() {
+func LoadSuperPeerEntry() {
 	fileBytes, err := ioutil.ReadFile(Path_SuperPeerAddress)
 	if err != nil {
 		return
@@ -109,9 +93,9 @@ func parseSuperPeerEntry(fileBytes []byte) {
 		return
 	}
 	for key, _ := range tempSuperPeerEntry {
-		addSuperPeerAddr(key)
+		AddSuperPeerAddr(key)
 	}
-	addSuperPeerAddr(Path_SuperPeerdomain)
+	AddSuperPeerAddr(Path_SuperPeerdomain)
 }
 
 /*

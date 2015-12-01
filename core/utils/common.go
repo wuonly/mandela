@@ -85,12 +85,28 @@ func IsOnlyIp(ip string) bool {
 }
 
 /*
-	获得一个可用的端口
+	获得一个可用的UDP端口
 */
-func GetAvailablePort() int {
+func GetAvailablePortForUDP() int {
 	startPort := 9981
 	for i := 0; i < 1000; i++ {
 		_, err := net.ListenPacket("udp", "127.0.0.1:"+strconv.Itoa(startPort))
+		if err != nil {
+			startPort = startPort + 1
+		} else {
+			return startPort
+		}
+	}
+	return 0
+}
+
+/*
+	获得一个可用的TCP端口
+*/
+func GetAvailablePortForTCP() int {
+	startPort := 9981
+	for i := 0; i < 1000; i++ {
+		_, err := net.ListenPacket("tcp", "127.0.0.1:"+strconv.Itoa(startPort))
 		if err != nil {
 			startPort = startPort + 1
 		} else {

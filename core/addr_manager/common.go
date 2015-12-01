@@ -41,7 +41,7 @@ func CheckAddr() {
 	*/
 	for key, _ := range oldSuperPeerEntry {
 		if CheckOnline(key) {
-			addSuperPeerAddr(key)
+			AddSuperPeerAddr(key)
 		} else {
 			delete(Sys_superNodeEntry, key)
 		}

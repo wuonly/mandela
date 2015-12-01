@@ -49,7 +49,7 @@ func init() {
 /*
 	加载本地的idInfo
 */
-func loadIdInfo() {
+func LoadIdInfo() {
 	data, err := ioutil.ReadFile(Path_Id)
 	//本地没有idinfo文件
 	if err != nil {
@@ -87,7 +87,7 @@ func GetId(idInfo nodeStore.IdInfo) (newIdInfo *nodeStore.IdInfo, err error) {
 	// 	Domain: "djfkafjkls",
 	// }
 
-	conn, err := net.Dial("tcp", getSuperAddrOne())
+	conn, err := net.Dial("tcp", GetSuperAddrOne())
 	if err != nil {
 		err = errors.New("连接超级节点失败")
 		return
