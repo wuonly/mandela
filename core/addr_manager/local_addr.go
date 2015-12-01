@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	Path_Id = filepath.Join(Path_configDir, "idinfo.json")
+	Path_Id = filepath.Join(Path_configDir, "idinfo.json") //超级节点地址列表文件路径
 
 	Init_IdInfo nodeStore.IdInfo
 

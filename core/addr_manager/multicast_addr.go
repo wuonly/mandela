@@ -6,3 +6,42 @@ package addr_manager
 func LoadByMulticast() {
 
 }
+
+/*
+	通过广播获取地址
+*/
+func LoadByBroadcast() {
+	// udpaddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:9982")
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
+	// addr, err := net.ResolveUDPAddr("udp", "192.168.1.128:9981")
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
+	// conn, err := net.ListenUDP("udp", addr)
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
+	// defer conn.Close()
+	// read := bufio.NewReader(os.Stdin)
+	// fmt.Print("给自己起个名字吧：")
+	// b, _, err := read.ReadLine()
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
+	// name := string(b)
+	// for {
+	// 	b, _, err := read.ReadLine()
+	// 	if err != nil {
+	// 		log.Panic(err)
+	// 	}
+	// 	t := time.Now()
+	// 	msg := fmt.Sprintf("[%s]：\t%s\t(%d.%d)", name, b, t.Minute(), t.Second())
+	// 	_, err = conn.WriteToUDP([]byte(msg), udpaddr)
+	// 	if err != nil {
+	// 		log.Panic(err)
+	// 	}
+
+	// }
+}

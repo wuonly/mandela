@@ -14,6 +14,7 @@ package addr_manager
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/prestonTao/mandela/core/config"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -49,8 +50,8 @@ var (
 )
 
 func InitSuperPeer() {
-	Path_SuperPeerdomain = Init_LocalIP + ":9981"
-	Path_DirectotyServerAddr = []string{Init_LocalIP + ":19981"}
+	Path_SuperPeerdomain = config.Init_LocalIP + ":9981"
+	Path_DirectotyServerAddr = []string{config.Init_LocalIP + ":19981"}
 	//判断文件夹是否存在
 	if _, err := os.Stat(Path_configDir); err != nil {
 		if os.IsNotExist(err) {
