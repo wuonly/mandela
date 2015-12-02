@@ -1,7 +1,11 @@
 package addr_manager
 
 import (
+	"fmt"
+	"github.com/prestonTao/mandela/core/config"
+	"github.com/prestonTao/mandela/core/utils"
 	"log"
+	"net"
 	"strconv"
 )
 
@@ -10,7 +14,14 @@ const (
 )
 
 func init() {
+	//startBroadcastServer()
+}
 
+/*
+	启动一个局域网广播服务器
+*/
+func startBroadcastServer() {
+	utils.Log.Debug("开始启动局域网广播服务器")
 	addr, err := net.ResolveUDPAddr("udp", "192.168.1.128:9981")
 	if err != nil {
 		log.Panic(err)
@@ -18,6 +29,7 @@ func init() {
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		log.Panic(err)
+		// utils.Log.Debug("开始启动局域网广播服务器")
 	}
 	go func() {
 		for {
@@ -35,7 +47,6 @@ func init() {
 			}
 		}
 	}()
-
 }
 
 /*
@@ -50,14 +61,18 @@ func LoadByMulticast() {
 	通过广播获取地址
 */
 func LoadByBroadcast() {
-	for i := 0; i < 10; i++ {
-		addr, err := net.ResolveUDPAddr("udp", "192.168.1.106:"+strconv.Itoa(broadcastStartPort+i))
+	utils.Log.Debug("通过局域网广播获得超级节点地址")
+	count := 10
+	for i := 0; i < count; i++ {
+		addr, err := net.ResolveUDPAddr("udp", config.Init_LocalIP+":"+strconv.Itoa(broadcastStartPort+i))
 		if err != nil {
 			log.Panic(err)
 		}
 		conn, err := net.ListenUDP("udp", addr)
 		if err != nil {
-			log.Panic(err)
+			// log.Panic(err)
+			count++
+			continue
 		}
 		var b [512]byte
 		go func() {

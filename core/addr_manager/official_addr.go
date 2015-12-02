@@ -18,7 +18,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -37,9 +36,9 @@ func InitSuperPeer() {
 	Path_SuperPeerdomain = config.Init_LocalIP + ":9981"
 	Path_DirectotyServerAddr = []string{config.Init_LocalIP + ":19981"}
 	//判断文件夹是否存在
-	if _, err := os.Stat(Path_configDir); err != nil {
+	if _, err := os.Stat(config.Path_configDir); err != nil {
 		if os.IsNotExist(err) {
-			os.MkdirAll(Path_configDir, 0755)
+			os.MkdirAll(config.Path_configDir, 0755)
 		}
 		panic(err.Error())
 	}

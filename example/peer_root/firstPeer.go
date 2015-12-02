@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/prestonTao/mandela/core"
+	"github.com/prestonTao/mandela/core/config"
 )
 
 func main() {
@@ -9,7 +10,7 @@ func main() {
 }
 
 func StartUP() {
-	core.Init_role = core.C_role_root
-	core.Mode_local = true
+	config.Init_role = config.C_role_root
+	config.Mode_local = true
 	core.StartCommandWindow()
 }

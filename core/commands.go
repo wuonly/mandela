@@ -20,7 +20,7 @@ func StartCommandWindow() {
 	signal.Notify(c, os.Interrupt, os.Kill)
 
 	//启动mandela程序
-	StartUpAuto()
+	StartService()
 
 	running := true
 	for running {
@@ -115,5 +115,5 @@ func CreateDomain_script(commands []string) {
 	连接到mandela网络
 */
 func Launcher() {
-	StartUp()
+	StartService()
 }

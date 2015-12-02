@@ -11,10 +11,9 @@ import (
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
-	// "github.com/prestonTao/upnp"
 	"net"
 	"strconv"
-	"time"
+	// "time"
 )
 
 var (
@@ -22,192 +21,86 @@ var (
 )
 
 func init() {
-	utils.GlobalInit("console", "", "debug", 1)
-	// utils.GlobalInit("file", `{"filename":"/var/log/gd/gd.log"}`, "", 1000)
-	// utils.Log.Debug("session handle receive, %d, %v", msg.Code(), msg.Content())
-	utils.Log.Debug("test debug")
-	utils.Log.Warn("test warn")
-	utils.Log.Error("test error")
+	go startUp()
 }
 
-/*
-	根据网络情况自己确定节点角色
-*/
-func AutoRole() {
-	//尝试端口映射
-	if !config.Mode_local {
-		portMapping()
+func startUp() {
+	for {
+		<-addrm.AvailableAddrChan
+		if len(Init_IdInfo.Id) == 0 {
+			continue
+		}
+		// initialization()
+		StartUpCore()
 	}
-	//得到本地ip地址
-	if config.Mode_local {
-		config.Init_LocalIP = utils.GetLocalHost()
-	} else {
-		config.Init_LocalIP = utils.GetLocalIntenetIp()
-	}
-	//得到本机可用端口
-	config.Init_LocalPort = utils.GetAvailablePortForTCP()
-	if config.Mode_local && config.Init_role == config.C_role_super {
-		config.Init_IsSuperPeer = true
-		config.Init_GlobalUnicastAddress = config.Init_LocalIP
-		config.Init_GlobalUnicastAddress_port = config.Init_LocalPort
-		config.Init_ExternalIP = config.Init_LocalIP
-		config.Init_MappingPort = config.Init_LocalPort
-	}
-	//自己是根节点
-	if config.Init_role == config.C_role_root {
-		config.Init_IsSuperPeer = true
-	}
-	if config.Init_role == config.C_role_auto {
+}
 
-	}
-	utils.Log.Debug("本机角色为：%s", config.Init_role)
-	utils.Log.Debug("本机监听地址：%s:%d", config.Init_LocalIP, config.Init_LocalPort)
+func StartService() {
+
 }
 
 /*
 	根据网络环境启动程序
 */
-func StartUpAuto() {
-
-	if config.Mode_local {
-		utils.Log.Debug("局域网模式")
-		config.Init_LocalIP = "127.0.0.1"
-	}
-	AutoRole()
-	addrm.LoadIdInfo()
-	addrm.InitSuperPeer()
-
-	if config.Init_role != config.C_role_root {
-		addrm.StartLoadSuperPeer()
-	}
+func StartUpCore() {
 	//开启web服务
 	// go StartWeb()
 
-	//没有idinfo的新节点
-	if len(addrm.Init_IdInfo.Id) == 0 {
-		//连接网络并得到一个idinfo
-		newnode := nodeStore.IdInfo{
-			Id:          addrm.Str_zaro,
-			CreateTime:  time.Now().Format("2006-01-02 15:04:05.999999999"),
-			Domain:      utils.GetRandomDomain(),
-			Name:        "",
-			Email:       "",
-			SuperNodeId: addrm.Str_zaro,
-		}
-		idInfo, err := addrm.GetId(newnode)
-		if err == nil {
-			addrm.Init_IdInfo = *idInfo
-			// saveIdInfo(Path_Id)
-		} else {
-			fmt.Println("从网络中获得idinfo失败")
-			return
-		}
-	}
 	//是超级节点
-	var node *nodeStore.Node
-	node = &nodeStore.Node{
-		IdInfo:  addrm.Init_IdInfo,
-		IsSuper: config.Init_IsSuperPeer, //是否是超级节点
+	node := &nodeStore.Node{
+		IdInfo:  Init_IdInfo,
+		IsSuper: config.CheckIsSuperPeer(), //是否是超级节点
 		UdpPort: 0,
 	}
-	if config.Init_role == config.C_role_root {
-
-		node.Addr = config.Init_GlobalUnicastAddress
-		node.TcpPort = int32(config.Init_GlobalUnicastAddress_port)
-	} else if config.Init_IsSuperPeer {
-		node.Addr = config.Init_ExternalIP
-		node.TcpPort = int32(config.Init_MappingPort)
+	if config.Init_IsMapping {
+		node.Addr = config.Init_GatewayAddress
+		node.TcpPort = int32(config.Init_GatewayPort)
 	} else {
 		node.Addr = config.Init_LocalIP
 		node.TcpPort = int32(config.Init_LocalPort)
 	}
 
-	startUp(node)
-	if config.Init_role == config.C_role_root {
-		// StartRootPeer()
-		addrm.StartLoadSuperPeer()
-	}
+	startUpCore(node)
 }
 
-/*
-	开始启动服务器
-*/
-func StartUp() {
-	//尝试端口映射
-	portMapping()
-	//是超级节点
-	var node *nodeStore.Node
-	if config.Init_IsSuperPeer || config.Init_role == config.C_role_root {
-		node = &nodeStore.Node{
-			IdInfo:  addrm.Init_IdInfo,
-			IsSuper: config.Init_IsSuperPeer, //是否是超级节点
-			Addr:    config.Init_GlobalUnicastAddress,
-			TcpPort: int32(config.Init_GlobalUnicastAddress_port),
-			UdpPort: 0,
-		}
-	} else {
-		node = &nodeStore.Node{
-			IdInfo:  addrm.Init_IdInfo,
-			IsSuper: config.Init_IsSuperPeer, //是否是超级节点
-			Addr:    config.Init_LocalIP,
-			TcpPort: int32(config.Init_LocalPort),
-			UdpPort: 0,
-		}
-	}
-	startUp(node)
-	if config.Init_role == config.C_role_root {
-		// StartRootPeer()
-		addrm.StartLoadSuperPeer()
-	}
-}
+// /*
+// 	开始启动服务器
+// */
+// func StartUp() {
+// 	//尝试端口映射
+// 	// portMapping()
+// 	//是超级节点
+// 	var node *nodeStore.Node
+// 	if config.Init_IsSuperPeer || config.Init_role == config.C_role_root {
+// 		node = &nodeStore.Node{
+// 			IdInfo:  Init_IdInfo,
+// 			IsSuper: config.Init_IsSuperPeer, //是否是超级节点
+// 			Addr:    config.Init_GlobalUnicastAddress,
+// 			TcpPort: int32(config.Init_GlobalUnicastAddress_port),
+// 			UdpPort: 0,
+// 		}
+// 	} else {
+// 		node = &nodeStore.Node{
+// 			IdInfo:  Init_IdInfo,
+// 			IsSuper: config.Init_IsSuperPeer, //是否是超级节点
+// 			Addr:    config.Init_LocalIP,
+// 			TcpPort: int32(config.Init_LocalPort),
+// 			UdpPort: 0,
+// 		}
+// 	}
+// 	startUp(node)
+// 	if config.Init_role == config.C_role_root {
+// 		// StartRootPeer()
+// 		addrm.StartLoadSuperPeer()
+// 	}
+// }
 
-/*
-	判断自己是否有公网ip地址
-	若支持upnp协议，则添加一个端口映射
-*/
-func portMapping() {
-	// utils.Log.Debug("监听一个本地地址：%s:%d", Init_LocalIP, Init_LocalPort)
-
-	// fmt.Println("监听一个本地地址：", Init_LocalIP, ":", Init_LocalPort)
-	//本地地址是全球唯一公网地址
-	if utils.IsOnlyIp(config.Init_LocalIP) {
-		config.Init_IsSuperPeer = true
-		config.Init_GlobalUnicastAddress = config.Init_LocalIP
-		config.Init_GlobalUnicastAddress_port = config.Init_LocalPort
-		// fmt.Println("本机ip是公网全球唯一地址")
-		utils.Log.Debug("本机ip是公网全球唯一地址")
-		return
-	}
-	//获得网关公网地址
-	err := config.Sys_mapping.ExternalIPAddr()
-	if err != nil {
-		fmt.Println(err.Error())
-		utils.Log.Warn("网关不支持端口映射")
-		return
-	}
-	config.Init_ExternalIP = config.Sys_mapping.GatewayOutsideIP
-	config.Init_GlobalUnicastAddress = config.Init_ExternalIP
-	utils.Log.Debug("正在尝试端口映射")
-	for i := 0; i < 1000; i++ {
-		if err := config.Sys_mapping.AddPortMapping(config.Init_LocalPort, config.Init_MappingPort, "TCP"); err == nil {
-			config.Init_IsSuperPeer = true
-			config.Init_GlobalUnicastAddress_port = config.Init_MappingPort
-			// fmt.Println("映射到公网地址：", Init_ExternalIP, ":", Init_MappingPort)
-			utils.Log.Debug("映射到公网地址：%s:%d", config.Init_ExternalIP, config.Init_MappingPort)
-			return
-		}
-		config.Init_MappingPort = config.Init_MappingPort + 1
-	}
-	utils.Log.Warn("端口映射失败")
-	// fmt.Println("端口映射失败")
-}
-
-func startUp(node *nodeStore.Node) {
-	utils.Log.Debug("本机id为：%s", addrm.Init_IdInfo.GetId())
+func startUpCore(node *nodeStore.Node) {
+	utils.Log.Debug("本机id为：%s", Init_IdInfo.GetId())
 	/*
 		启动消息服务器
 	*/
-	engine.InitEngine(string(addrm.Init_IdInfo.Build()))
+	engine.InitEngine(string(Init_IdInfo.Build()))
 	/*
 		生成密钥文件
 	*/
@@ -232,7 +125,11 @@ func startUp(node *nodeStore.Node) {
 		/*
 			连接到超级节点
 		*/
-		host, portStr, _ := net.SplitHostPort(addrm.GetSuperAddrOne())
+		one, err := addrm.GetSuperAddrOne()
+		if err != nil {
+			return
+		}
+		host, portStr, _ := net.SplitHostPort(one)
 		port, err := strconv.Atoi(portStr)
 		if err != nil {
 			return
@@ -249,7 +146,7 @@ func startUp(node *nodeStore.Node) {
 */
 func shutdownCallback() {
 	//回收映射的端口
-	config.Sys_mapping.Reclaim()
+	config.Reclaim()
 }
 
 /*
@@ -264,7 +161,7 @@ func introduceSelf() {
 		WantId:  nodeStore.ParseId(nodeStore.GetRootIdInfoString()),
 		IsProxy: true,
 		ProxyId: nodeStore.GetRootIdInfoString(),
-		IsSuper: config.Init_IsSuperPeer,
+		IsSuper: config.CheckIsSuperPeer(),
 		Addr:    nodeStore.Root.Addr,
 		TcpPort: nodeStore.Root.TcpPort,
 		UdpPort: nodeStore.Root.UdpPort,

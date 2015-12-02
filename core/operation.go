@@ -117,9 +117,9 @@ func AddAddr(addr string) {
 */
 func CreateAccount(name, email, domain string) {
 	//连接网络并得到一个idinfo
-	idInfo, err := addrm.GetId(nodeStore.NewIdInfo(name, email, domain, addrm.Str_zaro))
+	idInfo, err := GetId(nodeStore.NewIdInfo(name, email, domain, Str_zaro))
 	if err == nil {
-		addrm.Init_IdInfo = *idInfo
+		Init_IdInfo = *idInfo
 	} else {
 		fmt.Println("从网络中获得idinfo失败")
 		return

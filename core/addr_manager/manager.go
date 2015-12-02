@@ -2,16 +2,18 @@ package addr_manager
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/prestonTao/mandela/core/config"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 )
 
 var (
-	//配置文件存放目录
-	Path_configDir = "conf"
+
 	//超级节点地址列表文件地址
-	Path_SuperPeerAddress = filepath.Join(Path_configDir, "nodeEntry.json")
+	Path_SuperPeerAddress = filepath.Join(config.Path_configDir, "nodeEntry.json")
 
 	//超级节点地址最大数量
 	Sys_config_entryCount = 1000
@@ -21,13 +23,28 @@ var (
 	Sys_cleanAddressTicker = time.Minute * 1
 	//需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
 	Sys_StopCleanSuperPeerEntry = make(chan bool)
+
+	startLoadChan     = make(chan bool, 1) //当本机没有可用的超级节点地址，这里会收到一个信号
+	AvailableAddrChan = make(chan bool, 1) //当本机有可用的超级节点地址，这里会收到一个信号
+
 )
 
 /*
 	启动本地服务
 */
 func init() {
-	LoadAddrForAll()
+	go smartLoadAddr()
+	startLoadChan <- true
+}
+
+/*
+	根据信号加载超级节点地址列表
+*/
+func smartLoadAddr() {
+	for {
+		<-startLoadChan
+		LoadAddrForAll()
+	}
 }
 
 /*
@@ -49,23 +66,29 @@ func AddSuperPeerAddr(addr string) {
 }
 
 /*
-	随机得到一个超级节点地址
+	随机得到一个可用的超级节点地址
 	@return  addr  随机获得的地址
 */
 func GetSuperAddrOne() (addr string, err error) {
 	timens := int64(time.Now().Nanosecond())
 	rand.Seed(timens)
-	// 随机取[0-1000)
-	r := rand.Intn(len(Sys_superNodeEntry))
-	count := 0
-	for key, _ := range Sys_superNodeEntry {
-		addr = key
-		if count == r {
-			return key, nil
+	for len(Sys_superNodeEntry) != 0 {
+		// 随机取[0-1000)
+		r := rand.Intn(len(Sys_superNodeEntry))
+		count := 0
+		for key, _ := range Sys_superNodeEntry {
+			addr = key
+			if count == r {
+				if CheckOnline(addr) {
+					return key, nil
+				}
+			} else {
+				break
+			}
+			count = count + 1
 		}
-		count = count + 1
 	}
-	return
+	return "", errors.New("没有可用的超级节点地址")
 }
 
 /*

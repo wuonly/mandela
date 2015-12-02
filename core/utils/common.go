@@ -40,20 +40,24 @@ func Print(findInt *big.Int) {
 	fmt.Println("==================================\r\n")
 }
 
-//获取本机能联网的ip地址
-func GetLocalIntenetIp() string {
+/*
+	获取本机能联网的ip地址
+	@return    string    获得的ip地址
+	@return    bool      是否能联网
+*/
+func GetLocalIntenetIp() (string, bool) {
 	/*
 	  获得所有本机地址
 	  判断能联网的ip地址
 	*/
-
 	conn, err := net.Dial("udp", "baidu.com:80")
 	if err != nil {
 		log.Println(err.Error())
+		return "", false
 	}
 	defer conn.Close()
 	ip := strings.Split(conn.LocalAddr().String(), ":")[0]
-	return ip
+	return ip, true
 }
 
 /*
@@ -63,6 +67,9 @@ func GetLocalHost() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return "127.0.0.1"
+	}
+	for i, one := range addrs {
+		fmt.Println(i, one)
 	}
 	return addrs[0].String()
 }

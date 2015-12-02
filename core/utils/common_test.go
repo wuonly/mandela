@@ -8,4 +8,5 @@ import (
 
 func TestCommon(t *testing.T) {
 	// commonTestRandNodeId()
+	GetLocalHost()
 }
