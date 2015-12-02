@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -67,23 +68,33 @@ func AddSuperPeerAddr(addr string) {
 
 /*
 	随机得到一个可用的超级节点地址
+	这个地址不能是自己的地址
 	@return  addr  随机获得的地址
 */
-func GetSuperAddrOne() (addr string, err error) {
-	timens := int64(time.Now().Nanosecond())
-	rand.Seed(timens)
+func GetSuperAddrOne() (string, error) {
+	addr, port := config.GetHost()
+	myaddr := addr + strconv.Itoa(port)
+	rand.Seed(int64(time.Now().Nanosecond()))
 	for len(Sys_superNodeEntry) != 0 {
+		if len(Sys_superNodeEntry) == 1 {
+			if _, ok := Sys_superNodeEntry[myaddr]; ok {
+				return "", errors.New("超级节点地址只有自己")
+			}
+		}
 		// 随机取[0-1000)
 		r := rand.Intn(len(Sys_superNodeEntry))
 		count := 0
 		for key, _ := range Sys_superNodeEntry {
-			addr = key
 			if count == r {
-				if CheckOnline(addr) {
-					return key, nil
+				if key == myaddr {
+					break
 				}
-			} else {
-				break
+				if CheckOnline(key) {
+					return key, nil
+				} else {
+					delete(Sys_superNodeEntry, key)
+					break
+				}
 			}
 			count = count + 1
 		}

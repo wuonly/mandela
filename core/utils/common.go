@@ -110,17 +110,17 @@ func GetAvailablePortForUDP() int {
 /*
 	获得一个可用的TCP端口
 */
-func GetAvailablePortForTCP() int {
+func GetAvailablePortForTCP(addr string) net.Listener {
 	startPort := 9981
 	for i := 0; i < 1000; i++ {
-		_, err := net.ListenPacket("tcp", "127.0.0.1:"+strconv.Itoa(startPort))
+		lnr, err := net.Listen("tcp", addr+":"+strconv.Itoa(startPort))
 		if err != nil {
 			startPort = startPort + 1
 		} else {
-			return startPort
+			return lnr
 		}
 	}
-	return 0
+	return nil
 }
 
 /*

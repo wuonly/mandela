@@ -1,17 +1,19 @@
 package config
 
 import (
+	// "fmt"
 	"github.com/prestonTao/mandela/core/utils"
+	"net"
+	"strconv"
+	"strings"
 )
 
 const (
 	C_Server_name = "mandela" //网络名称
 
 	//服务器角色，只有局域网开发模式才能用
-	C_role_auto   = "auto"   //根据网络环境自适应
 	C_role_client = "client" //客户端模式
 	C_role_super  = "super"  //超级节点模式
-	C_role_root   = "root"   //根节点模式
 )
 
 var (
@@ -31,9 +33,11 @@ var (
 	// Init_MappingPort = 9981 //映射到路由器的端口
 
 	// Mode_dev   = false       //是否是开发者模式
-	Mode_local = true        //是否是局域网开发模式
-	Init_role  = C_role_auto //服务器角色
+	Mode_local = true          //是否是局域网开发模式
+	Init_role  = C_role_client //服务器角色，当为开发模式时可用
 
+	LnrTCP   net.Listener //获得并占用一个TCP端口
+	IsOnline = false      //是否已经连接到网络中了
 )
 
 var (
@@ -49,6 +53,7 @@ func init() {
 	utils.Log.Debug("test debug")
 	utils.Log.Warn("test warn")
 	utils.Log.Error("test error")
+
 	AutoRole()
 }
 
@@ -70,9 +75,12 @@ func AutoRole() {
 	} else {
 		Init_LocalIP = utils.GetLocalHost()
 	}
+
 	//得到本机可用端口
-	Init_LocalPort = utils.GetAvailablePortForTCP()
-	utils.Log.Debug("本机角色为：%s", Init_role)
+	LnrTCP = utils.GetAvailablePortForTCP(Init_LocalIP)
+	ipStr := LnrTCP.Addr().String()
+	Init_LocalPort, _ = strconv.Atoi(ipStr[strings.Index(ipStr, ":")+1:])
+
 	utils.Log.Debug("本机监听地址：%s:%d", Init_LocalIP, Init_LocalPort)
 }
 
@@ -84,12 +92,8 @@ func CheckIsSuperPeer() bool {
 		switch Init_role {
 		case C_role_client:
 			return false
-		case C_role_root:
-			return true
 		case C_role_super:
 			return true
-		case C_role_auto:
-			return false
 		}
 		return false
 	}
@@ -100,4 +104,23 @@ func CheckIsSuperPeer() bool {
 		return true
 	}
 	return false
+}
+
+/*
+	获得自己的节点地址
+	@return   string    ip地址
+	@return   int       端口号
+*/
+func GetHost() (string, int) {
+	//局域网开发模式
+	if Mode_local {
+		return Init_LocalIP, Init_LocalPort
+	}
+	if Init_IsGlobalOnlyAddress {
+		return Init_LocalIP, Init_LocalPort
+	}
+	if Init_IsMapping {
+		return Init_GatewayAddress, Init_GatewayPort
+	}
+	return "", 0
 }

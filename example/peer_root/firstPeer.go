@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/prestonTao/mandela/core"
+	m "github.com/prestonTao/mandela/core"
 	"github.com/prestonTao/mandela/core/config"
 )
 
@@ -10,7 +10,7 @@ func main() {
 }
 
 func StartUP() {
-	config.Init_role = config.C_role_root
+	config.Init_role = config.C_role_super
 	config.Mode_local = true
-	core.StartCommandWindow()
+	m.StartCommandWindow()
 }

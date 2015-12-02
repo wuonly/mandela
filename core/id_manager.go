@@ -85,6 +85,7 @@ func initialization() {
 			return
 		}
 	}
+	utils.Log.Debug("本机id为：%s", Init_IdInfo.GetId())
 }
 
 /*

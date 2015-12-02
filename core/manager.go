@@ -31,20 +31,22 @@ func startUp() {
 			continue
 		}
 		// initialization()
-		StartUpCore()
+		connectNet()
 	}
 }
 
 func StartService() {
-
+	//启动核心组件
+	StartUpCore()
+	//开启web服务
+	// go StartWeb()
 }
 
 /*
-	根据网络环境启动程序
+	启动核心组件
 */
 func StartUpCore() {
-	//开启web服务
-	// go StartWeb()
+	utils.Log.Debug("启动服务器核心组件")
 
 	//是超级节点
 	node := &nodeStore.Node{
@@ -52,15 +54,35 @@ func StartUpCore() {
 		IsSuper: config.CheckIsSuperPeer(), //是否是超级节点
 		UdpPort: 0,
 	}
-	if config.Init_IsMapping {
-		node.Addr = config.Init_GatewayAddress
-		node.TcpPort = int32(config.Init_GatewayPort)
-	} else {
-		node.Addr = config.Init_LocalIP
-		node.TcpPort = int32(config.Init_LocalPort)
-	}
+	addr, port := config.GetHost()
+	node.Addr = addr
+	node.TcpPort = int32(port)
 
-	startUpCore(node)
+	/*
+		启动消息服务器
+	*/
+	engine.InitEngine(string(Init_IdInfo.Build()))
+	/*
+		生成密钥文件
+	*/
+	var err error
+	//生成密钥
+	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	if err != nil {
+		fmt.Println("生成密钥错误", err.Error())
+		return
+	}
+	/*
+		启动分布式哈希表
+	*/
+	nodeStore.InitNodeStore(node)
+	/*
+		设置关闭连接回调函数后监听
+	*/
+	engine.SetAuth(new(Auth))
+	engine.SetCloseCallback(closeConnCallback)
+	engine.Listen(config.Init_LocalIP, int32(config.Init_LocalPort))
+	go read()
 }
 
 // /*
@@ -95,50 +117,30 @@ func StartUpCore() {
 // 	}
 // }
 
-func startUpCore(node *nodeStore.Node) {
-	utils.Log.Debug("本机id为：%s", Init_IdInfo.GetId())
+/*
+	链接到网络中去
+*/
+func connectNet() {
+
+	// if config.Init_role != config.C_role_root {
+
+	// }
 	/*
-		启动消息服务器
+		连接到超级节点
 	*/
-	engine.InitEngine(string(Init_IdInfo.Build()))
-	/*
-		生成密钥文件
-	*/
-	var err error
-	//生成密钥
-	privateKey, err = rsa.GenerateKey(rand.Reader, 512)
+	one, err := addrm.GetSuperAddrOne()
 	if err != nil {
-		fmt.Println("生成密钥错误", err.Error())
 		return
 	}
-	/*
-		启动分布式哈希表
-	*/
-	nodeStore.InitNodeStore(node)
-	/*
-		设置关闭连接回调函数后监听
-	*/
-	engine.SetAuth(new(Auth))
-	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(config.Init_LocalIP, int32(config.Init_LocalPort))
-	if config.Init_role != config.C_role_root {
-		/*
-			连接到超级节点
-		*/
-		one, err := addrm.GetSuperAddrOne()
-		if err != nil {
-			return
-		}
-		host, portStr, _ := net.SplitHostPort(one)
-		port, err := strconv.Atoi(portStr)
-		if err != nil {
-			return
-		}
-		nodeStore.SuperName = engine.AddClientConn(host, int32(port), false)
-		//给目标机器发送自己的名片
-		introduceSelf()
+	host, portStr, _ := net.SplitHostPort(one)
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return
 	}
-	go read()
+	nodeStore.SuperName = engine.AddClientConn(host, int32(port), false)
+	//给目标机器发送自己的名片
+	introduceSelf()
+
 }
 
 /*
