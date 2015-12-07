@@ -20,6 +20,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -128,11 +129,11 @@ func GetId(idInfo nodeStore.IdInfo) (newIdInfo *nodeStore.IdInfo, err error) {
 	// 	Email:  "qqqqq@qq.com",
 	// 	Domain: "djfkafjkls",
 	// }
-	one, err := addrm.GetSuperAddrOne()
+	ip, port, err := addrm.GetSuperAddrOne(false)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := net.Dial("tcp", one)
+	conn, err := net.Dial("tcp", ip+":"+strconv.Itoa(port))
 	if err != nil {
 		err = errors.New("连接超级节点失败")
 		return

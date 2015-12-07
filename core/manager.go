@@ -11,13 +11,11 @@ import (
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
-	"net"
-	"strconv"
-	// "time"
 )
 
 var (
-	privateKey *rsa.PrivateKey
+	privateKey  *rsa.PrivateKey
+	isStartCore = false
 )
 
 func init() {
@@ -25,13 +23,13 @@ func init() {
 }
 
 func startUp() {
+	one := make(chan string, 0)
+	addrm.AddSubscribe(one)
 	for {
-		<-addrm.AvailableAddrChan
-		if len(Init_IdInfo.Id) == 0 {
-			continue
+		<-one
+		if !isStartCore {
+			StartUpCore()
 		}
-		// initialization()
-		connectNet()
 	}
 }
 
@@ -46,6 +44,9 @@ func StartService() {
 	启动核心组件
 */
 func StartUpCore() {
+	if len(Init_IdInfo.Id) == 0 {
+		return
+	}
 	utils.Log.Debug("启动服务器核心组件")
 
 	//是超级节点
@@ -82,6 +83,15 @@ func StartUpCore() {
 	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(config.Init_LocalIP, int32(config.Init_LocalPort))
+
+	/*
+		连接到超级节点
+	*/
+	ip, port, err := addrm.GetSuperAddrOne(false)
+	if err == nil {
+		connectNet(ip, port)
+	}
+
 	go read()
 }
 
@@ -120,7 +130,7 @@ func StartUpCore() {
 /*
 	链接到网络中去
 */
-func connectNet() {
+func connectNet(ip string, port int) {
 
 	// if config.Init_role != config.C_role_root {
 
@@ -128,16 +138,11 @@ func connectNet() {
 	/*
 		连接到超级节点
 	*/
-	one, err := addrm.GetSuperAddrOne()
-	if err != nil {
-		return
-	}
-	host, portStr, _ := net.SplitHostPort(one)
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return
-	}
-	nodeStore.SuperName = engine.AddClientConn(host, int32(port), false)
+	// one, err := addrm.GetSuperAddrOne()
+	// if err != nil {
+	// 	return
+	// }
+	nodeStore.SuperName = engine.AddClientConn(ip, int32(port), false)
 	//给目标机器发送自己的名片
 	introduceSelf()
 

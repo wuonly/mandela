@@ -7,14 +7,16 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 )
 
 const (
-	broadcastStartPort = 8980
+	broadcastStartPort  = 8980
+	broadcastServerPort = 9981 //广播服务器起始端口号
 )
 
 func init() {
-	//startBroadcastServer()
+	startBroadcastServer()
 }
 
 /*
@@ -22,24 +24,44 @@ func init() {
 */
 func startBroadcastServer() {
 	utils.Log.Debug("开始启动局域网广播服务器")
-	addr, err := net.ResolveUDPAddr("udp", "192.168.1.128:9981")
-	if err != nil {
-		log.Panic(err)
+	var conn *net.UDPConn
+	var err error
+	count := 10
+	for i := 0; i < count; i++ {
+		var addr *net.UDPAddr
+		addr, err = net.ResolveUDPAddr("udp", config.Init_LocalIP+":"+strconv.Itoa(broadcastServerPort+i))
+		if err != nil {
+			// log.Panic(err)
+			continue
+		}
+		fmt.Println(addr)
+		conn, err = net.ListenUDP("udp", addr)
+		if err != nil {
+			// log.Panic(err)
+			// utils.Log.Debug("开始启动局域网广播服务器")
+			continue
+		} else {
+			break
+		}
 	}
-	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
-		log.Panic(err)
-		// utils.Log.Debug("开始启动局域网广播服务器")
+		log.Panic("广播服务器启动失败")
+		return
 	}
+
 	go func() {
 		for {
-			if one, err := GetSuperAddrOne(); err != nil {
+			time.Sleep(time.Second * 10)
+			// if len(Sys_superNodeEntry) == 0 {
+			// 	continue
+			// }
+			if ip, port, err := GetSuperAddrOne(true); err == nil {
 				for i := 0; i < 10; i++ {
 					udpaddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:"+strconv.Itoa(broadcastStartPort+i))
 					if err != nil {
 						continue
 					}
-					_, err = conn.WriteToUDP([]byte(one), udpaddr)
+					_, err = conn.WriteToUDP([]byte(ip+":"+strconv.Itoa(port)), udpaddr)
 					if err != nil {
 						continue
 					}

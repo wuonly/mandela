@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/prestonTao/mandela/core/config"
 	"math/rand"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -25,9 +26,8 @@ var (
 	//需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
 	Sys_StopCleanSuperPeerEntry = make(chan bool)
 
-	startLoadChan     = make(chan bool, 1) //当本机没有可用的超级节点地址，这里会收到一个信号
-	AvailableAddrChan = make(chan bool, 1) //当本机有可用的超级节点地址，这里会收到一个信号
-
+	startLoadChan   = make(chan bool, 1)     //当本机没有可用的超级节点地址，这里会收到一个信号
+	subscribesChans = make([]chan string, 0) //当本机有可用的超级节点地址，这里会收到一个信
 )
 
 /*
@@ -69,16 +69,17 @@ func AddSuperPeerAddr(addr string) {
 /*
 	随机得到一个可用的超级节点地址
 	这个地址不能是自己的地址
-	@return  addr  随机获得的地址
+	@bool    contain    是否包含自己的地址
+	@return  addr       随机获得的地址
 */
-func GetSuperAddrOne() (string, error) {
+func GetSuperAddrOne(contain bool) (string, int, error) {
 	addr, port := config.GetHost()
 	myaddr := addr + strconv.Itoa(port)
 	rand.Seed(int64(time.Now().Nanosecond()))
 	for len(Sys_superNodeEntry) != 0 {
-		if len(Sys_superNodeEntry) == 1 {
+		if !contain && len(Sys_superNodeEntry) == 1 {
 			if _, ok := Sys_superNodeEntry[myaddr]; ok {
-				return "", errors.New("超级节点地址只有自己")
+				return "", 0, errors.New("超级节点地址只有自己")
 			}
 		}
 		// 随机取[0-1000)
@@ -86,11 +87,16 @@ func GetSuperAddrOne() (string, error) {
 		count := 0
 		for key, _ := range Sys_superNodeEntry {
 			if count == r {
-				if key == myaddr {
+				if !contain && key == myaddr {
 					break
 				}
 				if CheckOnline(key) {
-					return key, nil
+					host, portStr, _ := net.SplitHostPort(key)
+					port, err := strconv.Atoi(portStr)
+					if err != nil {
+						return "", 0, errors.New("IP地址解析失败")
+					}
+					return host, port, nil
 				} else {
 					delete(Sys_superNodeEntry, key)
 					break
@@ -99,7 +105,7 @@ func GetSuperAddrOne() (string, error) {
 			count = count + 1
 		}
 	}
-	return "", errors.New("没有可用的超级节点地址")
+	return "", 0, errors.New("没有可用的超级节点地址")
 }
 
 /*
@@ -111,4 +117,24 @@ func saveSuperPeerEntry(path string) {
 	file, _ := os.Create(path)
 	file.Write(fileBytes)
 	file.Close()
+}
+
+/*
+	添加一个消息订阅
+	当服务器有可用的ip地址时，广播给每一个订阅
+*/
+func AddSubscribe(c chan string) {
+	subscribesChans = append(subscribesChans, c)
+}
+
+/*
+	给所有订阅者广播消息
+*/
+func BroadcastSubscribe(addr string) {
+	for _, one := range subscribesChans {
+		select {
+		case one <- addr:
+		default:
+		}
+	}
 }
