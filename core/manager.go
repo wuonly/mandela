@@ -11,6 +11,8 @@ import (
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
+	"os"
+	"strconv"
 )
 
 var (
@@ -84,6 +86,8 @@ func StartUpCore() {
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(config.Init_LocalIP, int32(config.Init_LocalPort))
 
+	addrm.AddSuperPeerAddr(addr + ":" + strconv.Itoa(port))
+
 	/*
 		连接到超级节点
 	*/
@@ -154,6 +158,7 @@ func connectNet(ip string, port int) {
 func shutdownCallback() {
 	//回收映射的端口
 	config.Reclaim()
+	os.Exit(1)
 }
 
 /*

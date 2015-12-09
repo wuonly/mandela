@@ -63,7 +63,25 @@ func LoadAddrForAll() {
 	添加一个地址
 */
 func AddSuperPeerAddr(addr string) {
+	//检查是否重复
+	for key, _ := range Sys_superNodeEntry {
+		if key == addr {
+			return
+		}
+	}
+	//检查这个地址是否是自己
+	ip, port := config.GetHost()
+	myaddr := ip + ":" + strconv.Itoa(port)
+	if addr == myaddr {
+		Sys_superNodeEntry[addr] = ""
+		return
+	}
+	//检查这个地址是否可用
+	if !CheckOnline(addr) {
+		return
+	}
 	Sys_superNodeEntry[addr] = ""
+	BroadcastSubscribe(addr)
 }
 
 /*
