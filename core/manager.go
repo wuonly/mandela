@@ -11,7 +11,7 @@ import (
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
-	"os"
+	"net"
 	"strconv"
 )
 
@@ -28,9 +28,16 @@ func startUp() {
 	one := make(chan string, 0)
 	addrm.AddSubscribe(one)
 	for {
-		<-one
+		//接收到超级节点地址消息
+		addr := <-one
+		host, portStr, _ := net.SplitHostPort(addr)
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			// return "", 0, errors.New("IP地址解析失败")
+			continue
+		}
 		if !isStartCore {
-			StartUpCore()
+			connectNet(host, port)
 		}
 	}
 }
@@ -84,8 +91,7 @@ func StartUpCore() {
 	*/
 	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
-	engine.Listen(config.Init_LocalIP, int32(config.Init_LocalPort))
-
+	engine.Listen(config.TCPListener)
 	addrm.AddSuperPeerAddr(addr + ":" + strconv.Itoa(port))
 
 	/*
@@ -97,6 +103,7 @@ func StartUpCore() {
 	}
 
 	go read()
+	isStartCore = true
 }
 
 // /*
@@ -135,6 +142,14 @@ func StartUpCore() {
 	链接到网络中去
 */
 func connectNet(ip string, port int) {
+	if !isStartCore {
+		StartUpCore()
+		//启动失败
+		if !isStartCore {
+			return
+		}
+	}
+	utils.Log.Debug("链接到网络中去")
 
 	// if config.Init_role != config.C_role_root {
 
@@ -158,7 +173,8 @@ func connectNet(ip string, port int) {
 func shutdownCallback() {
 	//回收映射的端口
 	config.Reclaim()
-	os.Exit(1)
+	// addrm.CloseBroadcastServer()
+	fmt.Println("Close over")
 }
 
 /*

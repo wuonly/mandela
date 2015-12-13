@@ -20,7 +20,7 @@ func StartCommandWindow() {
 	signal.Notify(c, os.Interrupt, os.Kill)
 
 	//启动mandela程序
-	StartService()
+	go StartService()
 
 	running := true
 	for running {

@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"github.com/prestonTao/mandela/core/utils"
+	"net"
 	"sync"
 )
 
@@ -35,9 +36,9 @@ func (this *Engine) RegisterMsg(msgId int32, handler MsgHandler) {
 	AddRouter(msgId, handler)
 }
 
-func (this *Engine) Listen(ip string, port int32) {
+func (this *Engine) Listen(listener *net.TCPListener) {
 	this.run()
-	this.net.Listen(ip, port)
+	this.net.Listen(listener)
 }
 
 /*

@@ -17,6 +17,7 @@ const (
 
 var (
 	broadcastClientIsStart = false
+	broadcastServerConn    *net.UDPConn //广播服务器
 )
 
 func init() {
@@ -28,7 +29,7 @@ func init() {
 */
 func startBroadcastServer() {
 	utils.Log.Debug("开始启动局域网广播服务器")
-	var conn *net.UDPConn
+
 	var err error
 	count := 10
 	for i := 0; i < count; i++ {
@@ -38,8 +39,7 @@ func startBroadcastServer() {
 			// log.Panic(err)
 			continue
 		}
-		fmt.Println(addr)
-		conn, err = net.ListenUDP("udp", addr)
+		broadcastServerConn, err = net.ListenUDP("udp", addr)
 		if err != nil {
 			// log.Panic(err)
 			// utils.Log.Debug("开始启动局域网广播服务器")
@@ -55,13 +55,11 @@ func startBroadcastServer() {
 
 	go func() {
 		for {
-			fmt.Println("111111111111111")
 			time.Sleep(time.Second * 3)
 			// if len(Sys_superNodeEntry) == 0 {
 			// 	continue
 			// }
 			if ip, port, err := GetSuperAddrOne(true); err == nil {
-				fmt.Println("22222222")
 				for i := 0; i < 10; i++ {
 					// fmt.P "255.255.255.255:" + strconv.Itoa(broadcastStartPort+i)
 					udpaddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:"+strconv.Itoa(broadcastStartPort+i))
@@ -69,26 +67,31 @@ func startBroadcastServer() {
 						fmt.Println("失败")
 						continue
 					}
-					_, err = conn.WriteToUDP([]byte(ip+":"+strconv.Itoa(port)), udpaddr)
+					_, err = broadcastServerConn.WriteToUDP([]byte(ip+":"+strconv.Itoa(port)), udpaddr)
 					if err != nil {
 						fmt.Println("广播失败")
 						continue
 					} else {
-						fmt.Println("广播成功")
+						// fmt.Println("广播成功")
 					}
 				}
-			} else {
-				fmt.Println("33333333333")
 			}
 		}
 	}()
+
+}
+
+/*
+	关闭广播服务器
+*/
+func CloseBroadcastServer() {
+	broadcastServerConn.Close()
 }
 
 /*
 	通过组播方式获取地址列表
 */
 func LoadByMulticast() {
-
 	LoadByBroadcast()
 }
 
@@ -126,7 +129,8 @@ func LoadByBroadcast() {
 					return
 				}
 				if n != 0 {
-					fmt.Printf("%s\n", b[0:n])
+					// fmt.Printf("---%s\n", b[0:n])
+					AddSuperPeerAddr(string(b[:n]))
 				}
 			}
 		}()

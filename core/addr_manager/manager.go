@@ -92,7 +92,7 @@ func AddSuperPeerAddr(addr string) {
 */
 func GetSuperAddrOne(contain bool) (string, int, error) {
 	addr, port := config.GetHost()
-	myaddr := addr + strconv.Itoa(port)
+	myaddr := addr + ":" + strconv.Itoa(port)
 	rand.Seed(int64(time.Now().Nanosecond()))
 	for len(Sys_superNodeEntry) != 0 {
 		if !contain && len(Sys_superNodeEntry) == 1 {
@@ -105,8 +105,17 @@ func GetSuperAddrOne(contain bool) (string, int, error) {
 		count := 0
 		for key, _ := range Sys_superNodeEntry {
 			if count == r {
-				if !contain && key == myaddr {
-					break
+				if key == myaddr {
+					if contain {
+						host, portStr, _ := net.SplitHostPort(key)
+						port, err := strconv.Atoi(portStr)
+						if err != nil {
+							return "", 0, errors.New("IP地址解析失败")
+						}
+						return host, port, nil
+					} else {
+						break
+					}
 				}
 				if CheckOnline(key) {
 					host, portStr, _ := net.SplitHostPort(key)

@@ -1,10 +1,8 @@
 package net
 
 import (
-	"fmt"
 	"github.com/prestonTao/mandela/core/utils"
 	"net"
-	"strconv"
 	"time"
 )
 
@@ -15,19 +13,20 @@ type Net struct {
 	closecallback CloseCallback
 }
 
-func (this *Net) Listen(ip string, port int32) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", ip+":"+strconv.Itoa(int(port)))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	listener, err := net.ListenTCP("tcp4", tcpAddr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	utils.Log.Debug("监听一个地址：%s", ip+":"+strconv.Itoa(int(port)))
+func (this *Net) Listen(listener *net.TCPListener) {
+	// tcpAddr, err := net.ResolveTCPAddr("tcp4", ip+":"+strconv.Itoa(int(port)))
+	// if err != nil {
+	// 	utils.Log.Error("这个地址不符合规范：%s", ip+":"+strconv.Itoa(int(port)))
+	// 	return
+	// }
+	// var listener *net.TCPListener
+	// listener, err = net.ListenTCP("tcp4", tcpAddr)
+	// if err != nil {
+	// 	utils.Log.Error("监听一个地址失败：%s", ip+":"+strconv.Itoa(int(port)))
+	// 	utils.Log.Error("%v", err)
+	// 	return
+	// }
+	// utils.Log.Debug("监听一个地址：%s", ip+":"+strconv.Itoa(int(port)))
 	// fmt.Println("监听一个地址：", ip+":"+strconv.Itoa(int(port)))
 	// fmt.Println(ip + ":" + strconv.Itoa(int(port)) + "成功启动服务器")
 	go this.listener(listener)
@@ -70,7 +69,8 @@ func (this *Net) newConnect(conn net.Conn) {
 	serverConn.run()
 	this.sessionStore.addSession(remoteName, serverConn)
 
-	fmt.Println(time.Now().String(), "建立连接", conn.RemoteAddr().String())
+	// fmt.Println(time.Now().String(), "建立连接", conn.RemoteAddr().String())
+	utils.Log.Debug("建立连接：%s", conn.RemoteAddr().String())
 
 }
 

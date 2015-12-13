@@ -74,7 +74,7 @@ func RecvPackage(conn net.Conn) (packet *GetPacket, e error, isClose bool) {
 		packet.Date = data
 		packet.MsgID = int32(msgID)
 		packet.Size = uint32(len(data))
-		utils.Log.Debug("conn recv: %s %s", conn.RemoteAddr(), string(data))
+		utils.Log.Debug("conn recv: %s %s \n", conn.RemoteAddr(), string(data))
 	})
 	isTimeOut := timeout.Do(time.Second * 5)
 	if isTimeOut {

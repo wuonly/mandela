@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	addrm "github.com/prestonTao/mandela/core/addr_manager"
 	"github.com/prestonTao/mandela/core/config"
 	"github.com/prestonTao/mandela/core/nodeStore"
@@ -69,22 +68,7 @@ func initialization() {
 	//没有idinfo的新节点
 	if len(Init_IdInfo.Id) == 0 {
 		//连接网络并得到一个idinfo
-		newnode := nodeStore.IdInfo{
-			Id:          Str_zaro,
-			CreateTime:  time.Now().Format("2006-01-02 15:04:05.999999999"),
-			Domain:      utils.GetRandomDomain(),
-			Name:        "",
-			Email:       "",
-			SuperNodeId: Str_zaro,
-		}
-		idInfo, err := GetId(newnode)
-		if err == nil {
-			Init_IdInfo = *idInfo
-			// saveIdInfo(Path_Id)
-		} else {
-			fmt.Println("从网络中获得idinfo失败")
-			return
-		}
+		GetId()
 	}
 	utils.Log.Debug("本机id为：%s", Init_IdInfo.GetId())
 }
@@ -122,7 +106,16 @@ func saveIdInfo(path string) {
 	连接超级节点，得到一个id
 	@ addr   超级节点ip地址
 */
-func GetId(idInfo nodeStore.IdInfo) (newIdInfo *nodeStore.IdInfo, err error) {
+func GetId() (newIdInfo *nodeStore.IdInfo, err error) {
+	idInfo := nodeStore.IdInfo{
+		Id:          Str_zaro,
+		CreateTime:  time.Now().Format("2006-01-02 15:04:05.999999999"),
+		Domain:      utils.GetRandomDomain(),
+		Name:        "",
+		Email:       "",
+		SuperNodeId: Str_zaro,
+	}
+
 	// idInfo = nodeStore.IdInfo{
 	// 	Id:     Str_zaro,
 	// 	Name:   "nimei",
@@ -164,6 +157,8 @@ func GetId(idInfo nodeStore.IdInfo) (newIdInfo *nodeStore.IdInfo, err error) {
 	newIdInfo = new(nodeStore.IdInfo)
 	json.Unmarshal(nameByte[:n], newIdInfo)
 	conn.Close()
+
+	Init_IdInfo = idInfo
 	return
 }
 

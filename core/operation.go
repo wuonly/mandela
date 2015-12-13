@@ -117,7 +117,7 @@ func AddAddr(addr string) {
 */
 func CreateAccount(name, email, domain string) {
 	//连接网络并得到一个idinfo
-	idInfo, err := GetId(nodeStore.NewIdInfo(name, email, domain, Str_zaro))
+	idInfo, err := GetId()
 	if err == nil {
 		Init_IdInfo = *idInfo
 	} else {

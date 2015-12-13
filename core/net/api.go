@@ -2,6 +2,7 @@ package net
 
 import (
 	"fmt"
+	"net"
 )
 
 //实例化
@@ -25,9 +26,9 @@ func RegisterMsg(msgId int32, handler MsgHandler) {
 	AddRouter(msgId, handler)
 }
 
-func Listen(ip string, port int32) {
+func Listen(listener *net.TCPListener) {
 	engine.run()
-	engine.net.Listen(ip, port)
+	engine.net.Listen(listener)
 }
 
 /*

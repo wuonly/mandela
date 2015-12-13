@@ -44,15 +44,16 @@ var (
 	// IsRoot        bool //是否是第一个节点
 	SuperNodeIp   string
 	SuperNodePort int
+	TCPListener   *net.TCPListener
 )
 
 func init() {
 	utils.GlobalInit("console", "", "debug", 1)
 	// utils.GlobalInit("file", `{"filename":"/var/log/gd/gd.log"}`, "", 1000)
 	// utils.Log.Debug("session handle receive, %d, %v", msg.Code(), msg.Content())
-	utils.Log.Debug("test debug")
-	utils.Log.Warn("test warn")
-	utils.Log.Error("test error")
+	// utils.Log.Debug("test debug")
+	// utils.Log.Warn("test warn")
+	// utils.Log.Error("test error")
 
 	AutoRole()
 }
@@ -76,12 +77,48 @@ func AutoRole() {
 		Init_LocalIP = utils.GetLocalHost()
 	}
 
+	//占用本机一个端口
+	var err error
+	for i := 0; i < 100; i++ {
+		TCPListener, err = GetTCPListener(Init_LocalIP, Init_LocalPort+i)
+		if err == nil {
+			break
+		}
+	}
+	if TCPListener == nil {
+		utils.Log.Error("没有可用的TCP端口")
+		panic("没有可用的TCP端口")
+		return
+	}
+
 	//得到本机可用端口
-	LnrTCP = utils.GetAvailablePortForTCP(Init_LocalIP)
-	ipStr := LnrTCP.Addr().String()
+	// LnrTCP = utils.GetAvailablePortForTCP(Init_LocalIP)
+	ipStr := TCPListener.Addr().String()
 	Init_LocalPort, _ = strconv.Atoi(ipStr[strings.Index(ipStr, ":")+1:])
 
 	utils.Log.Debug("本机监听地址：%s:%d", Init_LocalIP, Init_LocalPort)
+}
+
+/*
+	获得一个TCP监听
+*/
+func GetTCPListener(ip string, port int) (*net.TCPListener, error) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", ip+":"+strconv.Itoa(int(port)))
+	if err != nil {
+		// Log.Error("这个地址不符合规范：%s", ip+":"+strconv.Itoa(int(port)))
+		return nil, err
+	}
+	var listener *net.TCPListener
+	listener, err = net.ListenTCP("tcp4", tcpAddr)
+	if err != nil {
+		// Log.Error("监听一个地址失败：%s", ip+":"+strconv.Itoa(int(port)))
+		// Log.Error("%v", err)
+		return nil, err
+	}
+	// Log.Debug("监听一个地址：%s", ip+":"+strconv.Itoa(int(port)))
+	// fmt.Println("监听一个地址：", ip+":"+strconv.Itoa(int(port)))
+	// fmt.Println(ip + ":" + strconv.Itoa(int(port)) + "成功启动服务器")
+	return listener, nil
 }
 
 /*
