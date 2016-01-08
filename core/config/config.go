@@ -24,15 +24,10 @@ var (
 	Init_LocalIP             = ""    //本地ip地址(局域网ip或公网全球唯一ip)
 	Init_LocalPort           = 9981  //本地监听端口
 
-	Init_IsMapping = false //是否映射了端口
-	// Init_IsSuperPeer    = false //有公网ip或添加了端口映射则是超级节点
-	Init_GatewayAddress = ""   //网关地址
-	Init_GatewayPort    = 9981 //网关端口
+	Init_IsMapping      = false //是否映射了端口
+	Init_GatewayAddress = ""    //网关地址
+	Init_GatewayPort    = 9981  //网关端口
 
-	// Init_ExternalIP  = ""   //添加端口映射后的网关公网ip地址
-	// Init_MappingPort = 9981 //映射到路由器的端口
-
-	// Mode_dev   = false       //是否是开发者模式
 	Mode_local = true          //是否是局域网开发模式
 	Init_role  = C_role_client //服务器角色，当为开发模式时可用
 
@@ -41,10 +36,9 @@ var (
 )
 
 var (
-	// IsRoot        bool //是否是第一个节点
-	SuperNodeIp   string
-	SuperNodePort int
-	TCPListener   *net.TCPListener
+	// SuperNodeIp   string           //超级节点ip地址
+	// SuperNodePort int              //超级节点端口
+	TCPListener *net.TCPListener //本地监听TCP端口
 )
 
 func init() {

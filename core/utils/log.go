@@ -61,21 +61,21 @@ type BeegoLog struct {
 
 func (this *BeegoLog) Info(format string, v ...interface{}) {
 	if logIsOpen {
-		this.log.Info(format, v)
+		this.log.Info(format, v...)
 	}
 }
 func (this *BeegoLog) Debug(format string, v ...interface{}) {
 	if logIsOpen {
-		this.log.Debug(format, v)
+		this.log.Debug(format, v...)
 	}
 }
 func (this *BeegoLog) Warn(format string, v ...interface{}) {
 	if logIsOpen {
-		this.log.Warn(format, v)
+		this.log.Warn(format, v...)
 	}
 }
 func (this *BeegoLog) Error(format string, v ...interface{}) {
 	if logIsOpen {
-		this.log.Error(format, v)
+		this.log.Error(format, v...)
 	}
 }

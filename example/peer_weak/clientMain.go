@@ -1,7 +1,8 @@
 package main
 
 import (
-	m "github.com/prestonTao/mandela/core"
+	"github.com/prestonTao/mandela/core"
+	"github.com/prestonTao/mandela/core/config"
 )
 
 func main() {
@@ -9,8 +10,8 @@ func main() {
 }
 
 func StartUP() {
-	m.Init_role = m.C_role_client
-	m.Mode_local = true
-	m.StartCommandWindow()
+	config.Init_role = config.C_role_client
+	config.Mode_local = true
+	core.StartCommandWindow()
 
 }

@@ -94,7 +94,8 @@ func (this *Auth) RecvKey(conn net.Conn, name string) (remoteName string, err er
 			return
 		}
 
-		*clientIdInfo = nodeStore.NewIdInfo(clientIdInfo.Name, clientIdInfo.Email, clientIdInfo.Domain, nodeStore.ParseId(name))
+		*clientIdInfo = nodeStore.NewIdInfo(clientIdInfo.Name, clientIdInfo.Email,
+			clientIdInfo.Domain, nodeStore.ParseId(name))
 		//给服务器发送生成的id
 		newName := string(clientIdInfo.Build())
 		conn.Write(GetBytesForName(newName))

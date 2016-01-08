@@ -1,9 +1,10 @@
 package net
 
 import (
-	"github.com/prestonTao/mandela/core/utils"
 	"net"
 	"time"
+
+	"github.com/prestonTao/mandela/core/utils"
 )
 
 type Net struct {
@@ -64,6 +65,7 @@ func (this *Net) newConnect(conn net.Conn) {
 		inPack: this.Recv,
 		net:    this,
 	}
+	serverConn.sessionStore = this.sessionStore
 	serverConn.name = remoteName
 	serverConn.attrbutes = make(map[string]interface{})
 	serverConn.run()
@@ -100,6 +102,7 @@ func (this *Net) AddClientConn(ip, serverName string, port int32, powerful bool)
 		net:        this,
 		isPowerful: powerful,
 	}
+	clientConn.sessionStore = this.sessionStore
 	clientConn.attrbutes = make(map[string]interface{})
 	remoteName, err := clientConn.Connect(ip, port)
 	if err == nil {

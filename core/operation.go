@@ -3,13 +3,14 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	addrm "github.com/prestonTao/mandela/core/addr_manager"
 	msgc "github.com/prestonTao/mandela/core/message_center"
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
-	"strings"
-	"time"
 )
 
 //保存一个键值对
@@ -43,6 +44,7 @@ func SendMsgForOne_opt(target, message string) {
 		ProtoId:    msgc.MSGID_Text,
 		CreateTime: time.Now().Unix(),
 		Content:    []byte(message),
+		Accurate:   true,
 	}
 	msgc.SendMessage(messageSend)
 }

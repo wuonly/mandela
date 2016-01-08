@@ -70,7 +70,6 @@ func initialization() {
 		//连接网络并得到一个idinfo
 		GetId()
 	}
-	utils.Log.Debug("本机id为：%s", Init_IdInfo.GetId())
 }
 
 /*
@@ -158,7 +157,8 @@ func GetId() (newIdInfo *nodeStore.IdInfo, err error) {
 	json.Unmarshal(nameByte[:n], newIdInfo)
 	conn.Close()
 
-	Init_IdInfo = idInfo
+	Init_IdInfo = *newIdInfo
+
 	return
 }
 

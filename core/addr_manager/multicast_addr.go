@@ -104,7 +104,8 @@ func LoadByBroadcast() {
 		return
 	}
 	utils.Log.Debug("正在启动局域网广播客户端")
-	conns := make([]*net.UDPConn, 0)
+	// conns := make([]*net.UDPConn, 0)
+	var conn *net.UDPConn
 	//开始启动监听
 	count := 10
 	for i := 0; i < count; i++ {
@@ -112,13 +113,14 @@ func LoadByBroadcast() {
 		if err != nil {
 			log.Panic(err)
 		}
-		conn, err := net.ListenUDP("udp", addr)
+		conn, err = net.ListenUDP("udp", addr)
 		if err != nil {
 			// log.Panic(err)
 			count++
 			continue
 		}
-		conns = append(conns, conn)
+		utils.Log.Debug("局域网广播客户端启动成功，监听端口：%s", conn.LocalAddr().String())
+		// conns = append(conns, conn)
 
 		var b [512]byte
 		go func() {
@@ -134,11 +136,19 @@ func LoadByBroadcast() {
 				}
 			}
 		}()
+		if conn != nil {
+			break
+		}
 	}
 	//启动失败
-	if len(conns) == 0 {
+	if conn == nil {
+		utils.Log.Debug("启动局域网广播客户端失败")
 		return
 	}
+	// if len(conns) == 0 {
+	// 	utils.Log.Debug("启动局域网广播客户端失败")
+	// 	return
+	// }
 	broadcastClientIsStart = true
 	go func() {
 		c := make(chan string, 1)
@@ -146,9 +156,10 @@ func LoadByBroadcast() {
 		<-c
 		utils.Log.Debug("开始关闭局域网广播客户端")
 		broadcastClientIsStart = false
-		for _, one := range conns {
-			one.Close()
-		}
+		conn.Close()
+		// for _, one := range conns {
+		// 	one.Close()
+		// }
 	}()
 
 }

@@ -7,8 +7,9 @@ import (
 )
 
 type sessionBase struct {
-	name      string
-	attrbutes map[string]interface{}
+	sessionStore *sessionStore
+	name         string
+	attrbutes    map[string]interface{}
 }
 
 func (this *sessionBase) Set(name string, value interface{}) {
@@ -21,6 +22,12 @@ func (this *sessionBase) GetName() string {
 	return this.name
 }
 func (this *sessionBase) SetName(name string) {
+	oldName := this.name
+	_, ok := this.sessionStore.nameStore[oldName]
+	if ok {
+		delete(this.sessionStore.nameStore, oldName)
+	}
+	this.sessionStore.nameStore[name] = this
 	this.name = name
 }
 func (this *sessionBase) Send(msgID uint32, data *[]byte) (err error) { return }

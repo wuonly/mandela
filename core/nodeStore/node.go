@@ -88,7 +88,7 @@ func CheckIdInfo(idInfo IdInfo) bool {
 }
 
 /*
-	得到id
+	解析IdInfo得到纯id
 */
 func ParseId(idInfoStr string) (id string) {
 	idInfo := IdInfo{}

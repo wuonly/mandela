@@ -5,14 +5,15 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
+
 	addrm "github.com/prestonTao/mandela/core/addr_manager"
 	"github.com/prestonTao/mandela/core/config"
 	msg "github.com/prestonTao/mandela/core/message_center"
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
-	"net"
-	"strconv"
 )
 
 var (
@@ -30,10 +31,12 @@ func startUp() {
 	for {
 		//接收到超级节点地址消息
 		addr := <-one
+		utils.Log.Debug("有新的地址")
 		host, portStr, _ := net.SplitHostPort(addr)
 		port, err := strconv.Atoi(portStr)
 		if err != nil {
 			// return "", 0, errors.New("IP地址解析失败")
+
 			continue
 		}
 		if !isStartCore {
@@ -54,14 +57,19 @@ func StartService() {
 */
 func StartUpCore() {
 	if len(Init_IdInfo.Id) == 0 {
-		return
+		GetId()
+		if len(Init_IdInfo.Id) == 0 {
+			return
+		}
 	}
 	utils.Log.Debug("启动服务器核心组件")
+	utils.Log.Debug("本机id为：\n%s", Init_IdInfo.GetId())
 
+	isSuperPeer := config.CheckIsSuperPeer()
 	//是超级节点
 	node := &nodeStore.Node{
 		IdInfo:  Init_IdInfo,
-		IsSuper: config.CheckIsSuperPeer(), //是否是超级节点
+		IsSuper: isSuperPeer, //是否是超级节点
 		UdpPort: 0,
 	}
 	addr, port := config.GetHost()
@@ -92,7 +100,12 @@ func StartUpCore() {
 	engine.SetAuth(new(Auth))
 	engine.SetCloseCallback(closeConnCallback)
 	engine.Listen(config.TCPListener)
-	addrm.AddSuperPeerAddr(addr + ":" + strconv.Itoa(port))
+	//自己是超级节点就把自己添加到超级节点地址列表中去
+	if isSuperPeer {
+		addrm.AddSuperPeerAddr(addr + ":" + strconv.Itoa(port))
+	}
+
+	isStartCore = true
 
 	/*
 		连接到超级节点
@@ -103,40 +116,8 @@ func StartUpCore() {
 	}
 
 	go read()
-	isStartCore = true
-}
 
-// /*
-// 	开始启动服务器
-// */
-// func StartUp() {
-// 	//尝试端口映射
-// 	// portMapping()
-// 	//是超级节点
-// 	var node *nodeStore.Node
-// 	if config.Init_IsSuperPeer || config.Init_role == config.C_role_root {
-// 		node = &nodeStore.Node{
-// 			IdInfo:  Init_IdInfo,
-// 			IsSuper: config.Init_IsSuperPeer, //是否是超级节点
-// 			Addr:    config.Init_GlobalUnicastAddress,
-// 			TcpPort: int32(config.Init_GlobalUnicastAddress_port),
-// 			UdpPort: 0,
-// 		}
-// 	} else {
-// 		node = &nodeStore.Node{
-// 			IdInfo:  Init_IdInfo,
-// 			IsSuper: config.Init_IsSuperPeer, //是否是超级节点
-// 			Addr:    config.Init_LocalIP,
-// 			TcpPort: int32(config.Init_LocalPort),
-// 			UdpPort: 0,
-// 		}
-// 	}
-// 	startUp(node)
-// 	if config.Init_role == config.C_role_root {
-// 		// StartRootPeer()
-// 		addrm.StartLoadSuperPeer()
-// 	}
-// }
+}
 
 /*
 	链接到网络中去
@@ -151,17 +132,10 @@ func connectNet(ip string, port int) {
 	}
 	utils.Log.Debug("链接到网络中去")
 
-	// if config.Init_role != config.C_role_root {
-
-	// }
-	/*
-		连接到超级节点
-	*/
-	// one, err := addrm.GetSuperAddrOne()
-	// if err != nil {
-	// 	return
-	// }
 	nodeStore.SuperName = engine.AddClientConn(ip, int32(port), false)
+	utils.Log.Debug("超级节点为: %s", nodeStore.SuperName)
+	// config.SuperNodeIp = ip
+	// config.SuperNodePort = port
 	//给目标机器发送自己的名片
 	introduceSelf()
 
@@ -205,6 +179,11 @@ func introduceSelf() {
 	一个连接断开后的回调方法
 */
 func closeConnCallback(name string) {
+	// utils.Log.Debug("节点下线 %s", nodeStore.ParseId(name))
+	node := nodeStore.Get(nodeStore.ParseId(name), false, "")
+	// fmt.Println("节点下线", node)
+
+	// utils.Log.Debug("目前超级节点是 %s", nodeStore.ParseId(nodeStore.SuperName))
 
 	if name == nodeStore.SuperName {
 		fmt.Println("超级节点断开连接:", name)
@@ -225,8 +204,7 @@ func closeConnCallback(name string) {
 	// if err != nil {
 	// 	fmt.Println("客户端离线，但找不到这个session")
 	// }
-	node := nodeStore.Get(nodeStore.ParseId(name), false, "")
-	fmt.Println("节点下线", node)
+
 	if node != nil && !node.IsSuper {
 		fmt.Println("自己代理的节点下线:", nodeStore.ParseId(name))
 	}
@@ -309,7 +287,7 @@ func read() {
 			//发送右邻居节点查找请求
 			findNodeOne.WantId = "right"
 			id = nodeStore.GetRightNode(*nodeStore.Root.IdInfo.GetBigIntId(), 1)
-			if id == nil {
+			if id == nil || len(id) == 0 {
 				continue
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)

@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
-	"math/big"
+	"github.com/prestonTao/mandela/core/utils"
 )
 
 const (
@@ -63,12 +65,26 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 		return false
 	}
 	if nodeStore.ParseId(nodeStore.GetRootIdInfoString()) == messageRecv.TargetId {
-		//是自己的消息，处理这个消息
+		//是自己的消息，则处理这个消息
+		fmt.Println("11111111111")
 		return true
 	} else {
+		//先判断是否在自己的代理节点中，普通节点没有代理节点
+		if targetNode, ok := nodeStore.GetProxyNode(messageRecv.TargetId); ok {
+			if session, ok := c.GetSession(string(targetNode.IdInfo.Build())); ok {
+				err := session.Send(SendMessageNum, &msg.Date)
+				if err != nil {
+					//fmt.Println("message发送数据出错：", err.Error())
+					utils.Log.Debug("message发送数据出错：%v", err)
+				}
+			} else {
+				//这个节点离线了，想办法处理下
+				utils.Log.Debug("这个节点离线了，想办法处理下")
+			}
+			return false
+		}
 		//先判断自己是不是超级节点
 		if !nodeStore.Root.IsSuper {
-			fmt.Println("super name:", nodeStore.SuperName)
 			if session, ok := c.GetSession(nodeStore.SuperName); ok {
 				err := session.Send(SendMessageNum, &msg.Date)
 				if err != nil {
@@ -80,39 +96,29 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 			}
 			return false
 		}
-		//先判断是否在自己的代理节点中
-		if targetNode, ok := nodeStore.GetProxyNode(messageRecv.TargetId); ok {
-			if session, ok := c.GetSession(string(targetNode.IdInfo.Build())); ok {
-				err := session.Send(SendMessageNum, &msg.Date)
-				if err != nil {
-					fmt.Println("message发送数据出错：", err.Error())
-				}
-			} else {
-				//这个节点离线了，想办法处理下
-			}
-			return false
-		}
-		// fmt.Println("把消息转发出去")
-		//最后转发出去
+		//检查这个消息是否因该自己处理，还是转发出去
 		targetNode := nodeStore.Get(messageRecv.TargetId, true, "")
 		if targetNode == nil {
+			utils.Log.Error("邻近节点查询出错")
 			return false
 		}
+		//这个消息因该自己处理
 		if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
-			targetNode = nodeStore.GetInAll(messageRecv.TargetId, true, "")
-			if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
-				if !messageRecv.Accurate {
-					fmt.Println("看下是不是这里的问题")
-					return true
-				} else {
-					fmt.Println("这个精确发送的消息没人接收")
-				}
+			//指定节点处理
+			if messageRecv.Accurate {
+				//可能是普通节点未连接，先把消息保存起来
+				utils.Log.Warn("可能是普通节点未连接，先把消息保存起来")
 				return false
 			}
+			//未指定节点处理，则自己处理
+			fmt.Println("2222222222")
+			return true
 		}
+		//这个消息不该自己处理，则转发出去
 		// session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
 		session, ok := c.GetSession(string(targetNode.IdInfo.Build()))
 		if !ok {
+			//转发失败
 			return false
 		}
 		// fmt.Println(session.GetName())
@@ -121,6 +127,67 @@ func IsSendToSelf(c engine.Controller, msg engine.GetPacket) bool {
 			fmt.Println("message发送数据出错：", err.Error())
 		}
 		return false
+
+		//		//---------------------------------
+		//		//先判断自己是不是超级节点
+		//		if !nodeStore.Root.IsSuper {
+		//			if session, ok := c.GetSession(nodeStore.SuperName); ok {
+		//				err := session.Send(SendMessageNum, &msg.Date)
+		//				if err != nil {
+		//					fmt.Println("message发送数据出错：", err.Error())
+		//				}
+		//			} else {
+		//				fmt.Println("超级节点不在了")
+		//				//超级节点都不在了，搞个锤子
+		//			}
+		//			return false
+		//		}
+		//		/*
+		//			XXXXXXXXXXXXXXXXXXXXXXXXX
+		//			存在一种情况，被代理节点还未连接到该节点
+		//			XXXXXXXXXXXXXXXXXXXXXXXXX
+		//		*/
+		//		//先判断是否在自己的代理节点中
+		//		if targetNode, ok := nodeStore.GetProxyNode(messageRecv.TargetId); ok {
+		//			if session, ok := c.GetSession(string(targetNode.IdInfo.Build())); ok {
+		//				err := session.Send(SendMessageNum, &msg.Date)
+		//				if err != nil {
+		//					fmt.Println("message发送数据出错：", err.Error())
+		//				}
+		//			} else {
+		//				//这个节点离线了，想办法处理下
+		//			}
+		//			return false
+		//		}
+		//		// fmt.Println("把消息转发出去")
+		//		//最后转发出去
+		//		targetNode := nodeStore.Get(messageRecv.TargetId, true, "")
+		//		if targetNode == nil {
+		//			return false
+		//		}
+		//		if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
+		//			targetNode = nodeStore.GetInAll(messageRecv.TargetId, true, "")
+		//			if string(targetNode.IdInfo.Build()) == nodeStore.GetRootIdInfoString() {
+		//				if !messageRecv.Accurate {
+		//					fmt.Println("看下是不是这里的问题")
+		//					return true
+		//				} else {
+		//					fmt.Println("这个精确发送的消息没人接收")
+		//				}
+		//				return false
+		//			}
+		//		}
+		//		// session, ok := c.GetSession(hex.EncodeToString(targetNode.NodeId.Bytes()))
+		//		session, ok := c.GetSession(string(targetNode.IdInfo.Build()))
+		//		if !ok {
+		//			return false
+		//		}
+		//		// fmt.Println(session.GetName())
+		//		err := session.Send(SendMessageNum, &msg.Date)
+		//		if err != nil {
+		//			fmt.Println("message发送数据出错：", err.Error())
+		//		}
+		//		return false
 	}
 }
 
@@ -343,35 +410,6 @@ func (this *NodeManager) sendMsg(nodeId string, data *[]byte, c engine.Controlle
 	自己保存这个节点，只能保存超级节点
 */
 func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
-	//自己不是超级节点
-	if !nodeStore.Root.IsSuper {
-		//代理节点查找的备用超级节点
-		// if findNode.WantId == "left" || findNode.WantId == "right" {
-		// 	fmt.Println("添加备用节点：", nodeStore.ParseId(findNode.FindId))
-		// 	// store.AddNode(node)
-		// 	// return
-		// }
-		//查找到的节点和自己的超级节点不一样，则连接新的超级节点
-		if nodeStore.SuperName != findNode.FindId {
-			oldSuperName := nodeStore.SuperName
-			// fmt.Println("链接新的超级节点")
-			session, _ := c.GetNet().AddClientConn(findNode.Addr, nodeStore.GetRootIdInfoString(), findNode.TcpPort, false)
-
-			nodeStore.SuperName = session.GetName()
-
-			if _, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
-				// fmt.Println("链接成功：", nodeStore.SuperName)
-			}
-			if session, ok := c.GetNet().GetSession(oldSuperName); ok {
-				// fmt.Println("close -------------------1")
-				session.Close()
-				// fmt.Println("关闭旧链接：", oldSuperName)
-			}
-			return
-		}
-
-	}
-
 	findNodeIdInfo := new(nodeStore.IdInfo)
 	json.Unmarshal([]byte(findNode.FindId), findNodeIdInfo)
 	// nodeStore.Parse(findNode.FindId)
@@ -383,46 +421,21 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 		TcpPort: findNode.TcpPort,
 		UdpPort: findNode.UdpPort,
 	}
+
+	//自己不会连接自己
+	if nodeStore.GetRootIdInfoString() == string(newNode.IdInfo.Build()) {
+		return
+	}
+
 	//是否需要这个节点
 	if isNeed, replace := nodeStore.CheckNeedNode(findNodeIdInfo.GetId()); isNeed {
-		//------------start--------------------------
-		//这一块只为打印一个日志，可以去掉
-		// ishave := false
-		// for _, value := range nodeStore.GetAllNodes() {
-		// 	if value.IdInfo.GetId() == findNodeIdInfo.GetId() {
-		// 		ishave = true
-		// 		break
-		// 	}
-		// }
-		// if ishave {
-		// fmt.Println("需要这个节点", findNodeIdInfo.GetId())
-		// }
-		//------------end--------------------------
 		nodeStore.AddNode(newNode)
-		//把替换的节点连接删除
 		if replace != "" {
-			//是否要替换超级节点
-			if session, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
-				if replace == session.GetName() {
-					// fmt.Println("close -------------------2")
-					session.Close()
-					session, _ := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
-					nodeStore.SuperName = session.GetName()
-					introduceSelf(session)
-				}
-			}
-			if session, ok := c.GetSession(replace); ok {
-				// fmt.Println("close -------------------3")
-				session.Close()
-				nodeStore.DelNode(replace)
-			}
+			nodeStore.DelNode(replace)
 		}
+		//自己是超级节点，就连接这个节点
 		if nodeStore.Root.IsSuper {
-			//自己不会连接自己
-			if nodeStore.GetRootIdInfoString() == string(newNode.IdInfo.Build()) {
-				return
-			}
-			//检查这个session是否存在
+			//检查这个session是否存在，不存在就连接它
 			if _, ok := c.GetNet().GetSession(string(newNode.IdInfo.Build())); !ok {
 				session, err := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
 				if err != nil {
@@ -433,6 +446,103 @@ func (this *NodeManager) saveNode(findNode *FindNode, c engine.Controller) {
 				}
 			}
 		}
+		//找到自己最近的节点
+		recentNode := nodeStore.Get(nodeStore.ParseId(nodeStore.GetRootIdInfoString()), false, "")
+		if recentNode == nil {
+			return
+		}
+		//是否需要替换超级节点
+		if string(recentNode.IdInfo.Build()) != nodeStore.SuperName {
+			//需要替换
+
+			//非超级节点的操作
+			if !nodeStore.Root.IsSuper {
+				oldSuperName := nodeStore.SuperName
+				fmt.Println("旧的超级节点id ", oldSuperName)
+				// fmt.Println("链接新的超级节点")
+				session, _ := c.GetNet().AddClientConn(recentNode.Addr,
+					nodeStore.GetRootIdInfoString(), recentNode.TcpPort, false)
+				nodeStore.SuperName = session.GetName()
+				fmt.Println("新的超级节点id ", nodeStore.SuperName)
+				if session, ok := c.GetNet().GetSession(oldSuperName); ok {
+					fmt.Println("close -------------------1")
+					session.Close()
+					// fmt.Println("关闭旧链接：", oldSuperName)
+				}
+				return
+			}
+			//超级节点的操作
+			//把旧超级节点连接删除
+			if session, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
+				session.Close()
+			}
+			//设置新的连接为超级节点连接
+			nodeStore.SuperName = string(recentNode.IdInfo.Build()) // session.GetName()
+
+		}
+
+		//		if !nodeStore.Root.IsSuper {
+		//			//			fmt.Println("需要 , ", replace)
+
+		//			nodeStore.DelNode(replace)
+		//			fmt.Println("findNode.FindId  ", findNode.FindId)
+		//			//代理节点查找的备用超级节点
+		//			// if findNode.WantId == "left" || findNode.WantId == "right" {
+		//			// 	fmt.Println("添加备用节点：", nodeStore.ParseId(findNode.FindId))
+		//			// 	// store.AddNode(node)
+		//			// 	// return
+		//			// }
+		//			recentNode := nodeStore.Get(nodeStore.ParseId(nodeStore.GetRootIdInfoString()), false, "")
+		//			if recentNode == nil {
+		//				return
+		//			}
+		//			//是否需要替换超级节点
+		//			if string(recentNode.IdInfo.Build()) != nodeStore.SuperName {
+		//				oldSuperName := nodeStore.SuperName
+		//				fmt.Println("旧的超级节点id ", oldSuperName)
+		//				// fmt.Println("链接新的超级节点")
+		//				session, _ := c.GetNet().AddClientConn(recentNode.Addr,
+		//					nodeStore.GetRootIdInfoString(), recentNode.TcpPort, false)
+
+		//				nodeStore.SuperName = session.GetName()
+
+		//				fmt.Println("新的超级节点id ", nodeStore.SuperName)
+
+		//				//				if _, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
+		//				//					// fmt.Println("链接成功：", nodeStore.SuperName)
+		//				//				}
+		//				if session, ok := c.GetNet().GetSession(oldSuperName); ok {
+		//					fmt.Println("close -------------------1")
+		//					session.Close()
+		//					// fmt.Println("关闭旧链接：", oldSuperName)
+		//				}
+		//			}
+		//			return
+		//		}
+
+		//		//把替换的节点连接删除
+		//		if replace != "" {
+		//			//是否要替换超级节点
+		//			if session, ok := c.GetNet().GetSession(nodeStore.SuperName); ok {
+		//				utils.Log.Debug("需要替换的超级节点 %s", nodeStore.ParseId(nodeStore.SuperName))
+		//				utils.Log.Debug("要取代的超级节点 %s", replace)
+		//				if replace == session.GetName() {
+		//					// fmt.Println("close -------------------2")
+		//					session.Close()
+		//					session, _ := c.GetNet().AddClientConn(newNode.Addr, nodeStore.GetRootIdInfoString(), newNode.TcpPort, false)
+		//					nodeStore.SuperName = session.GetName()
+		//					introduceSelf(session)
+		//				}
+		//			}
+		//			if session, ok := c.GetSession(replace); ok {
+		//				// fmt.Println("close -------------------3")
+		//				session.Close()
+		//				nodeStore.DelNode(replace)
+		//			}
+		//		}
+		//		if nodeStore.Root.IsSuper {
+
+		//		}
 	}
 }
 
