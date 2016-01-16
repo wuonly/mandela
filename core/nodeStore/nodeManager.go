@@ -107,7 +107,8 @@ func AddNode(node *Node) {
 	}
 	node.LastContactTimestamp = time.Now()
 	nodes[node.IdInfo.GetId()] = node
-	consistentHash.Add(node.IdInfo.GetBigIntId())
+	consistentHash.add(node.IdInfo.GetBigIntId())
+	//	fmt.Println("add node ", node.IdInfo.GetId())
 }
 
 /*
@@ -115,7 +116,7 @@ func AddNode(node *Node) {
 */
 func DelNode(idStr string) {
 	idBitInt, _ := new(big.Int).SetString(idStr, IdStrBit)
-	consistentHash.Del(idBitInt)
+	consistentHash.del(idBitInt)
 	// recentNode.Del(node.NodeId)
 	delete(nodes, idStr)
 	delete(Proxys, idStr)
@@ -136,17 +137,17 @@ func Get(nodeId string, includeSelf bool, outId string) *Node {
 		return nil
 	}
 
-	consistentHash := NewHash()
+	tempHash := NewHash()
 	if includeSelf {
-		consistentHash.Add(Root.IdInfo.GetBigIntId())
+		tempHash.add(Root.IdInfo.GetBigIntId())
 	}
 	for key, value := range GetAllNodes() {
 		if outId != "" && key == outId {
 			continue
 		}
-		consistentHash.Add(value.IdInfo.GetBigIntId())
+		tempHash.add(value.IdInfo.GetBigIntId())
 	}
-	targetId := consistentHash.Get(nodeIdInt)
+	targetId := tempHash.get(nodeIdInt)
 
 	if targetId == nil {
 		return nil
@@ -171,23 +172,23 @@ func GetInAll(nodeId string, includeSelf bool, outId string) *Node {
 		fmt.Println(nodeId)
 		return nil
 	}
-	consistentHash := NewHash()
+	tempHash := NewHash()
 	if includeSelf {
-		consistentHash.Add(Root.IdInfo.GetBigIntId())
+		tempHash.add(Root.IdInfo.GetBigIntId())
 	}
 	for key, value := range GetAllNodes() {
 		if outId != "" && key == outId {
 			continue
 		}
-		consistentHash.Add(value.IdInfo.GetBigIntId())
+		tempHash.add(value.IdInfo.GetBigIntId())
 	}
 	for key, value := range Proxys {
 		if outId != "" && key == outId {
 			continue
 		}
-		consistentHash.Add(value.IdInfo.GetBigIntId())
+		tempHash.add(value.IdInfo.GetBigIntId())
 	}
-	targetId := consistentHash.Get(nodeIdInt)
+	targetId := tempHash.get(nodeIdInt)
 
 	if targetId == nil {
 		return nil
@@ -205,13 +206,13 @@ func GetInAll(nodeId string, includeSelf bool, outId string) *Node {
 //@id         要查询的节点id
 //@count      查询的id数量
 func GetLeftNode(id big.Int, count int) []*Node {
-	ids := consistentHash.GetLeftLow(&id, count)
+	ids := consistentHash.getLeftLow(&id, count)
 	if ids == nil {
 		return nil
 	}
 	temp := make([]*Node, 0)
-	for _, id := range ids {
-		temp = append(temp, nodes[hex.EncodeToString(id.Bytes())])
+	for _, one := range ids {
+		temp = append(temp, nodes[hex.EncodeToString(one.Bytes())])
 	}
 	return temp
 }
@@ -220,13 +221,13 @@ func GetLeftNode(id big.Int, count int) []*Node {
 //@id         要查询的节点id
 //@count      查询的id数量
 func GetRightNode(id big.Int, count int) []*Node {
-	ids := consistentHash.GetRightLow(&id, count)
+	ids := consistentHash.getRightLow(&id, count)
 	if ids == nil {
 		return nil
 	}
 	temp := make([]*Node, 0)
-	for _, id := range ids {
-		temp = append(temp, nodes[hex.EncodeToString(id.Bytes())])
+	for _, one := range ids {
+		temp = append(temp, nodes[hex.EncodeToString(one.Bytes())])
 	}
 	return temp
 }
@@ -254,27 +255,27 @@ func CheckNeedNode(nodeId string) (isNeed bool, replace string) {
 	}
 	consHash := NewHash()
 	for _, value := range GetAllNodes() {
-		consHash.Add(value.IdInfo.GetBigIntId())
+		consHash.add(value.IdInfo.GetBigIntId())
 	}
-	targetId := consHash.Get(nodeIdInt)
+	targetId := consHash.get(nodeIdInt)
 	consHash = NewHash()
 	for _, value := range getNodeNetworkNum() {
-		consHash.Add(value)
+		consHash.add(value)
 	}
 	//在同一个网络
-	if consHash.Get(targetId).Cmp(consHash.Get(nodeIdInt)) == 0 {
+	if consHash.get(targetId).Cmp(consHash.get(nodeIdInt)) == 0 {
 		switch targetId.Cmp(nodeIdInt) {
 		case 0:
 			return false, ""
 		case -1:
 			// return false, ""
 		case 1:
-			for _, idOne := range consistentHash.GetLeftLow(Root.IdInfo.GetBigIntId(), MaxRecentCount) {
+			for _, idOne := range consistentHash.getLeftLow(Root.IdInfo.GetBigIntId(), MaxRecentCount) {
 				if idOne.Cmp(targetId) == 0 {
 					return true, ""
 				}
 			}
-			for _, idOne := range consistentHash.GetRightLow(Root.IdInfo.GetBigIntId(), MaxRecentCount) {
+			for _, idOne := range consistentHash.getRightLow(Root.IdInfo.GetBigIntId(), MaxRecentCount) {
 				if idOne.Cmp(targetId) == 0 {
 					return true, ""
 				}
@@ -282,7 +283,7 @@ func CheckNeedNode(nodeId string) (isNeed bool, replace string) {
 			return true, hex.EncodeToString(targetId.Bytes())
 		}
 		//判断是否是左边最近的临近节点
-		ids := consistentHash.GetLeftLow(Root.IdInfo.GetBigIntId(), MaxRecentCount)
+		ids := consistentHash.getLeftLow(Root.IdInfo.GetBigIntId(), MaxRecentCount)
 		distanceB := new(big.Int).Xor(nodeIdInt, Root.IdInfo.GetBigIntId())
 		for _, idOne := range ids {
 			// fmt.Println("左边最邻近的节点：", hex.EncodeToString(idOne.Bytes()))
@@ -292,7 +293,7 @@ func CheckNeedNode(nodeId string) (isNeed bool, replace string) {
 			}
 		}
 		//判断是否是右边最近的临近节点
-		ids = consistentHash.GetRightLow(Root.IdInfo.GetBigIntId(), MaxRecentCount)
+		ids = consistentHash.getRightLow(Root.IdInfo.GetBigIntId(), MaxRecentCount)
 		for _, idOne := range ids {
 			// fmt.Println("右边最邻近的节点：", hex.EncodeToString(idOne.Bytes()))
 			distanceA := new(big.Int).Xor(idOne, Root.IdInfo.GetBigIntId())

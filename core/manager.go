@@ -273,6 +273,7 @@ func read() {
 			ok := false
 			var clientConn engine.Session
 			if nodeStore.Root.IsSuper {
+				fmt.Println("1==========", id)
 				clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build()))
 			} else {
 				clientConn, ok = engine.GetController().GetSession(nodeStore.SuperName)
@@ -292,6 +293,7 @@ func read() {
 			}
 			findNodeBytes, _ = json.Marshal(findNodeOne)
 			if nodeStore.Root.IsSuper {
+				fmt.Println("2==========", id)
 				if clientConn, ok = engine.GetController().GetSession(string(id[0].IdInfo.Build())); !ok {
 					continue
 				}

@@ -1,8 +1,6 @@
 package nodeStore
 
 import (
-	// "fmt"
-	// "log"
 	"math/big"
 	"sort"
 	"sync"
@@ -14,22 +12,26 @@ type ConsistentHash struct {
 }
 
 //10进制字符串
-func (this *ConsistentHash) Add(nodes ...*big.Int) {
+func (this *ConsistentHash) add(nodes ...*big.Int) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	for _, idOne := range nodes {
 		//判断重复的
+		has := false
 		for _, node := range this.nodes {
 			if node.Cmp(idOne) == 0 {
-				continue
+				has = true
+				break
 			}
 		}
-		this.nodes = append(this.nodes, idOne)
+		if !has {
+			this.nodes = append(this.nodes, idOne)
+		}
 	}
 	sort.Sort(this.nodes)
 }
 
-func (this *ConsistentHash) Get(nodeId *big.Int) *big.Int {
+func (this *ConsistentHash) get(nodeId *big.Int) *big.Int {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	if len(this.nodes) == 0 {
@@ -87,7 +89,7 @@ func (this *ConsistentHash) Get(nodeId *big.Int) *big.Int {
 //获得左边最近的节点
 //@nodeId     要查询的节点id
 //@maxId      查询的id数量
-func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
+func (this *ConsistentHash) getLeftLow(nodeId *big.Int, count int) []*big.Int {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	if len(this.nodes) == 0 {
@@ -129,7 +131,7 @@ func (this *ConsistentHash) GetLeftLow(nodeId *big.Int, count int) []*big.Int {
 //获得右边最近的节点，不包括被查询节点
 //@nodeId     要查询的节点id
 //@maxId      查询的id数量
-func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
+func (this *ConsistentHash) getRightLow(nodeId *big.Int, count int) []*big.Int {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	if len(this.nodes) == 0 {
@@ -169,7 +171,7 @@ func (this *ConsistentHash) GetRightLow(nodeId *big.Int, count int) []*big.Int {
 }
 
 //删除一个节点
-func (this *ConsistentHash) Del(node *big.Int) {
+func (this *ConsistentHash) del(node *big.Int) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	//判断重复的
@@ -182,7 +184,7 @@ func (this *ConsistentHash) Del(node *big.Int) {
 }
 
 //得到hash表中保存的所有节点
-func (this *ConsistentHash) GetAll() []*big.Int {
+func (this *ConsistentHash) getAll() []*big.Int {
 	return this.nodes
 }
 
