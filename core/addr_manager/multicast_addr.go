@@ -21,7 +21,8 @@ var (
 )
 
 func init() {
-	startBroadcastServer()
+	//startBroadcastServer()
+	registerFunc(LoadByBroadcast)
 }
 
 /*
@@ -89,6 +90,8 @@ func CloseBroadcastServer() {
 }
 
 /*
+<<<<<<< HEAD
+=======
 	通过组播方式获取地址列表
 */
 func LoadByMulticast() {
@@ -96,6 +99,7 @@ func LoadByMulticast() {
 }
 
 /*
+>>>>>>> 2d156d4c8dd53cec43765b29bf179410cb92cdfa
 	通过广播获取地址
 */
 func LoadByBroadcast() {

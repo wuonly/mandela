@@ -26,6 +26,8 @@ var (
 	//需要关闭定时清理超级节点地址列表程序时，向它发送一个信号
 	Sys_StopCleanSuperPeerEntry = make(chan bool)
 
+	//保存不同渠道获得超级节点地址方法
+	loadAddrFuncs   = make([]func(), 0)
 	startLoadChan   = make(chan bool, 1)     //当本机没有可用的超级节点地址，这里会收到一个信号
 	subscribesChans = make([]chan string, 0) //当本机有可用的超级节点地址，这里会收到一个信
 )
@@ -39,6 +41,28 @@ func init() {
 }
 
 /*
+	从所有渠道加载超级节点地址列表
+*/
+func LoadAddrForAll() {
+	//	//加载本地文件
+	//	//官网获取
+	//	//私网获取
+	//	//局域网组播获取
+	//	LoadByMulticast()
+
+	for _, one := range loadAddrFuncs {
+		one()
+	}
+}
+
+/*
+	添加一个获得超级节点地址方法
+*/
+func registerFunc(newFunc func()) {
+	loadAddrFuncs = append(loadAddrFuncs, newFunc)
+}
+
+/*
 	根据信号加载超级节点地址列表
 */
 func smartLoadAddr() {
@@ -46,17 +70,6 @@ func smartLoadAddr() {
 		<-startLoadChan
 		LoadAddrForAll()
 	}
-}
-
-/*
-	从所有渠道加载超级节点地址列表
-*/
-func LoadAddrForAll() {
-	//加载本地文件
-	//官网获取
-	//私网获取
-	//局域网组播获取
-	LoadByMulticast()
 }
 
 /*
