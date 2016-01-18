@@ -5,15 +5,15 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"net"
-	"strconv"
-
 	addrm "github.com/prestonTao/mandela/core/addr_manager"
 	"github.com/prestonTao/mandela/core/config"
 	msg "github.com/prestonTao/mandela/core/message_center"
 	engine "github.com/prestonTao/mandela/core/net"
 	"github.com/prestonTao/mandela/core/nodeStore"
 	"github.com/prestonTao/mandela/core/utils"
+	//	"github.com/prestonTao/mandela/web"
+	"net"
+	"strconv"
 )
 
 var (
@@ -49,7 +49,7 @@ func StartService() {
 	//启动核心组件
 	StartUpCore()
 	//开启web服务
-	// go StartWeb()
+	//	go web.StartWeb()
 }
 
 /*
@@ -144,7 +144,7 @@ func connectNet(ip string, port int) {
 /*
 	关闭服务器回调函数
 */
-func shutdownCallback() {
+func ShutdownCallback() {
 	//回收映射的端口
 	config.Reclaim()
 	// addrm.CloseBroadcastServer()

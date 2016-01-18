@@ -1,10 +1,10 @@
-package mandela
+package web
 
 import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
-	// "github.com/prestonTao/mandela/nodeStore"
+	"github.com/prestonTao/mandela/core"
 	"net"
 	"net/http"
 	"strconv"
@@ -20,7 +20,7 @@ func StartWeb() {
 	m.Use(render.Renderer(render.Options{
 		Extensions: []string{".html"},
 	}))
-	m.Use(martini.Static("../../statics"))
+	m.Use(martini.Static("../../web/statics"))
 
 	r := martini.NewRouter()
 
@@ -54,11 +54,11 @@ func Home_handler(r render.Render, req *http.Request, session sessions.Session) 
 */
 func GetDomain_handler() map[string]interface{} {
 	retmap := make(map[string]interface{})
-	if len(Init_IdInfo.Id) == 0 {
+	if len(core.Init_IdInfo.Id) == 0 {
 		retmap["ret"] = -1
 	} else {
 		retmap["ret"] = 0
-		retmap["domain"] = Init_IdInfo.Domain
+		retmap["domain"] = core.Init_IdInfo.Domain
 	}
 	return retmap
 }
@@ -70,7 +70,7 @@ func CreateDomain_handler(params martini.Params) map[string]interface{} {
 	domain := params["domain"]
 	name := params["name"]
 	email := params["email"]
-	CreateAccount(name, email, domain)
+	core.CreateAccount(name, email, domain)
 
 	retmap := make(map[string]interface{})
 	retmap["ret"] = 0
@@ -83,7 +83,7 @@ func CreateDomain_handler(params martini.Params) map[string]interface{} {
 func SendMsg_handler(params martini.Params) map[string]interface{} {
 	tid := params["tid"]
 	msg := params["msg"]
-	SendMsgForOne_opt(tid, msg)
+	core.SendMsgForOne_opt(tid, msg)
 
 	retmap := make(map[string]interface{})
 	retmap["ret"] = 0
