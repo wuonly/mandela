@@ -40,9 +40,9 @@ djConfig="parseOnLoad:true" 表示确定在页面加载完成以后执行解析�
 如果你启用了parseOnLoad: true，碰到页面有这种data-dojo-type，而你又没有事先require了相关的类库，他是会抛出一个js error的。而且说句实话，光是一个dijit.form.ComboBox，他就会require一大堆js文件，真是为这个页面感到费劲啊。
 建议将它设置为 false
 
-<script type="text/javascript" src="/dojo/dojo/dojo.js" data-dojo-config="parseOnLoad: false" charset="utf-8"></script>
- -->
 <script type="text/javascript" src="http://dojotoolkit.org/reference-guide/1.10/_static/js/dojo/dojo.js" data-dojo-config="parseOnLoad: false" charset="utf-8"></script>
+ -->
+<script type="text/javascript" src="/dojo/dojo/dojo.js" data-dojo-config="parseOnLoad: false" charset="utf-8"></script>
 
 <script type="text/javascript" src="/js/globe.js" charset="utf-8"></script>
 <script type="text/javascript" src="/js/main.js" charset="utf-8"></script>
